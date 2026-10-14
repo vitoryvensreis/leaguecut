@@ -14,3 +14,6 @@
 1. Verifique em **ADM → Integrações** se as métricas apareceram e se o histórico registra uma execução.
 2. Caso haja um vídeo válido e todos os limites confirmados, ajuste `APIFY_SYNC_ENABLED=1` no `.env` para habilitar os próximos ciclos agendados, ou mantenha desativado.
 3. Views coletadas não são tempo real; o coletor consulta sob orçamento e cache e o Instagram pode ocultar métricas.
+
+## Seleção automática de clipes (teste real)
+O scraper só consulta clipes **aprovados**, com vídeo original presente no Google Drive e pertencentes a campanhas ativas. Pendentes e rejeitados não consomem chamadas. Os valores encontrados são apenas *views observadas* e não geram créditos sem revisão.
