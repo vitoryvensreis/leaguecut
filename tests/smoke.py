@@ -61,7 +61,13 @@ def register(client,email,name):
 def main():
     creator=make_client()
     admin=make_client()
-    assert "Seus vídeos." in get(creator,"/")
+    home=get(creator,"/")
+    assert "Seu talento." in home, "Landing hero"
+    assert "Perguntas frequentes" in home, "FAQ section"
+    assert 'href="/explorar"' in home, "Catalog link"
+    assert "Novas campanhas em breve" in get(creator,"/explorar"), "Catalog empty state"
+    assert "Campanhas</a>" in home, "Catalog navigation"
+    assert 'assets/landing.css' in home, "Landing stylesheet"
     assert 'assets/v2.css' in get(creator,"/")
     assert 'assets/icons.svg' in get(creator,"/")
     assert 'lc-icon' in get(creator,"/")
@@ -89,7 +95,13 @@ def main():
     },"/admin/campanhas")
     assert "Campanha Teste Real" in created
     home=get(creator,"/")
-    slug=re.search(r'href="/campanhas/([a-z0-9-]+)"',home)
+    assert "Campanha Teste Real" not in home, "No campaign cards on marketing home"
+    catalog=get(creator,"/explorar")
+    assert "Campanha Teste Real" in catalog, "Campaign in public catalog"
+    assert "Campanha Teste Real" in get(creator,"/explorar?q=Real"), "Search works"
+    assert "Campanha Teste Real" in get(creator,"/explorar?categoria=Entrevistas"), "Category filter works"
+    assert "Nenhuma campanha encontrada" in get(creator,"/explorar?q=termo-inexistente-123"), "Search no results"
+    slug=re.search(r'href="/campanhas/([a-z0-9-]+)"',catalog)
     assert slug, "Campaign URL"
     submit(creator,"/redes",{"network":"instagram","username":"criador.validado"},"/redes")
     account_page=get(creator,"/redes")
@@ -118,7 +130,8 @@ def main():
     submit(creator,"/financeiro/saques",{"amount":"10,00"},"/financeiro")
     finance=get(creator,"/financeiro")
     assert "R$ 85,00" in finance, "Withdrawal reserves available balance"
-    assert "Campanha Teste Real" in get(creator,"/")
+    assert "Campanha Teste Real" in get(creator,"/explorar")
+    assert "Campanha Teste Real" not in get(creator,"/")
     print("SMOKE PASSED: register -> admin approval -> campaigns -> social -> 5 clips -> views bonus -> idempotence -> withdrawal")
 
 

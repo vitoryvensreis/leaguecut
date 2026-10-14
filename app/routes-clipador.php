@@ -15,7 +15,7 @@ function lc_clipper_routes(string $method,string $path): bool {
 <div class="metric"><small>Clipes enviados</small><strong><?=(int)$stats['total']?></strong></div>
 <div class="metric"><small>Clipes aprovados</small><strong><?=(int)$stats['approved']?></strong></div>
 <div class="metric"><small>Views verificadas</small><strong><?=number_format((int)$stats['views'],0,',','.')?></strong></div></div>
-<div class="section-head"><h2>Campanhas para você</h2><a class="section-link" href="/">Explorar catálogo →</a></div>
+<div class="section-head"><h2>Campanhas para você</h2><a class="section-link" href="/explorar">Explorar catálogo <?=lc_icon("arrow-right")?></a></div>
 <?php if($campaigns):?><div class="catalog"><?php foreach($campaigns as $c)lc_tile($c);?></div><?php else:lc_empty('Aguarde novas campanhas','A equipe está preparando as próximas oportunidades.');endif;?></div>
 <?php },'dashboard');return true;
     }
@@ -76,7 +76,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         $clips=lc_all('SELECT c.*,p.title AS campaign_title,s.network,s.username FROM clips c JOIN campaigns p ON p.id=c.campaign_id JOIN social_accounts s ON s.id=c.social_account_id WHERE c.user_id=? ORDER BY c.submitted_at DESC LIMIT 150',[$u['id']]);
         lc_page('Minha biblioteca',function()use($clips){?>
 <div class="container"><?php lc_heading('Seu conteúdo','Minha biblioteca','Suas publicações, vídeos armazenados e resultados verificados.'); ?>
-<div class="panel"><div class="panel-head"><h2>Clipes enviados</h2><a href="/" class="btn btn-sm">Nova publicação <?=lc_icon('plus')?></a></div>
+<div class="panel"><div class="panel-head"><h2>Clipes enviados</h2><a href="/explorar" class="btn btn-sm">Nova publicação <?=lc_icon('plus')?></a></div>
 <?php if(!$clips):lc_empty('Sua biblioteca está vazia','Escolha uma campanha e envie a primeira publicação.');
 else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th><th>Rede</th><th>Views conferidas</th><th>Status</th><th>Drive</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr><td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=date('d/m/Y',strtotime($c['submitted_at']))?></small></td>

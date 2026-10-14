@@ -23,6 +23,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <title><?=lc_e($title)?> · <?=lc_e($brand)?></title>
 <link rel="stylesheet" href="/assets/app.css?v=2">
 <link rel="stylesheet" href="/assets/v2.css?v=1">
+<link rel="stylesheet" href="/assets/landing.css?v=1">
 <style>:root{--accent:<?=$primary?>}</style>
 </head>
 <body>
@@ -32,7 +33,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
       <?php if (lc_valid_https($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
     </a>
     <nav class="main-nav" aria-label="Navegação principal">
-      <a class="<?=$active==='home'?'selected':''?>" href="/"><?=lc_icon("compass")?> Explorar</a>
+      <a class="<?=$active==='home'?'selected':''?>" href="/"><?=lc_icon("play")?> Início</a>
+      <a class="<?=$active==='explore'?'selected':''?>" href="/explorar"><?=lc_icon("compass")?> Campanhas</a>
       <?php if ($u && $u['status']==='approved'): ?>
       <a class="<?=$active==='dashboard'?'selected':''?>" href="/dashboard"><?=lc_icon("layout-dashboard")?> Minha área</a>
       <a class="<?=$active==='library'?'selected':''?>" href="/biblioteca"><?=lc_icon("library")?> Biblioteca</a>
