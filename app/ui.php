@@ -29,6 +29,7 @@ function lc_workspace_links(array $u): array {
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
           ['Banner da Home','/admin/home','layers'],
           ['Personalização','/admin/configuracoes','palette'],
+          ['Integrações','/admin/integracoes','settings-2'],
           ['Administradores','/admin/administradores','shield-check']
         ];
     }
