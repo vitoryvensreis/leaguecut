@@ -60,12 +60,24 @@ function lc_admin_routes(string $method,string $path): bool {
 <div class="metric"><small>Campanhas ativas</small><strong><?=$campaigns?></strong></div><div class="metric"><small>Clipes aguardando</small><strong><?=$clips?></strong></div></div>
 <div class="panel"><h2>Gestão do LeagueCut</h2><div class="pills">
 <a class="pill" href="/admin/clipadores">👥 Aprovar clipadores →</a>
+<a class="pill" href="/admin/administradores">🔐 Administradores →</a>
 <a class="pill" href="/admin/campanhas">🎬 Campanhas →</a>
 <a class="pill" href="/admin/clipes">📊 Conferir clipes e views →</a>
 <a class="pill" href="/admin/financeiro">💸 Solicitações de saque →</a>
 <a class="pill" href="/admin/bonus-mensal">🏆 Fechamento mensal →</a>
 <a class="pill" href="/admin/configuracoes">🎨 Personalização →</a>
 </div></div></div>
+<?php },'admin');return true;
+    }
+    if($method==='GET'&&$path==='/admin/administradores'){
+        $admins=lc_all("SELECT id,full_name,email,status,created_at FROM users WHERE role='admin' ORDER BY id ASC");
+        lc_page('Administradores',function()use($admins){?>
+<div class="container"><?php lc_heading('Acesso privilegiado','Administradores','Contas administrativas armazenadas no MySQL, com senhas protegidas por hash.'); ?>
+<div class="panel"><div class="panel-head"><h2>Administradores cadastrados</h2><span class="tag"><?=count($admins)?> contas</span></div>
+<div class="alert">Por segurança, novas contas administrativas são criadas no terminal da VPS com senha digitada sem aparecer na tela. Não compartilhe senhas no ChatGPT ou GitHub.</div>
+<div class="table-wrap"><table><thead><tr><th>Usuário</th><th>E-mail</th><th>Status</th><th>Criado em</th></tr></thead><tbody>
+<?php foreach($admins as $a):?><tr><td><?=lc_e($a['full_name'])?></td><td><?=lc_e($a['email'])?></td><td><span class="tag tag-<?=lc_e($a['status'])?>"><?=lc_e($a['status'])?></span></td><td><?=date('d/m/Y',strtotime($a['created_at']))?></td></tr><?php endforeach;?>
+</tbody></table></div></div><a class="btn btn-ghost" href="/admin">Voltar ao painel</a></div>
 <?php },'admin');return true;
     }
     if($method==='GET'&&$path==='/admin/clipadores'){
