@@ -15,7 +15,7 @@ function lc_apify_data_shortcode(array $row): ?string {
     foreach(['shortcode','shortCode','code','postCode'] as $key){
         if(is_string($row[$key]??null)&&preg_match('/^[A-Za-z0-9_-]{5,80}$/D',$row[$key]))return $row[$key];
     }
-    foreach(['url','postUrl','post_url','permalink','instagram_url'] as $key){
+    foreach(['url','postUrl','post_url','permalink','instagram_url','permalink_url','link'] as $key){
         if(is_string($row[$key]??null)){
             $sc=lc_apify_shortcode($row[$key]);if($sc!==null)return $sc;
         }
@@ -32,7 +32,7 @@ function lc_apify_data_author(array $row): ?string {
 }
 function lc_apify_post_views(array $row,string $username,string $shortcode): ?int {
     if(lc_apify_data_shortcode($row)!==$shortcode || lc_apify_data_author($row)!==strtolower(ltrim($username,'@')))return null;
-    foreach(['videoPlayCount','videoViewCount','playCount','viewCount','video_view_count','video_play_count','videoViews','views','play_count'] as $field){
+    foreach(['videoPlayCount','videoViewCount','playCount','viewCount','video_view_count','video_play_count','videoViews','views','play_count','video_views','video_views_count','video_plays'] as $field){
         $v=$row[$field]??null;
         if(is_int($v)||is_string($v)&&ctype_digit($v)){
             if((string)$v!=='' && (float)$v <= 2000000000)return (int)$v;
@@ -47,6 +47,29 @@ function lc_apify_observe(int $clipId,int $views): bool {
     lc_query('INSERT INTO clip_view_samples(clip_id,views,source) VALUES(?,?,"apify")',[$clipId,$views]);
     return true;
 }
+/**
+ * Free validation of the configured Apify API token. Does not launch Actors,
+ * collect personal data or create billing events.
+ */
+function lc_apify_check_connection(): bool {
+    $token=lc_env('APIFY_API_TOKEN');
+    if($token==='')return false;
+    $handle=curl_init('https://api.apify.com/v2/users/me');
+    if(!$handle)throw new RuntimeException('Falha ao abrir HTTP para a Apify.');
+    curl_setopt_array($handle,[
+      CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$token,'Accept: application/json'],
+      CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>12,
+      CURLOPT_FOLLOWLOCATION=>false,CURLOPT_MAXREDIRS=>0
+    ]);
+    $body=curl_exec($handle);
+    $status=(int)curl_getinfo($handle,CURLINFO_HTTP_CODE);
+    curl_close($handle);
+    if(!is_string($body)||$status!==200)return false;
+    $data=json_decode($body,true);
+    // A verified response from the authenticated "current user" endpoint.
+    return is_array($data) && is_array($data['data']??null) && !empty($data['data']['id']);
+}
+
 function lc_apify_usage(): array {
     $today=lc_one('SELECT COUNT(*) AS runs,COALESCE(SUM(max_charge_usd),0) AS max_reserved_usd FROM apify_profile_runs WHERE attempted_at>=UTC_DATE()')??[];
     return ['runs'=>(int)($today['runs']??0),'max_reserved_usd'=>(float)($today['max_reserved_usd']??0)];
