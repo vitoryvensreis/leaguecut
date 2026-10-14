@@ -141,6 +141,78 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         }
         lc_flash('Publicação enviada para conferência. Acompanhe sua biblioteca.');lc_redirect('/biblioteca');
     }
+    // A creator may edit/delete only BEFORE approval. Both GET and POST
+    // require the owner; status is rechecked under a DB lock on every mutation.
+    if(preg_match('~^/clipes/([0-9]+)/editar$~D',$path,$matches)){
+        $u=lc_login_required();
+        if($u['role']!=='clipador'){http_response_code(403);exit('Acesso restrito.');}
+        $id=(int)$matches[1];
+        if($method==='POST'){
+            try{
+                $message=lc_clipper_update_clip($id,(int)$u['id'],$_POST,$_FILES);
+                if(lc_clip_ajax()){
+                    header('Content-Type: application/json; charset=UTF-8');
+                    header('Cache-Control: no-store');
+                    echo json_encode(['ok'=>true,'redirect'=>'/biblioteca'],JSON_THROW_ON_ERROR);
+                    return true;
+                }
+                lc_flash($message);
+                lc_redirect('/biblioteca');
+            }catch(Throwable $e){
+                lc_clip_submission_error($e->getMessage(),'/clipes/'.$id.'/editar');
+            }
+        }
+        $clip=lc_clipper_editable_clip($id,(int)$u['id']);
+        $accounts=lc_all('SELECT id,network,username FROM social_accounts WHERE user_id=? ORDER BY network,username',[(int)$u['id']]);
+        $campaign=lc_one('SELECT title FROM campaigns WHERE id=?',[(int)$clip['campaign_id']]);
+        lc_page('Editar envio',function()use($clip,$accounts,$campaign){?>
+<div class="container container-md">
+<?php lc_heading('Biblioteca','Editar envio','Você pode corrigir os dados e substituir o vídeo original enquanto o clipe não for aprovado.'); ?>
+<div class="panel">
+<p class="hint">Campanha: <strong><?=lc_e($campaign['title']??'Campanha')?></strong>. Ao salvar, o clipe ficará pendente de nova conferência. Após aprovação, edição e exclusão são bloqueadas.</p>
+<form id="lc-clip-form" data-optional-video="<?=$clip['drive_file_id']?'1':'0'?>" method="post" action="/clipes/<?=(int)$clip['id']?>/editar" enctype="multipart/form-data">
+<?=lc_csrf()?>
+<div class="form-grid">
+<div class="full"><?php lc_field('Título do clipe','title','text',(string)$clip['title'],true,'Título do vídeo'); ?></div>
+<div class="full"><?php lc_field('Link da publicação','published_url','url',(string)$clip['published_url'],true,'https://www.instagram.com/reel/...'); ?></div>
+<label class="field full"><span>Perfil usado para publicar</span>
+<select name="social_account_id" required>
+<?php foreach($accounts as $a):?>
+<option value="<?=(int)$a['id']?>" <?=(int)$a['id']===(int)$clip['social_account_id']?'selected':''?>><?=lc_e(ucfirst($a['network']).' @'.$a['username'])?></option>
+<?php endforeach;?>
+</select></label>
+<label class="field full"><span>Substituir vídeo original <?=$clip['drive_file_id']?'(opcional)':'(obrigatório)'?></span>
+<input id="lc-clip-file" name="video" type="file" accept="video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm" <?=$clip['drive_file_id']?'':'required'?>>
+<small>MP4, MOV ou WebM (até 1 GB). Se não selecionar um arquivo, manteremos o original armazenado.</small></label>
+<div id="lc-upload-error" class="alert alert-error full" role="alert" hidden></div>
+<div class="full clip-upload-progress" id="lc-upload-progress" hidden role="status" aria-live="polite">
+  <div class="clip-upload-head"><span id="lc-upload-stage">Preparando vídeo…</span><strong id="lc-upload-percent">0%</strong></div>
+  <progress id="lc-upload-meter" max="100" value="0"></progress>
+  <small id="lc-upload-detail">Transferência do navegador até a VPS.</small>
+</div>
+<div class="full clipper-edit-buttons">
+<button id="lc-clip-submit" type="submit" class="btn"><?=lc_icon('save')?> Salvar alterações</button>
+<a class="btn btn-ghost" href="/biblioteca">Cancelar</a>
+</div>
+</div>
+</form>
+</div>
+<?php if($clip['drive_file_id']):?><div class="panel">
+<h2>Original armazenado</h2><button type="button" class="btn btn-ghost btn-sm clip-preview-trigger" data-preview-url="/clipes/<?=(int)$clip['id']?>/video" data-preview-name="<?=lc_e($clip['title'])?>"><?=lc_icon('play')?> Assistir vídeo atual</button>
+</div><?php endif;?>
+</div>
+<script defer src="/assets/clip-upload.js?v=9"></script>
+<?php lc_clip_preview_modal();},'library');
+        return true;
+    }
+    if($method==='POST' && preg_match('~^/clipes/([0-9]+)/excluir$~D',$path,$matches)){
+        $u=lc_login_required();
+        if($u['role']!=='clipador'){http_response_code(403);exit('Acesso restrito.');}
+        try{
+            lc_flash(lc_clipper_delete_clip((int)$matches[1],(int)$u['id']));
+        }catch(Throwable $e){lc_flash($e->getMessage(),'error');}
+        lc_redirect('/biblioteca');
+    }
     if($method==='GET' && $path==='/biblioteca'){
         $u=lc_login_required();
         $clips=lc_all('SELECT c.*,p.title AS campaign_title,s.network,s.username,
@@ -151,13 +223,24 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
 <div class="container"><?php lc_heading('Seu conteúdo','Minha biblioteca','Suas publicações, vídeos armazenados e resultados verificados.'); ?>
 <div class="panel"><div class="panel-head"><h2>Clipes enviados</h2><a href="/explorar" class="btn btn-sm">Nova publicação <?=lc_icon('plus')?></a></div>
 <?php if(!$clips):lc_empty('Sua biblioteca está vazia','Escolha uma campanha e envie a primeira publicação.');
-else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th><th>Rede</th><th>Views conferidas</th><th>Status</th><th>Drive</th></tr></thead><tbody>
+else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th><th>Rede</th><th>Views conferidas</th><th>Status</th><th>Drive</th><th>Ações</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr><td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=date('d/m/Y',strtotime($c['submitted_at']))?></small></td>
 <td><?=lc_e($c['campaign_title'])?></td><td><?=lc_e(ucfirst($c['network']))?> @<?=lc_e($c['username'])?></td>
  <td><?=number_format((int)$c['verified_views'],0,',','.')?>
  <?php if($c['observed_views']!==null):?><small>Views públicas: <?=number_format((int)$c['observed_views'],0,',','.')?> (Apify, <?=lc_e($c['snapshot_date'])?>; sem confirmação financeira)</small><?php endif;?></td>
 <td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td><td>
 <?php if($c['drive_file_id']):?><button type="button" class="btn btn-ghost btn-sm clip-preview-trigger" data-preview-url="/clipes/<?=(int)$c['id']?>/video" data-preview-name="<?=lc_e($c['title'])?>"><?=lc_icon('play')?> Assistir</button><?php else:?>Sem original<?php endif;?>
+</td><td>
+<?php if($c['status']==='approved'):?>
+<span class="clip-edit-locked"><?=lc_icon('lock-keyhole')?> Bloqueado após aprovação</span>
+<?php else:?>
+<div class="clipper-edit-buttons">
+<a class="btn btn-ghost btn-sm" href="/clipes/<?=(int)$c['id']?>/editar"><?=lc_icon('pencil')?> Editar</a>
+<form method="post" action="/clipes/<?=(int)$c['id']?>/excluir" onsubmit="return confirm('Excluir definitivamente este envio e o original armazenado no Google Drive?');">
+<?=lc_csrf()?><button type="submit" class="btn btn-sm btn-delete-clip"><?=lc_icon('trash-2')?> Excluir</button>
+</form>
+</div>
+<?php endif;?>
 </td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php lc_clip_preview_modal(); },'library');return true;
     }
