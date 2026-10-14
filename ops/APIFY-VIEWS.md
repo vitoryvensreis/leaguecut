@@ -33,3 +33,6 @@ O upload original é obrigatório para novos clipes. Para vídeos antigos já ac
 Em **ADM → Integrações → Métricas Instagram**, clique em **Verificar token (sem cobrança)**. Essa verificação consulta somente `GET /v2/users/me` com autenticação, não inicia o Actor e não consome a reserva diária. Abaixo do botão o administrador vê o histórico recente: horário, sucesso/falha, posts retornados, clipes atualizados e teto previamente reservado. Não exibe tokens e não afirma gasto real.
 
 O ator da imagem `danek/instagram-posts-scraper-ppr` é uma alternativa de coleta, mas a documentação pública não garante métricas de vídeos em seu retorno. O LeagueCut deve descartar respostas sem visualizações comprováveis, evitando créditos incorretos.
+
+## Segurança: agendamento pausado por padrão
+O token pode ser configurado e verificado pelo ADM, mas `APIFY_SYNC_ENABLED=0` bloqueia novas execuções agendadas enquanto os resultados reais do Actor não forem validados. A primeira execução do Actor `danek` retornou HTTP 201 com dataset vazio, sem views; `APIFY_SYNC_ENABLED=1` só deve ser usado quando um Actor confiável devolver campos de visualizações válidos.

@@ -53,6 +53,10 @@ function lc_integrations_routes(string $method,string $path): bool {
  </div>
  <div class="panel"><h2><?=lc_icon('chart-column')?> Métricas Instagram · Apify</h2>
    <span class="tag <?=$apifyConfig['token']!==''?'tag-approved':'tag-pending'?>"><?=$apifyConfig['token']!==''?'Token configurado':'Ainda não configurado'?></span>
+
+   <?php if(lc_env('APIFY_SYNC_ENABLED','0')!=='1'): ?>
+      <p class="hint" role="status"><strong>Agendamento pausado.</strong> O token está guardado, mas nenhuma consulta programada será executada até confirmarmos um Actor que forneça views reais.</p>
+   <?php endif; ?>
    <p>Consultas periódicas com cache e limite de custo. O sistema só consulta publicações Instagram vinculadas a campanhas ativas e registra views públicas observadas, sem aprovar recompensas automaticamente.</p>
    <div class="stats-grid">
      <div class="metric"><small>Execuções hoje (UTC)</small><strong><?=$apifyUsage['runs']?> / <?=$apifyConfig['daily_runs']?></strong></div>

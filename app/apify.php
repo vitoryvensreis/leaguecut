@@ -85,6 +85,19 @@ function lc_apify_config(): array {
       'min_hours'=>max(6,min(168,(int)lc_env('APIFY_MIN_HOURS_BETWEEN','24')))
     ];
 }
+/**
+ * Apify's synchronous dataset endpoint documents 201 Created on success.
+ * Some older clients may return 200; both are accepted, but errors are rejected.
+ */
+function lc_apify_parse_dataset_response(int $status,string|bool $body): array {
+    if(!is_string($body)||!in_array($status,[200,201],true))
+        throw new RuntimeException('Falha/limite do provedor Apify (HTTP '.$status.').');
+    if(strlen($body)>8*1024*1024)throw new RuntimeException('Resposta Apify muito grande.');
+    $rows=json_decode($body,true);
+    if(!is_array($rows)||!array_is_list($rows))
+        throw new RuntimeException('Apify retornou formato inesperado.');
+    return $rows;
+}
 /** Intended for the CLI job only: GET public Instagram posts for one profile. */
 function lc_apify_fetch(string $username,array $config): array {
     if(!preg_match('/^[a-zA-Z0-9._]{2,100}$/D',$username))throw new InvalidArgumentException('Perfil Instagram inválido.');
@@ -103,11 +116,7 @@ function lc_apify_fetch(string $username,array $config): array {
     ]);
     $body=curl_exec($handle);$status=(int)curl_getinfo($handle,CURLINFO_HTTP_CODE);
     curl_close($handle);
-    if(!is_string($body)||$status!==200)throw new RuntimeException('Falha/limite do provedor Apify (HTTP '.$status.').');
-    if(strlen($body)>8*1024*1024)throw new RuntimeException('Resposta Apify muito grande.');
-    $rows=json_decode($body,true);
-    if(!is_array($rows)||!array_is_list($rows))throw new RuntimeException('Apify retornou formato inesperado.');
-    return $rows;
+    return lc_apify_parse_dataset_response($status,$body);
 }
 function lc_apify_import_profile(string $username,array $rows): int {
     $clips=lc_all("SELECT c.id,c.published_url FROM clips c JOIN social_accounts s ON s.id=c.social_account_id
