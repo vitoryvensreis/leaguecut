@@ -78,7 +78,13 @@ jobs:
           echo "APP_KEY=$APP_KEY" >> "$GITHUB_ENV"
           php -S 127.0.0.1:8080 -t public public/index.php > /tmp/leaguecut-php.log 2>&1 &
           echo $! > /tmp/leaguecut-pid
+          php bin/realtime-server.php > /tmp/leaguecut-ws.log 2>&1 &
+          echo $! > /tmp/leaguecut-ws-pid
           sleep 3
+          if ! grep -q 'LEAGUECUT_WS_LISTENING' /tmp/leaguecut-ws.log; then
+            cat /tmp/leaguecut-ws.log
+            exit 1
+          fi
       - name: Testar operacao fim a fim
         env:
           APP_URL: http://127.0.0.1:8080
@@ -91,3 +97,4 @@ jobs:
           set -e
           curl --fail --silent http://127.0.0.1:8080/health
           python3 tests/smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
+          python3 tests/ws_smoke.py || { tail -n 120 /tmp/leaguecut-ws.log; exit 1; }
