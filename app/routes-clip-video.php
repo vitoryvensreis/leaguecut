@@ -55,35 +55,41 @@ function lc_clip_video_route(string $method, string $path): bool {
         $token=(string)($client->getAccessToken()['access_token']??'');
         if($token==='')throw new RuntimeException('Google Drive indisponível.');
 
-        header('Content-Type: '.$mime);
-        header('Content-Disposition: inline; filename="clip-'.(int)$clip['id'].'.'.($mime==='video/webm'?'webm':($mime==='video/quicktime'?'mov':'mp4')).'"');
-        header('Accept-Ranges: bytes');
-        header('Cache-Control: private, no-store, max-age=0');
-        header('X-Content-Type-Options: nosniff');
-        header('X-Accel-Buffering: no');
-        header('Content-Length: '.$bytes);
-        // Return 206 for requested ranges, or for internally chunked responses.
-        if($partial||$bytes!==$size){
-            http_response_code(206);
-            header('Content-Range: bytes '.$start.'-'.$end.'/'.$size);
-        }
-        $handle=curl_init('https://www.googleapis.com/drive/v3/files/'.rawurlencode($id).'?alt=media');
-        if(!$handle)throw new RuntimeException('Falha ao iniciar proxy do vídeo.');
-        curl_setopt_array($handle,[
-            CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$token,'Range: bytes='.$start.'-'.$end],
-            CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>10,
-            CURLOPT_TIMEOUT=>80,CURLOPT_BUFFERSIZE=>65536,
-            CURLOPT_WRITEFUNCTION=>static function($ch,string $chunk): int{
-                echo $chunk;
-                if(function_exists('flush'))flush();
-                return strlen($chunk);
+        // Capture a bounded upstream byte range before emitting HTTP headers.
+        // This avoids returning a 206 success body containing a Google JSON error.
+        $tmp=tmpfile();
+        if(!$tmp)throw new RuntimeException('Não foi possível abrir buffer seguro.');
+        try{
+            $handle=curl_init('https://www.googleapis.com/drive/v3/files/'.rawurlencode($id).'?alt=media');
+            if(!$handle)throw new RuntimeException('Falha de conexão ao Drive.');
+            curl_setopt_array($handle,[
+                CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$token,'Range: bytes='.$start.'-'.$end],
+                CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>80,
+                CURLOPT_FILE=>$tmp, CURLOPT_HEADER=>false
+            ]);
+            $ok=curl_exec($handle);
+            $status=(int)curl_getinfo($handle,CURLINFO_HTTP_CODE);
+            curl_close($handle);
+            if(!$ok || !in_array($status,[200,206],true) || ($status===200 && ($start!==0||$bytes!==$size))){
+                throw new RuntimeException('O Drive não confirmou o trecho solicitado.');
             }
-        ]);
-        $ok=curl_exec($handle);$status=curl_getinfo($handle,CURLINFO_HTTP_CODE);
-        curl_close($handle);
-        if($ok===false || !in_array($status,[200,206],true)){
-            error_log('LeagueCut streaming: falha de origem Google Drive');
-        }
+            $length=ftell($tmp);
+            if($length!==$bytes)throw new RuntimeException('Trecho incompleto recebido do Drive.');
+            rewind($tmp);
+            header('Content-Type: '.$mime);
+            header('Content-Disposition: inline; filename="clip-'.(int)$clip['id'].'.'.($mime==='video/webm'?'webm':($mime==='video/quicktime'?'mov':'mp4')).'"');
+            header('Accept-Ranges: bytes');
+            header('Cache-Control: private, no-store, max-age=0');
+            header('X-Content-Type-Options: nosniff');
+            header('X-Accel-Buffering: no');
+            header('Content-Length: '.$bytes);
+            if($partial||$bytes!==$size){
+                http_response_code(206);
+                header('Content-Range: bytes '.$start.'-'.$end.'/'.$size);
+            }
+            fpassthru($tmp);
+        }finally{fclose($tmp);}
+
     }catch(Throwable $e){
         error_log('LeagueCut streaming: origem não disponível');
         if(!headers_sent()){http_response_code(502);header('Content-Type: text/plain; charset=UTF-8');echo 'Prévia temporariamente indisponível.';}
