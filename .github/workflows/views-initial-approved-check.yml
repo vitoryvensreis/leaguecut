@@ -1,0 +1,65 @@
+name: LeagueCut first approved video views - capped 2 cents
+on:
+  push:
+    branches: [ops/leaguecut-views-cron]
+    paths: ['.github/workflows/views-initial-approved-check.yml']
+permissions: {contents: read}
+concurrency:
+  group: leaguecut-apify-limited
+  cancel-in-progress: false
+jobs:
+  first:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: SSH setup
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$PRIVATE_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Update one approved Instagram clip with budget cap
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
+             -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = "leaguecut" ]
+          [ "$(readlink -f /home/leaguecut/current)" = "/home/leaguecut/releases/02c09a6cad435a0578ad176ad9ab5bed9339f463" ]
+          cd /home/leaguecut/current
+          APIFY_MAX_POSTS=1 APIFY_MAX_RUN_CHARGE_USD=0.02 \
+          APIFY_DAILY_BUDGET_USD=0.07 APIFY_MAX_RUNS_PER_DAY=3 \
+          /usr/bin/php -r '
+            require "app/core.php";require "app/apify.php";
+            if(lc_env("DB_NAME")!=="leaguecut")exit(1);
+            $list=lc_apify_eligible_clips();
+            echo "ELIGIBLE_CLIPS=".count($list)."\n";
+            if(!$list)exit(0);
+            $config=lc_apify_config();
+            if($config["max_run_usd"]>0.0201 || $config["daily_usd"]>0.0701 || $config["max_posts"]!==1)exit(1);
+            $before=lc_apify_usage();
+            echo "RUNS_BEFORE=".$before["runs"]." RESERVED_BEFORE_USD=".$before["max_reserved_usd"]."\n";
+            if($before["runs"] >= 3 || $before["max_reserved_usd"]+0.02 > 0.0701){echo "PILOT_SKIPPED_BUDGET\n";exit(0);}
+            lc_apify_sync();
+            $after=lc_apify_usage();
+            if($after["runs"]>$before["runs"]+1)throw new RuntimeException("More than one call attempted");
+            $rows=lc_all("SELECT c.id,d.views,d.snapshot_date FROM clips c
+                JOIN clip_daily_views d ON d.clip_id=c.id
+                WHERE c.status=? AND d.snapshot_date=? ORDER BY c.id DESC LIMIT 10",
+                ["approved",date("Y-m-d")]);
+            echo "DAILY_SNAPSHOT_COUNT=".count($rows)."\n";
+            foreach($rows as $row){
+               echo "DAILY_CLIP_ID=".$row["id"]." VIEWS=".$row["views"]." DATE=".$row["snapshot_date"]."\n";
+            }
+            echo "RUNS_AFTER=".$after["runs"]." RESERVED_AFTER_USD=".$after["max_reserved_usd"]."\n";
+          '
+          REMOTE
