@@ -13,7 +13,9 @@ function lc_integrations_routes(string $method,string $path): bool {
         $folderPresent=$connected?(string)$connected['folder_id']!=='':lc_env('GOOGLE_DRIVE_FOLDER_ID')!=='';
         $oauthRedirect=rtrim(lc_env('APP_URL','https://leaguecut.com'),'/').'/admin/integracoes/google/callback';
         $count=(int)(lc_one('SELECT COUNT(*) AS n FROM clips WHERE drive_file_id IS NOT NULL')['n']??0);
-        lc_page('Integrações',function()use($admin,$connected,$clientConfigured,$legacy,$active,$folderPresent,$oauthRedirect,$count){?>
+        $apifyConfig=lc_apify_config();
+        $apifyUsage=lc_apify_usage();
+        lc_page('Integrações',function()use($admin,$connected,$clientConfigured,$legacy,$active,$folderPresent,$oauthRedirect,$count,$apifyConfig,$apifyUsage){?>
 <div class="container container-md">
  <?php lc_heading('Configurações do sistema','Integrações','Conecte serviços externos sem salvar tokens ou senhas no banco de configurações públicas.'); ?>
  <div class="panel">
@@ -47,6 +49,18 @@ function lc_integrations_routes(string $method,string $path): bool {
     <?php endif;?>
    </div>
    <p class="hint">Nenhum arquivo é excluído ao desconectar. A conexão antiga via variáveis do .env, se houver, permanece disponível até ser desativada manualmente.</p>
+ </div>
+ <div class="panel"><h2><?=lc_icon('chart-column')?> Métricas Instagram · Apify</h2>
+   <span class="tag <?=$apifyConfig['token']!==''?'tag-approved':'tag-pending'?>"><?=$apifyConfig['token']!==''?'Token configurado':'Ainda não configurado'?></span>
+   <p>Consultas periódicas com cache e limite de custo. O sistema só consulta publicações Instagram vinculadas a campanhas ativas e registra views públicas observadas, sem aprovar recompensas automaticamente.</p>
+   <div class="stats-grid">
+     <div class="metric"><small>Execuções hoje (UTC)</small><strong><?=$apifyUsage['runs']?> / <?=$apifyConfig['daily_runs']?></strong></div>
+     <div class="metric"><small>Teto reservado hoje (USD)</small><strong>$<?=number_format($apifyUsage['max_reserved_usd'],3,'.','')?> / $<?=number_format($apifyConfig['daily_usd'],2,'.','')?></strong></div>
+     <div class="metric"><small>Posts por consulta</small><strong><?=(int)$apifyConfig['max_posts']?></strong></div>
+     <div class="metric"><small>Intervalo por perfil</small><strong><?=(int)$apifyConfig['min_hours']?>h</strong></div>
+   </div>
+   <p class="hint">Para ativar: adicione <code>APIFY_API_TOKEN</code> no arquivo <code>/home/leaguecut/shared/.env</code>. O agendamento verifica a cada seis horas, mas respeita as cotas. A API não fornece métricas em tempo real nem garante todos os posts; números e gastos reais dependem do provedor.</p>
+   <a href="https://apify.com/danek/instagram-posts-scraper-ppr" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">Ver Actor e custos <?=lc_icon('external-link')?></a>
  </div>
  <div class="panel"><h2>Fluxo de envio</h2>
    <p>Quando configurado, cada clipador poderá anexar MP4, MOV ou WebM à publicação. O administrador poderá abrir o vídeo na conta Google com acesso à pasta, diretamente da página de revisão de clipes.</p>
