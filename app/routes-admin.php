@@ -54,20 +54,57 @@ function lc_admin_routes(string $method,string $path): bool {
         $total=(int)(lc_one("SELECT COUNT(*) AS n FROM users WHERE role='clipador'")['n']??0);
         $campaigns=(int)(lc_one("SELECT COUNT(*) AS n FROM campaigns WHERE status='active'")['n']??0);
         $clips=(int)(lc_one("SELECT COUNT(*) AS n FROM clips WHERE status='pending'")['n']??0);
-        lc_page('Administração',function()use($pending,$total,$campaigns,$clips){?>
-<div class="container"><?php lc_heading('Central de operações','Painel administrativo','Gerencie pessoas, campanhas, conferências e pagamentos.'); ?>
-<div class="stats-grid"><div class="metric"><small>Cadastros pendentes</small><strong><?=$pending?></strong></div><div class="metric"><small>Clipadores</small><strong><?=$total?></strong></div>
-<div class="metric"><small>Campanhas ativas</small><strong><?=$campaigns?></strong></div><div class="metric"><small>Clipes aguardando</small><strong><?=$clips?></strong></div></div>
-<div class="panel"><h2>Gestão do LeagueCut</h2><div class="pills admin-quick-actions">
-<a class="pill" href="/admin/clipadores"><?=lc_icon('users-round')?> Aprovar clipadores <?=lc_icon('arrow-right')?></a>
-<a class="pill" href="/admin/administradores"><?=lc_icon('shield-check')?> Administradores <?=lc_icon('arrow-right')?></a>
-<a class="pill" href="/admin/campanhas"><?=lc_icon('clapperboard')?> Campanhas <?=lc_icon('arrow-right')?></a>
-<a class="pill" href="/admin/home"><?=lc_icon('layers')?> Banner da Home <?=lc_icon('arrow-right')?></a>
-<a class="pill" href="/admin/clipes"><?=lc_icon('chart-column')?> Conferir clipes e views <?=lc_icon('arrow-right')?></a>
-<a class="pill" href="/admin/financeiro"><?=lc_icon('wallet')?> Solicitações de saque <?=lc_icon('arrow-right')?></a>
-<a class="pill" href="/admin/bonus-mensal"><?=lc_icon('trophy')?> Fechamento mensal <?=lc_icon('arrow-right')?></a>
-<a class="pill" href="/admin/configuracoes"><?=lc_icon('palette')?> Personalização <?=lc_icon('arrow-right')?></a>
-</div></div></div>
+        $withdrawals=(int)(lc_one("SELECT COUNT(*) AS n FROM withdrawals WHERE status IN ('requested','processing')")['n']??0);
+        $recent=lc_all("SELECT c.title,c.status,c.submitted_at,u.full_name,p.title AS campaign_title
+                        FROM clips c JOIN users u ON u.id=c.user_id JOIN campaigns p ON p.id=c.campaign_id
+                        ORDER BY c.id DESC LIMIT 5");
+        lc_page('Administração',function()use($admin,$pending,$total,$campaigns,$clips,$withdrawals,$recent){?>
+<div class="container ws-dashboard">
+  <section class="ws-hero" aria-labelledby="admin-overview-title">
+    <div><span class="eyebrow">Central de operações</span><h1 id="admin-overview-title">Tudo sob controle.</h1>
+      <p>Olá, <?=lc_e(explode(' ',$admin['full_name'])[0])?>. Acompanhe a operação da plataforma, o que precisa da sua atenção e as próximas ações.</p>
+    </div>
+    <div class="ws-hero-actions"><a href="/admin/clipadores?status=pending" class="btn">Ver aprovações <?=lc_icon('arrow-right')?></a><a href="/admin/campanhas" class="btn btn-ghost">Gerenciar campanhas</a></div>
+  </section>
+  <div class="ws-kpi-grid" aria-label="Indicadores administrativos">
+    <?php foreach([
+     ['Cadastros pendentes',$pending,'users-round','Aguardando análise'],
+     ['Clipes em análise',$clips,'clipboard-check','Envios aguardando revisão'],
+     ['Campanhas ativas',$campaigns,'clapperboard','Oportunidades disponíveis'],
+     ['Clipadores',$total,'chart-column','Cadastros de clipadores']
+    ] as [$name,$value,$icon,$help]): ?>
+      <div class="ws-kpi"><div class="ws-kpi-top"><span><?=lc_e($name)?></span><span class="ws-kpi-icon"><?=lc_icon($icon)?></span></div>
+       <div class="ws-kpi-value"><?=(int)$value?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
+    <?php endforeach; ?>
+  </div>
+  <div class="ws-dual">
+    <section class="panel" aria-labelledby="queue-title">
+      <div class="ws-section-title"><h2 id="queue-title">Precisa da sua atenção</h2><span class="tag tag-pending">Fila de trabalho</span></div>
+      <div class="ws-queue">
+        <a class="ws-queue-link" href="/admin/clipadores?status=pending"><span><?=lc_icon('users-round')?></span><div><strong>Aprovar clipadores</strong><small>Perfis novos aguardando sua decisão</small></div><span class="ws-queue-count"><?=$pending?></span></a>
+        <a class="ws-queue-link" href="/admin/clipes?status=pending"><span><?=lc_icon('clipboard-check')?></span><div><strong>Conferir clipes</strong><small>Revisar publicações antes dos créditos</small></div><span class="ws-queue-count"><?=$clips?></span></a>
+        <a class="ws-queue-link" href="/admin/financeiro"><span><?=lc_icon('wallet')?></span><div><strong>Solicitações de saque</strong><small>Pagamentos sujeitos a conferência manual</small></div><span class="ws-queue-count"><?=$withdrawals?></span></a>
+      </div>
+    </section>
+    <section class="panel" aria-labelledby="recent-title">
+      <div class="ws-section-title"><h2 id="recent-title">Últimas entregas</h2><a href="/admin/clipes">Ver todos <?=lc_icon('arrow-right')?></a></div>
+      <?php if(!$recent):?><div class="ws-empty-note">Os vídeos enviados pelos clipadores aparecerão aqui assim que começarem a participar.</div>
+      <?php else: ?><div class="ws-recent"><?php foreach($recent as $item):?>
+       <div class="ws-recent-item"><div class="ws-recent-leading"><span class="ws-recent-icon"><?=lc_icon('video')?></span>
+       <div class="ws-recent-main"><strong><?=lc_e($item['title'])?></strong><small><?=lc_e($item['full_name'])?> · <?=date('d/m/Y',strtotime($item['submitted_at']))?></small></div></div>
+       <span class="tag tag-<?=lc_e($item['status'])?>"><?=lc_e(lc_status_label($item['status']))?></span></div>
+      <?php endforeach;?></div><?php endif;?>
+    </section>
+  </div>
+  <div class="ws-section-title"><h2>Ferramentas de gestão</h2><span class="tag">LeagueCut</span></div>
+  <div class="ws-action-cards">
+    <a class="ws-action-card" href="/admin/campanhas"><?=lc_icon('clapperboard')?><strong>Campanhas</strong><small>Crie campanhas e ajuste metas e recompensas.</small><span class="ws-action-arr">Gerenciar <?=lc_icon('arrow-right')?></span></a>
+    <a class="ws-action-card" href="/admin/home"><?=lc_icon('layers')?><strong>Banner da Home</strong><small>Altere mídia, título e botões da landing page.</small><span class="ws-action-arr">Personalizar <?=lc_icon('arrow-right')?></span></a>
+    <a class="ws-action-card" href="/admin/bonus-mensal"><?=lc_icon('trophy')?><strong>Bônus mensal</strong><small>Feche períodos concluídos e confira o ranking.</small><span class="ws-action-arr">Acessar <?=lc_icon('arrow-right')?></span></a>
+    <a class="ws-action-card" href="/admin/configuracoes"><?=lc_icon('palette')?><strong>Identidade visual</strong><small>Ajuste nome, logo e cor de destaque.</small><span class="ws-action-arr">Configurar <?=lc_icon('arrow-right')?></span></a>
+  </div>
+  <p class="ws-trace"><?=lc_icon('clock-3')?> Indicadores calculados quando a página é aberta. Atualizações em tempo real serão adicionadas no Bloco 5.</p>
+</div>
 <?php },'admin');return true;
     }
     if($method==='GET'&&$path==='/admin/administradores'){
@@ -82,14 +119,21 @@ function lc_admin_routes(string $method,string $path): bool {
 <?php },'admin');return true;
     }
     if($method==='GET'&&$path==='/admin/clipadores'){
-        $users=lc_all("SELECT id,full_name,email,instagram,whatsapp,portfolio_url,status,consent_whatsapp,created_at FROM users WHERE role='clipador' ORDER BY FIELD(status,'pending','approved','rejected','suspended'),created_at DESC LIMIT 200");
-        lc_page('Clipadores',function()use($users){?>
-<div class="container"><?php lc_heading('Aprovações','Clipadores','Aprovação manual com registro e notificações em fila.'); ?><div class="panel"><h2>Cadastros</h2>
+        $filter=(string)($_GET['status']??'all');
+        if(!in_array($filter,['all','pending','approved','rejected','suspended'],true))$filter='all';
+        $where="role='clipador'".($filter==='all'?'':' AND status=?');
+        $users=lc_all("SELECT id,full_name,email,instagram,whatsapp,portfolio_url,status,consent_whatsapp,created_at FROM users WHERE $where ORDER BY FIELD(status,'pending','approved','rejected','suspended'),created_at DESC LIMIT 200",$filter==='all'?[]:[$filter]);
+        lc_page('Clipadores',function()use($users,$filter){?>
+<div class="container"><?php lc_heading('Aprovações','Clipadores','Aprovação manual com registro e notificações em fila.'); ?>
+<div class="ws-filter-tabs" aria-label="Filtrar clipadores por situação">
+<?php foreach(['all'=>'Todos','pending'=>'Pendentes','approved'=>'Aprovados','rejected'=>'Rejeitados','suspended'=>'Suspensos'] as $v=>$label): ?>
+<a href="/admin/clipadores?status=<?=$v?>" class="<?=$filter===$v?'selected':''?>" <?=$filter===$v?'aria-current="page"':''?>><?=$label?></a><?php endforeach;?></div>
+<div class="panel"><div class="ws-module-head"><h2>Cadastros</h2><span class="tag"><?=count($users)?> exibidos</span></div>
 <?php if(!$users):lc_empty('Nenhum cadastro','Os próximos clipadores vão aparecer aqui.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Clipador</th><th>Instagram</th><th>WhatsApp</th><th>Status</th><th>Ação</th></tr></thead><tbody>
 <?php foreach($users as $u):?><tr>
 <td><?=lc_e($u['full_name'])?><small><?=lc_e($u['email'])?></small><?php if($u['portfolio_url']):?><a href="<?=lc_e($u['portfolio_url'])?>" target="_blank" rel="noopener noreferrer">Portfólio ↗</a><?php endif;?></td>
-<td>@<?=lc_e($u['instagram'])?></td><td><?=lc_e($u['whatsapp'])?></td><td><span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e($u['status'])?></span></td>
+<td>@<?=lc_e($u['instagram'])?></td><td><?=lc_e($u['whatsapp'])?></td><td><span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(lc_status_label($u['status']))?></span></td>
 <td><?php if($u['status']==='pending'):?><form method="post" action="/admin/clipadores/<?=(int)$u['id']?>/aprovar"><?=lc_csrf()?><button class="btn btn-sm" type="submit">Aprovar <?=lc_icon('check')?></button></form><?php else:?>—<?php endif;?></td>
 </tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'admin');return true;
@@ -112,7 +156,7 @@ function lc_admin_routes(string $method,string $path): bool {
 <div class="panel"><h2>Campanhas criadas</h2>
 <?php if(!$campaigns):lc_empty('Sem campanhas ainda','Crie a primeira campanha no formulário acima.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Campanha</th><th>Status</th><th>Vídeos/semana</th><th>Valor</th><th>Editar</th></tr></thead><tbody><?php foreach($campaigns as $c):?>
-<tr><td><a href="/campanhas/<?=lc_e($c['slug'])?>"><?=lc_e($c['title'])?> ↗</a></td><td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e($c['status'])?></span></td>
+<tr><td><a href="/campanhas/<?=lc_e($c['slug'])?>"><?=lc_e($c['title'])?> ↗</a></td><td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td>
 <td><?=(int)$c['min_videos_week']?></td><td><?=lc_money($c['payment_per_video_cents'])?></td>
 <td><a href="/admin/campanhas/<?=(int)$c['id']?>/editar">Editar →</a></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'admin');return true;
@@ -125,17 +169,21 @@ function lc_admin_routes(string $method,string $path): bool {
         if($method==='GET'){lc_page('Editar campanha',function()use($c){?><div class="container container-md"><?php lc_heading('Administração','Editar campanha',$c['title']);lc_campaign_form($c);?></div><?php },'admin');return true;}
     }
     if($method==='GET'&&$path==='/admin/clipes'){
-        $clips=lc_all('SELECT c.*,u.full_name,p.title AS campaign_title,s.network FROM clips c JOIN users u ON u.id=c.user_id JOIN campaigns p ON p.id=c.campaign_id JOIN social_accounts s ON s.id=c.social_account_id ORDER BY FIELD(c.status,"pending","approved","rejected"),c.id DESC LIMIT 150');
-        lc_page('Clipes e visualizações',function()use($clips){?>
+        $filter=(string)($_GET['status']??'all');
+        if(!in_array($filter,['all','pending','approved','rejected'],true))$filter='all';
+        $clips=lc_all('SELECT c.*,u.full_name,p.title AS campaign_title,s.network FROM clips c JOIN users u ON u.id=c.user_id JOIN campaigns p ON p.id=c.campaign_id JOIN social_accounts s ON s.id=c.social_account_id'.($filter==='all'?'':' WHERE c.status=?').' ORDER BY FIELD(c.status,"pending","approved","rejected"),c.id DESC LIMIT 150',$filter==='all'?[]:[$filter]);
+        lc_page('Clipes e visualizações',function()use($clips,$filter){?>
 <div class="container"><?php lc_heading('Curadoria','Conferir clipes','Confira a publicação e informe as visualizações verificadas antes de aprovar.'); ?>
-<div class="alert">Views são informadas manualmente nesta versão. Não consideramos perfis informados como contas OAuth conectadas. Valores aprovados anteriormente não podem ser reduzidos por este formulário.</div>
-<div class="panel"><h2>Publicações para revisar</h2>
+<div class="ws-filter-tabs" aria-label="Filtrar clipes por status">
+<?php foreach(['all'=>'Todos','pending'=>'Pendentes','approved'=>'Aprovados','rejected'=>'Rejeitados'] as $v=>$label):?><a href="/admin/clipes?status=<?=$v?>" class="<?=$filter===$v?'selected':''?>" <?=$filter===$v?'aria-current="page"':''?>><?=$label?></a><?php endforeach;?></div>
+<div class="alert">As visualizações são informadas manualmente nesta versão. Perfis cadastrados ainda não são contas verificadas por OAuth. Créditos aprovados exigem ajustes auditáveis.</div>
+<div class="panel"><div class="ws-module-head"><h2>Publicações para revisar</h2><span class="tag"><?=count($clips)?> exibidos</span></div>
 <?php if(!$clips):lc_empty('Tudo em dia','Nenhum vídeo recebido até agora.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Criador / campanha</th><th>Atual</th><th>Views verificadas</th><th>Revisão</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr>
 <td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=lc_e(ucfirst($c['network']))?> <?=date('d/m/Y',strtotime($c['submitted_at']))?> · <?= $c['drive_file_id']?'Drive':'sem arquivo'?></small></td>
 <td><?=lc_e($c['full_name'])?><small><?=lc_e($c['campaign_title'])?></small></td>
-<td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e($c['status'])?></span></td>
+<td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td>
 <td colspan="2"><form class="mini-form" method="post" action="/admin/clipes/<?=(int)$c['id']?>/revisar"><?=lc_csrf()?>
 <input name="verified_views" type="number" min="<?=(int)$c['verified_views']?>" max="2000000000" value="<?=(int)$c['verified_views']?>" required aria-label="Views verificadas">
 <select name="decision" aria-label="Decisão"><?php if($c['status']!=='approved'):?><option value="approved">Aprovar</option><option value="rejected">Rejeitar</option><?php else:?><option value="approved">Atualizar views</option><?php endif;?></select>
@@ -163,11 +211,11 @@ function lc_admin_routes(string $method,string $path): bool {
     if($method==='GET'&&$path==='/admin/financeiro'){
         $withdrawals=lc_all('SELECT w.*,u.full_name,u.email,u.pix_key_enc FROM withdrawals w JOIN users u ON u.id=w.user_id ORDER BY FIELD(w.status,"requested","processing","paid","rejected"),w.id DESC LIMIT 120');
         lc_page('Saques',function()use($withdrawals){?><div class="container"><?php lc_heading('Controle financeiro','Solicitações de saque','Registre pagamentos externos somente depois de confirmar o Pix.'); ?>
-<div class="alert">Nenhum Pix é enviado automaticamente. Para marcar pago, informe o identificador real da transferência. Não compartilhe chaves Pix em logs públicos.</div><div class="panel">
+<div class="alert">Pagamentos seguem manuais nesta versão. Marque como pago somente após confirmar a transferência e informar o identificador real do Pix. Não compartilhe chaves Pix em logs públicos.</div><div class="panel">
 <?php if(!$withdrawals):lc_empty('Sem saques pendentes','Os pedidos dos clipadores vão aparecer aqui.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Clipador</th><th>Valor</th><th>Chave Pix</th><th>Status</th><th>Processar</th></tr></thead><tbody>
 <?php foreach($withdrawals as $w):?><tr><td><?=lc_e($w['full_name'])?><small><?=lc_e($w['email'])?></small></td><td><?=lc_money($w['amount_cents'])?></td>
-<td><?=lc_e(lc_decrypt($w['pix_key_enc']))?></td><td><span class="tag tag-<?=lc_e($w['status'])?>"><?=lc_e($w['status'])?></span></td>
+<td><?=lc_e(lc_decrypt($w['pix_key_enc']))?></td><td><span class="tag tag-<?=lc_e($w['status'])?>"><?=lc_e(lc_status_label($w['status']))?></span></td>
 <td><?php if(in_array($w['status'],['requested','processing'],true)):?><form method="post" action="/admin/saques/<?=(int)$w['id']?>/decidir" class="mini-form"><?=lc_csrf()?>
 <input type="text" name="reference" placeholder="ID real do Pix" maxlength="180">
 <select name="decision"><option value="paid">Confirmar pago</option><option value="rejected">Rejeitar</option></select>
