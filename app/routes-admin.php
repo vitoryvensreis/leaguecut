@@ -159,14 +159,25 @@ function lc_admin_routes(string $method,string $path): bool {
         lc_flash('Clipador aprovado. Notificações enfileiradas; o envio depende da configuração dos canais.');lc_redirect('/admin/clipadores');
     }
     if($method==='GET'&&$path==='/admin/campanhas'){
-        $campaigns=lc_all('SELECT * FROM campaigns ORDER BY id DESC LIMIT 120');
-        lc_page('Campanhas',function()use($campaigns){?><div class="container"><?php lc_heading('Operação de campanhas','Campanhas','Crie e ajuste regras de entrega, valores e bônus por campanha.');lc_campaign_form(null); ?>
-<div class="panel"><h2>Campanhas criadas</h2>
-<?php if(!$campaigns):lc_empty('Sem campanhas ainda','Crie a primeira campanha no formulário acima.');else:?>
-<div class="table-wrap"><table><thead><tr><th>Campanha</th><th>Status</th><th>Vídeos/semana</th><th>Valor</th><th>Editar</th></tr></thead><tbody><?php foreach($campaigns as $c):?>
-<tr><td><a href="/campanhas/<?=lc_e($c['slug'])?>"><?=lc_e($c['title'])?> ↗</a></td><td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td>
-<td><?=(int)$c['min_videos_week']?></td><td><?=lc_money($c['payment_per_video_cents'])?></td>
-<td><a href="/admin/campanhas/<?=(int)$c['id']?>/editar">Editar →</a></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
+        $campaigns=lc_all('SELECT * FROM campaigns ORDER BY FIELD(status,"active","draft","paused","ended"),created_at DESC,id DESC LIMIT 120');
+        lc_page('Campanhas',function()use($campaigns){?>
+<div class="container lc-admin-catalog">
+  <div class="lc-admin-catalog-header">
+    <div><span class="eyebrow">Central de campanhas</span><h1>O catálogo LeagueCut.</h1>
+      <p>Explore campanhas como títulos de uma coleção. Abra cada uma para acompanhar o ranking dos clipadores.</p></div>
+    <a class="btn" href="#criar-campanha"><?=lc_icon('plus')?> Nova campanha</a>
+  </div>
+  <div class="lc-admin-catalog-count"><span><?=lc_icon('layers')?> Catálogo gerenciado</span>
+    <strong><?=count($campaigns)?> <?=count($campaigns)===1?'campanha':'campanhas'?></strong></div>
+  <div class="lc-admin-catalog-library">
+    <h2>Campanhas criadas</h2>
+    <?php lc_campaign_catalog($campaigns,true); ?>
+  </div>
+  <div id="criar-campanha" class="lc-admin-create-block">
+    <div class="lc-create-heading"><h2>Adicionar campanha</h2><p>Novas campanhas aparecem no catálogo e têm um ranking próprio.</p></div>
+    <?php lc_campaign_form(null); ?>
+  </div>
+</div>
 <?php },'admin');return true;
     }
     if($method==='POST'&&$path==='/admin/campanhas'){lc_save_campaign(null);}
