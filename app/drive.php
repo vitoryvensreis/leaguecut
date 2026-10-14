@@ -6,11 +6,19 @@ declare(strict_types=1);
  * Google OAuth credentials and refresh tokens MUST remain outside the public directory.
  */
 function lc_drive_ready(): bool {
+    if(lc_drive_ci_fake())return true;
     if(lc_env('GOOGLE_CLIENT_ID')==='' || lc_env('GOOGLE_CLIENT_SECRET')==='')return false;
     if(!class_exists(\Google\Client::class))return false;
     $connected=lc_drive_connection();
     return (bool)($connected && $connected['folder_id']) ||
       (lc_env('GOOGLE_REFRESH_TOKEN')!=='' && lc_env('GOOGLE_DRIVE_FOLDER_ID')!=='');
+}
+function lc_drive_ci_fake(): bool {
+    return PHP_SAPI !== 'cli' ? (lc_env('LC_E2E_FAKE_DRIVE')==='1' &&
+        lc_env('APP_URL')==='http://127.0.0.1:8080' && lc_env('DB_USER')==='root' &&
+        lc_env('DB_HOST')==='127.0.0.1' && lc_env('DB_NAME')==='leaguecut') :
+        (lc_env('LC_E2E_FAKE_DRIVE')==='1' && lc_env('DB_USER')==='root' &&
+        lc_env('DB_HOST')==='127.0.0.1' && lc_env('DB_NAME')==='leaguecut');
 }
 function lc_drive_upload(array $upload, int $userId): array {
     if (!lc_drive_ready()) throw new RuntimeException('O Google Drive ainda não foi habilitado pelo administrador.');
@@ -22,6 +30,7 @@ function lc_drive_upload(array $upload, int $userId): array {
     $mime = (new finfo(FILEINFO_MIME_TYPE))->file((string)$upload['tmp_name']);
     if (!in_array($mime,[$types[$ext],'application/octet-stream'],true)) throw new RuntimeException('Formato de vídeo não reconhecido.');
 
+    if(lc_drive_ci_fake())return ['id'=>'test-drive-'.bin2hex(random_bytes(10)),'filename'=>'e2e-original.'.$ext];
     $client=lc_drive_authenticated_client();
     $drive=new \Google\Service\Drive($client);
     $filename = sprintf('clip-%d-%s.%s',$userId,bin2hex(random_bytes(8)),$ext);
