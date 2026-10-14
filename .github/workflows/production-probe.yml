@@ -1,0 +1,28 @@
+name: LeagueCut Production UX Probe
+on:
+  push:
+    branches: [feature/bloco6-polimento-final]
+    paths:
+      - '.github/workflows/production-probe.yml'
+  workflow_run:
+    workflows: ['Publicar LeagueCut (apos testes)']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify HTTPS, protected admin and WSS
+        run: |
+          set -euo pipefail
+          if [[ "${{ github.ref_name }}" == "feature/bloco6-polimento-final" ]]; then
+            python3 tests/production_probe.py --predeploy
+          else
+            python3 tests/production_probe.py
+          fi
