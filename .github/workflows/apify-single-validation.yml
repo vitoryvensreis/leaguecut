@@ -1,0 +1,74 @@
+name: LeagueCut Apify single capped validation
+on:
+  push:
+    branches: [ops/apify-single-validation-20261014]
+    paths: [.github/workflows/apify-single-validation.yml]
+permissions:
+  contents: read
+concurrency:
+  group: leaguecut-apify-limited
+  cancel-in-progress: false
+jobs:
+  one-profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: SSH setup
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Authenticate for free then run one Actor with USD 0.02 cap
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes \
+            -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = leaguecut ]
+          cd /home/leaguecut/current
+          [ -f app/apify.php ]
+          # No token is ever shown or written to workflow logs.
+          php -r '
+            require "app/core.php";require "app/apify.php";
+            if(lc_env("DB_NAME")!=="leaguecut")exit(1);
+            if(!lc_apify_check_connection()){echo "APIFY_AUTH_FAILED";exit(1);}
+            echo "APIFY_AUTH_OK\n";
+          '
+          APIFY_MAX_POSTS=5 APIFY_MAX_RUN_CHARGE_USD=0.02 \
+          APIFY_DAILY_BUDGET_USD=0.02 APIFY_MAX_RUNS_PER_DAY=1 \
+          APIFY_MIN_HOURS_BETWEEN=24 php -r '
+            require "app/core.php";require "app/apify.php";
+            $before=lc_apify_usage();
+            ob_start();
+            lc_apify_sync();
+            $privateOutput=ob_get_clean();
+            $after=lc_apify_usage();
+            echo "APIFY_RUNS_BEFORE=".$before["runs"]." AFTER=".$after["runs"]."\n";
+            echo "APIFY_USD_RESERVED_TODAY=".$after["max_reserved_usd"]."\n";
+            $last=lc_one("SELECT id,status,result_count,matched_clips,max_charge_usd,error_message FROM apify_profile_runs ORDER BY id DESC LIMIT 1");
+            if(!$last){echo "APIFY_NO_RUN_RECORDED\n";exit(0);}
+            echo "APIFY_LAST_STATUS=".$last["status"]."\n";
+            echo "APIFY_LAST_ITEMS=".$last["result_count"]."\n";
+            echo "APIFY_LAST_MATCHED=".$last["matched_clips"]."\n";
+            echo "APIFY_LAST_CAP=".$last["max_charge_usd"]."\n";
+            if($last["status"]==="failed"){
+              $err=(string)$last["error_message"];
+              if(preg_match("/HTTP ([0-9]+)/",$err,$m))echo "APIFY_ERROR_HTTP=".$m[1]."\n";
+            }
+            if($after["runs"] <= $before["runs"]){
+               echo "APIFY_NO_NEW_REQUEST_DUE_TO_BUDGET_OR_CACHE\n";
+            }
+          '
+          REMOTE
