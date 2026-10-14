@@ -1,0 +1,71 @@
+name: LeagueCut Apify official one-post capped pilot
+on:
+  push:
+    branches: [ops/apify-official-single-pilot]
+    paths: ['.github/workflows/apify-official-pilot.yml']
+permissions: {contents: read}
+concurrency:
+  group: leaguecut-apify-limited
+  cancel-in-progress: false
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: SSH credentials
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$PRIVATE_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: One exact post with 0.02 USD run cap and 0.04 USD daily aggregate cap
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
+             -i ~/.ssh/id_ed25519 -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = leaguecut ]
+          [ "$(readlink -f /home/leaguecut/current)" = "/home/leaguecut/releases/ab6429b52b24c28b609bfcfe939920980c52a63f" ]
+          cd /home/leaguecut/current
+          APIFY_MAX_RUN_CHARGE_USD=0.02 APIFY_DAILY_BUDGET_USD=0.04 \
+          APIFY_MAX_RUNS_PER_DAY=2 APIFY_MIN_HOURS_BETWEEN=24 \
+          php -r '
+            require "app/core.php";require "app/apify.php";
+            if(lc_env("DB_NAME")!=="leaguecut")exit(1);
+            $config=lc_apify_config();
+            if($config["actor"]!=="apify~instagram-post-scraper" ||
+               $config["max_run_usd"]>0.02 || $config["daily_usd"]>0.04)exit(1);
+            if(!lc_apify_check_connection()){echo "OFFICIAL_PILOT_AUTH_FAILED\n";exit(1);}
+            $candidates=lc_all("SELECT c.published_url FROM clips c JOIN social_accounts s ON s.id=c.social_account_id JOIN campaigns p ON p.id=c.campaign_id WHERE s.network=? AND p.status=? AND c.status IN (?,?) AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY) ORDER BY c.submitted_at DESC LIMIT 150",["instagram","active","pending","approved"]);
+            $eligible=0;foreach($candidates as $c){if(lc_apify_shortcode($c["published_url"]))$eligible++;}
+            echo "OFFICIAL_PILOT_ELIGIBLE_LINKS=".$eligible."\n";
+            if(!$eligible)exit(0);
+            $previous=lc_apify_usage();
+            echo "OFFICIAL_PILOT_RUNS_BEFORE=".$previous["runs"]."\n";
+            lc_apify_sync();
+            $now=lc_apify_usage();
+            if($now["runs"]>$previous["runs"]+1)throw new RuntimeException("Excesso de execucoes detectado.");
+            $last=lc_one("SELECT status,result_count,matched_clips,max_charge_usd,error_message FROM apify_profile_runs WHERE username LIKE ? ORDER BY id DESC LIMIT 1",["post:%"]);
+            if($last){
+              echo "OFFICIAL_PILOT_STATUS=".$last["status"]."\n";
+              echo "OFFICIAL_PILOT_RESULTS=".$last["result_count"]."\n";
+              echo "OFFICIAL_PILOT_UPDATED=".$last["matched_clips"]."\n";
+              echo "OFFICIAL_PILOT_MAX_CHARGE=".$last["max_charge_usd"]."\n";
+              $error=$last["error_message"]??"";
+              if(preg_match("/HTTP ([0-9]+)/",$error,$m))echo "OFFICIAL_PILOT_ERROR_HTTP=".$m[1]."\n";
+            } else {
+              echo "OFFICIAL_PILOT_NO_EXECUTION\n";
+            }
+            echo "OFFICIAL_PILOT_RUNS_AFTER=".$now["runs"]."\n";
+            echo "OFFICIAL_PILOT_TOTAL_RESERVED_USD=".$now["max_reserved_usd"]."\n";
+          '
+          REMOTE
