@@ -92,6 +92,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/realtime.css?v=6">
 <?php endif; ?>
 <link rel="stylesheet" href="/assets/polish.css?v=6">
+<?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=8"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=7"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
