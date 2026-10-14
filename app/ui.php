@@ -27,10 +27,17 @@ function lc_workspace_links(array $u): array {
           ['Campanhas','/admin/campanhas','clapperboard'],
           ['Saques','/admin/financeiro','wallet'],
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
+          ['Pacotes para criadores','/admin/pacotes','layers'],
           ['Banner da Home','/admin/home','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['Integrações','/admin/integracoes','settings-2'],
           ['Administradores','/admin/administradores','shield-check']
+        ];
+    }
+    if($u['role']==='criador'){
+        return [
+          ['Minha área','/criador','layout-dashboard'],
+          ['Pacotes mensais','/planos','layers'],
         ];
     }
     return [
@@ -43,7 +50,7 @@ function lc_workspace_links(array $u): array {
 }
 function lc_workspace_nav(array $u, string $current): void {
     $links=lc_workspace_links($u);
-    $groups=$u['role']==='admin' ? ['Operação'=>array_slice($links,0,6),'Configuração'=>array_slice($links,6)] : ['Meu espaço'=>$links];
+    $groups=$u['role']==='admin' ? ['Operação'=>array_slice($links,0,7),'Configuração'=>array_slice($links,7)] : ['Meu espaço'=>$links];
     foreach($groups as $label=>$items): ?>
       <div class="ws-nav-group">
         <p class="ws-nav-label"><?=lc_e($label)?></p>
@@ -66,9 +73,9 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $primary)) $primary = '#e50914';
     $logo = (string)($s['logo_url'] ?? '');
     $flash = lc_take_flash();
-    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && in_array($active,['admin','dashboard','library','social','finance'],true);
+    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && in_array($active,['admin','dashboard','library','social','finance','creator'],true);
     $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
-    $areaTitle=$u && $u['role']==='admin'?'Administração':'Área do clipador';
+    $areaTitle=$u && $u['role']==='admin'?'Administração':($u&&$u['role']==='criador'?'Área do criador':'Área do clipador');
     // Load only assets used on this page. Keep the base design system everywhere.
     $isHome=$active==='home';
     $isExplore=$active==='explore';
@@ -95,6 +102,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/realtime.css?v=10">
 <?php endif; ?>
 <link rel="stylesheet" href="/assets/polish.css?v=10">
+<link rel="stylesheet" href="/assets/creator-packages.css?v=1">
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
@@ -110,13 +118,15 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
       <a class="<?=$active==='home'?'selected':''?>" <?=$active==='home'?'aria-current="page"':''?> href="/"><?=lc_icon("play")?> Início</a>
       <a class="<?=$active==='explore'?'selected':''?>" <?=$active==='explore'?'aria-current="page"':''?> href="/explorar"><?=lc_icon("compass")?> Campanhas</a>
-      <?php if ($u && $u['status']==='approved'): ?>
+      <?php if($u && $u['role']==='criador'): ?><a class="<?=$active==='creator'?'selected':''?>" href="/criador"><?=lc_icon('layout-dashboard')?> Minha área</a><a href="/planos"><?=lc_icon('layers')?> Planos</a><?php endif; ?>
+      <?php if ($u && $u['status']==='approved' && $u['role']!=='criador'): ?>
       <a class="<?=$active==='dashboard'?'selected':''?>" <?=$active==='dashboard'?'aria-current="page"':''?> href="/dashboard"><?=lc_icon("layout-dashboard")?> Minha área</a>
       <a class="<?=$active==='library'?'selected':''?>" <?=$active==='library'?'aria-current="page"':''?> href="/biblioteca"><?=lc_icon("library")?> Biblioteca</a>
       <a class="<?=$active==='finance'?'selected':''?>" <?=$active==='finance'?'aria-current="page"':''?> href="/financeiro"><?=lc_icon("wallet")?> Financeiro</a>
       <a class="<?=$active==='social'?'selected':''?>" <?=$active==='social'?'aria-current="page"':''?> href="/redes"><?=lc_icon("share-2")?> Redes</a>
       <?php endif; ?>
       <?php if ($u && $u['role']==='admin'): ?><a class="<?=$active==='admin'?'selected':''?>" <?=$active==='admin'?'aria-current="page"':''?> href="/admin"><?=lc_icon("shield-check")?> Administração</a><?php endif; ?>
+      <?php if(!$u): ?><a href="/planos"><?=lc_icon('layers')?> Planos para criadores</a><?php endif; ?>
     </nav><?php else: ?><div class="workspace-breadcrumb"><?=lc_icon("layers")?> <?=lc_e($areaTitle)?> <span class="workspace-breadcrumb-slash">/</span> <?=lc_e($title)?></div><?php endif; ?>
     <div class="header-right">
       <?php if($workspace): ?>
@@ -140,9 +150,9 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($workspace): ?>
 <div class="workspace-shell">
   <aside class="workspace-sidebar" aria-label="Navegação da <?=lc_e($areaTitle)?>">
-    <div class="ws-sidebar-top"><div class="ws-area-icon"><?=lc_icon($u['role']==='admin'?'shield-check':'clapperboard')?></div><div><strong><?=lc_e($areaTitle)?></strong><span>Central LeagueCut</span></div></div>
+    <div class="ws-sidebar-top"><div class="ws-area-icon"><?=lc_icon($u['role']==='admin'?'shield-check':($u['role']==='criador'?'video':'clapperboard'))?></div><div><strong><?=lc_e($areaTitle)?></strong><span>Central LeagueCut</span></div></div>
     <nav aria-label="Menu de <?=lc_e($areaTitle)?>"><?php lc_workspace_nav($u,$path); ?></nav>
-    <div class="ws-sidebar-bottom"><div class="ws-sidebar-avatar"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></div><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':'Clipador')?></span></div></div>
+    <div class="ws-sidebar-bottom"><div class="ws-sidebar-avatar"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></div><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
   </aside>
   <div class="ws-mobile-menu"><details><summary><?=lc_icon("menu")?> Menu do painel <?=lc_icon("chevron-right")?></summary><nav aria-label="Menu mobile do painel"><?php lc_workspace_nav($u,$path); ?></nav></details></div>
   <div class="workspace-body">

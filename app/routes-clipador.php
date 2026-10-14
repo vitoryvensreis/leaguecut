@@ -13,6 +13,15 @@ function lc_clip_submission_error(string $message,string $back): never {
     lc_flash($message,'error');lc_redirect($back);
 }
 function lc_clipper_routes(string $method,string $path): bool {
+    // A buyer/creator must never access creator-of-clips submissions, Pix or payouts.
+    $visitor=lc_user();
+    if($visitor && $visitor['role']==='criador'){
+        if($path==='/dashboard')lc_redirect('/criador');
+        if(in_array($path,['/biblioteca','/redes','/financeiro','/clipes'],true) ||
+           str_starts_with($path,'/clipes/') || str_starts_with($path,'/financeiro/')){
+            http_response_code(403);exit('Esta área pertence aos clipadores, não aos criadores assinantes.');
+        }
+    }
     if($method==='GET' && $path==='/dashboard'){
         $u=lc_login_required();
         if($u['role']==='admin')lc_redirect('/admin');
