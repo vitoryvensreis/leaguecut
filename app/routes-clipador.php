@@ -24,8 +24,8 @@ function lc_clipper_routes(string $method,string $path): bool {
      ['Vídeos enviados',(string)(int)$stats['total'],'video','Publicações registradas'],
      ['Clipes aprovados',(string)(int)$stats['approved'],'circle-check','Entregas já conferidas'],
      ['Views verificadas',number_format((int)$stats['views'],0,',','.'),'chart-column','Conferidas manualmente no momento']
-    ] as [$name,$value,$icon,$help]):?>
-    <div class="ws-kpi"><div class="ws-kpi-top"><span><?=lc_e($name)?></span><span class="ws-kpi-icon"><?=lc_icon($icon)?></span></div><div class="ws-kpi-value"><?=lc_e($value)?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
+    ] as $index=>[$name,$value,$icon,$help]):?>
+    <div class="ws-kpi"><div class="ws-kpi-top"><span><?=lc_e($name)?></span><span class="ws-kpi-icon"><?=lc_icon($icon)?></span></div><div class="ws-kpi-value" data-live="<?=lc_e(['available_cents','total_clips','approved_clips','verified_views'][$index])?>"><?=lc_e($value)?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
   <?php endforeach;?>
   </div>
   <div class="ws-dual">
@@ -46,7 +46,7 @@ function lc_clipper_routes(string $method,string $path): bool {
       <div class="ws-queue">
         <a class="ws-queue-link" href="/redes"><span><?=lc_icon('share-2')?></span><div><strong>Perfis de publicação</strong><small><?=$networks?> <?= $networks===1?'rede cadastrada':'redes cadastradas'?></small></div><?=lc_icon($networks?'check':'arrow-right')?></a>
         <a class="ws-queue-link" href="/explorar"><span><?=lc_icon('compass')?></span><div><strong>Encontrar campanha</strong><small>Veja briefings e condições de participação</small></div><?=lc_icon('arrow-right')?></a>
-        <a class="ws-queue-link" href="/biblioteca"><span><?=lc_icon('clock-3')?></span><div><strong>Clipes em análise</strong><small><?=(int)$stats['pending']?> <?= (int)$stats['pending']===1?'publicação aguardando':'publicações aguardando'?></small></div><?=lc_icon('arrow-right')?></a>
+        <a class="ws-queue-link" href="/biblioteca"><span><?=lc_icon('clock-3')?></span><div><strong>Clipes em análise</strong><small><span data-live="pending_clips"><?=(int)$stats['pending']?></span> publicações aguardando</small></div><?=lc_icon('arrow-right')?></a>
       </div>
       <div class="ws-inline-notice">Os créditos são liberados somente quando os vídeos são aprovados e as metas da campanha são atingidas.</div>
     </section>
@@ -106,8 +106,15 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
             try {$uploaded=lc_drive_upload($_FILES['video'],(int)$u['id']);$fileId=$uploaded['id'];$filename=$uploaded['filename'];}
             catch(Throwable $e){lc_flash($e->getMessage(),'error');lc_redirect('/campanhas/'.$campaign['slug']);}
         }
-        lc_query("INSERT INTO clips(user_id,campaign_id,social_account_id,title,published_url,drive_file_id,original_filename)
+        lc_db()->beginTransaction();
+        try{
+            lc_query("INSERT INTO clips(user_id,campaign_id,social_account_id,title,published_url,drive_file_id,original_filename)
                   VALUES(?,?,?,?,?,?,?)",[$u['id'],$campaignId,$accountId,$title,$url,$fileId,$filename]);
+            $clipId=(int)lc_db()->lastInsertId();
+            lc_realtime_emit('admin',null,'clip.submitted','clip',$clipId);
+            lc_realtime_emit('user',(int)$u['id'],'clip.submitted','clip',$clipId);
+            lc_db()->commit();
+        }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
         lc_flash('Publicação enviada para conferência. Acompanhe sua biblioteca.');lc_redirect('/biblioteca');
     }
     if($method==='GET' && $path==='/biblioteca'){
@@ -149,6 +156,9 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
             $balance=lc_balance((int)$u['id']);
             if($amount>$balance['available']){lc_db()->rollBack();lc_flash('Saldo insuficiente.','error');lc_redirect('/financeiro');}
             lc_query('INSERT INTO withdrawals(user_id,amount_cents) VALUES(?,?)',[$u['id'],$amount]);
+            $withdrawalId=(int)lc_db()->lastInsertId();
+            lc_realtime_emit('admin',null,'withdrawal.requested','withdrawal',$withdrawalId);
+            lc_realtime_emit('user',(int)$u['id'],'withdrawal.requested','withdrawal',$withdrawalId);
             lc_db()->commit();
         }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
         lc_flash('Solicitação registrada. O pagamento será conferido pelo administrador.');lc_redirect('/financeiro');

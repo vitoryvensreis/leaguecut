@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/finance.php';
+require __DIR__ . '/realtime.php';
 require __DIR__ . '/home.php';
 require __DIR__ . '/routes-home-admin.php';
 require __DIR__ . '/drive.php';
@@ -22,6 +23,7 @@ if ($path==='/health' && $method==='GET') {
     lc_db()->query('SELECT 1');
     echo 'LeagueCut OK';return;
 }
+if(lc_realtime_route($method,$path))return;
 if(lc_home_admin_routes($method,$path))return;
 if(lc_admin_routes($method,$path))return;
 if(lc_clipper_routes($method,$path))return;

@@ -14,6 +14,8 @@ function lc_save_campaign(?int $id): void {
         lc_int('min_videos_week',5,100),lc_cents('payment_per_video',1500),
         lc_int('milestone_views',1000000,2000000000),lc_cents('milestone_bonus',2000),
         lc_cents('monthly_leader_bonus',2000),$start?:null,$end?:null];
+    lc_db()->beginTransaction();
+    try {
     if($id){
         $fields[]=$id;
         lc_query('UPDATE campaigns SET title=?,description=?,category=?,cover_url=?,status=?,min_videos_week=?,payment_per_video_cents=?,milestone_views=?,milestone_bonus_cents=?,monthly_leader_bonus_cents=?,starts_at=?,ends_at=? WHERE id=?',$fields);
@@ -22,7 +24,11 @@ function lc_save_campaign(?int $id): void {
         $fields[] = lc_slug($title);$fields[] = lc_admin()['id'];
         lc_query('INSERT INTO campaigns(title,description,category,cover_url,status,min_videos_week,payment_per_video_cents,milestone_views,milestone_bonus_cents,monthly_leader_bonus_cents,starts_at,ends_at,slug,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',$fields);
         lc_flash('Campanha criada.');
+        $id=(int)lc_db()->lastInsertId();
     }
+    lc_realtime_emit('admin',null,'campaign.updated','campaign',$id);
+    lc_db()->commit();
+    }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
     lc_redirect('/admin/campanhas');
 }
 function lc_campaign_form(?array $c): void {
@@ -72,18 +78,18 @@ function lc_admin_routes(string $method,string $path): bool {
      ['Clipes em análise',$clips,'clipboard-check','Envios aguardando revisão'],
      ['Campanhas ativas',$campaigns,'clapperboard','Oportunidades disponíveis'],
      ['Clipadores',$total,'chart-column','Cadastros de clipadores']
-    ] as [$name,$value,$icon,$help]): ?>
+    ] as $index=>[$name,$value,$icon,$help]): ?>
       <div class="ws-kpi"><div class="ws-kpi-top"><span><?=lc_e($name)?></span><span class="ws-kpi-icon"><?=lc_icon($icon)?></span></div>
-       <div class="ws-kpi-value"><?=(int)$value?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
+       <div class="ws-kpi-value" data-live="<?=lc_e(['pending_users','pending_clips','active_campaigns','total_users'][$index])?>"><?=(int)$value?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
     <?php endforeach; ?>
   </div>
   <div class="ws-dual">
     <section class="panel" aria-labelledby="queue-title">
       <div class="ws-section-title"><h2 id="queue-title">Precisa da sua atenção</h2><span class="tag tag-pending">Fila de trabalho</span></div>
       <div class="ws-queue">
-        <a class="ws-queue-link" href="/admin/clipadores?status=pending"><span><?=lc_icon('users-round')?></span><div><strong>Aprovar clipadores</strong><small>Perfis novos aguardando sua decisão</small></div><span class="ws-queue-count"><?=$pending?></span></a>
-        <a class="ws-queue-link" href="/admin/clipes?status=pending"><span><?=lc_icon('clipboard-check')?></span><div><strong>Conferir clipes</strong><small>Revisar publicações antes dos créditos</small></div><span class="ws-queue-count"><?=$clips?></span></a>
-        <a class="ws-queue-link" href="/admin/financeiro"><span><?=lc_icon('wallet')?></span><div><strong>Solicitações de saque</strong><small>Pagamentos sujeitos a conferência manual</small></div><span class="ws-queue-count"><?=$withdrawals?></span></a>
+        <a class="ws-queue-link" href="/admin/clipadores?status=pending"><span><?=lc_icon('users-round')?></span><div><strong>Aprovar clipadores</strong><small>Perfis novos aguardando sua decisão</small></div><span class="ws-queue-count" data-live="pending_users"><?=$pending?></span></a>
+        <a class="ws-queue-link" href="/admin/clipes?status=pending"><span><?=lc_icon('clipboard-check')?></span><div><strong>Conferir clipes</strong><small>Revisar publicações antes dos créditos</small></div><span class="ws-queue-count" data-live="pending_clips"><?=$clips?></span></a>
+        <a class="ws-queue-link" href="/admin/financeiro"><span><?=lc_icon('wallet')?></span><div><strong>Solicitações de saque</strong><small>Pagamentos sujeitos a conferência manual</small></div><span class="ws-queue-count" data-live="pending_withdrawals"><?=$withdrawals?></span></a>
       </div>
     </section>
     <section class="panel" aria-labelledby="recent-title">
@@ -144,6 +150,8 @@ function lc_admin_routes(string $method,string $path): bool {
             $u=lc_one("SELECT * FROM users WHERE id=? AND role='clipador' FOR UPDATE",[(int)$m[1]]);
             if(!$u || $u['status']!=='pending'){lc_db()->rollBack();lc_flash('Cadastro já processado.','error');lc_redirect('/admin/clipadores');}
             lc_query("UPDATE users SET status='approved',approved_at=NOW(),approved_by=? WHERE id=?",[$admin['id'],$u['id']]);
+            lc_realtime_emit('user',(int)$u['id'],'creator.approved','user',(int)$u['id']);
+            lc_realtime_emit('admin',null,'creator.reviewed','user',(int)$u['id']);
             lc_outbox((int)$u['id'],'email','creator_approved',['name'=>$u['full_name'],'email'=>$u['email']]);
             if((int)$u['consent_whatsapp']===1)lc_outbox((int)$u['id'],'whatsapp','creator_approved',['name'=>$u['full_name'],'phone'=>$u['whatsapp']]);
             lc_db()->commit();
@@ -200,6 +208,8 @@ function lc_admin_routes(string $method,string $path): bool {
             if($clip['status']==='approved'&&$decision!=='approved')throw new RuntimeException('Clipe já creditado. Ajustes exigem estorno auditável.');
             if($views<(int)$clip['verified_views'])throw new RuntimeException('Visualizações não podem ser reduzidas sem ajuste auditável.');
             lc_query('UPDATE clips SET status=?,verified_views=?,reviewed_at=NOW(),reviewed_by=? WHERE id=?',[$decision,$views,$admin['id'],$clip['id']]);
+            lc_realtime_emit('user',(int)$clip['user_id'],'clip.reviewed','clip',(int)$clip['id']);
+            lc_realtime_emit('admin',null,'clip.reviewed','clip',(int)$clip['id']);
             if($decision==='approved'){
                 lc_settle_week((int)$clip['campaign_id'],(int)$clip['user_id'],$clip['submitted_at']);
                 lc_credit_views((int)$clip['id']);
@@ -227,8 +237,18 @@ function lc_admin_routes(string $method,string $path): bool {
         if(!in_array($decision,['paid','rejected'],true)||($decision==='paid'&&mb_strlen($reference)<5)){
             lc_flash('Informe uma decisão e o identificador real do Pix para confirmar pagamento.','error');lc_redirect('/admin/financeiro');
         }
-        lc_query("UPDATE withdrawals SET status=?,pix_provider_reference=?,processed_at=NOW()
-                  WHERE id=? AND status IN ('requested','processing')",[$decision,$decision==='paid'?$reference:null,(int)$m[1]]);
+        lc_db()->beginTransaction();
+        try {
+            $row=lc_one("SELECT id,user_id,status FROM withdrawals WHERE id=? FOR UPDATE",[(int)$m[1]]);
+            if(!$row||!in_array($row['status'],['requested','processing'],true)){
+                lc_db()->rollBack();lc_flash('Solicitação já processada.','error');lc_redirect('/admin/financeiro');
+            }
+            lc_query("UPDATE withdrawals SET status=?,pix_provider_reference=?,processed_at=NOW()
+                  WHERE id=?",[$decision,$decision==='paid'?$reference:null,(int)$m[1]]);
+            lc_realtime_emit('user',(int)$row['user_id'],'withdrawal.updated','withdrawal',(int)$row['id']);
+            lc_realtime_emit('admin',null,'withdrawal.updated','withdrawal',(int)$row['id']);
+            lc_db()->commit();
+        }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
         lc_flash('Solicitação atualizada.');lc_redirect('/admin/financeiro');
     }
     if($method==='GET'&&$path==='/admin/bonus-mensal'){

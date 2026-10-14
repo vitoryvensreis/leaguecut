@@ -97,6 +97,18 @@ def main():
     assert "Criador Teste" in get(admin,"/admin/clipadores?status=pending")
     assert "Criador Teste" not in get(admin,"/admin/clipadores?status=approved")
     assert "Pendente" in get(admin,"/admin/clipadores?status=pending")
+    import json
+    from urllib.error import HTTPError
+    stranger=make_client()
+    try:
+        get(stranger,"/api/realtime/snapshot")
+        raise AssertionError("Unauthenticated realtime snapshot must fail")
+    except HTTPError as error:
+        assert error.code==401
+    admin_snap=json.loads(get(admin,"/api/realtime/snapshot"))
+    assert "pending_users" in admin_snap["state"]
+    assert "available_cents" not in admin_snap["state"]
+    assert "creator.registered" in [x["type"] for x in admin_snap["events"]]
     # Banner admin: edit all visible fields without altering active campaigns.
     home_editor=get(admin,"/admin/home")
     assert "Banner da página inicial" in home_editor, "Admin home editor"
@@ -176,6 +188,10 @@ def main():
     assert 'href="/admin"' not in creator_dashboard, "Creator cannot see admin sidebar"
     assert "Criador Teste" in get(admin,"/admin/clipadores?status=approved")
     assert "Criador Teste" not in get(admin,"/admin/clipadores?status=pending"), "Creator dashboard"
+    creator_snap=json.loads(get(creator,"/api/realtime/snapshot"))
+    assert creator_snap["state"]["available_cents"]==0
+    assert "creator.approved" in [x["type"] for x in creator_snap["events"]]
+    assert "creator.registered" not in [x["type"] for x in creator_snap["events"]], "No admin event leakage"
 
     created=submit(admin,"/admin/campanhas",{
       "title":"Campanha Teste Real",
@@ -230,6 +246,16 @@ def main():
     submit(creator,"/financeiro/saques",{"amount":"10,00"},"/financeiro")
     finance=get(creator,"/financeiro")
     assert "R$ 85,00" in finance, "Withdrawal reserves available balance"
+    creator_latest=json.loads(get(creator,"/api/realtime/snapshot"))
+    assert creator_latest["state"]["available_cents"]==8500
+    assert creator_latest["state"]["approved_clips"]==5
+    assert creator_latest["state"]["verified_views"]>=1000000
+    assert creator_latest["state"]["pending_clips"]==0
+    assert "withdrawal.requested" in [x["type"] for x in creator_latest["events"]]
+    admin_latest=json.loads(get(admin,"/api/realtime/snapshot"))
+    assert admin_latest["state"]["pending_withdrawals"]==1
+    assert "withdrawal.requested" in [x["type"] for x in admin_latest["events"]]
+    assert "creator.approved" not in [x["type"] for x in admin_latest["events"]], "No creator-only event leakage"
     assert "Campanha Teste Real" in get(creator,"/explorar")
     assert "Campanha Teste Real" not in get(creator,"/")
     print("SMOKE PASSED: register -> admin approval -> campaigns -> social -> 5 clips -> views bonus -> idempotence -> withdrawal")

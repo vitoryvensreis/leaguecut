@@ -1,0 +1,21 @@
+[Unit]
+Description=LeagueCut PHP WebSocket worker
+After=network.target mariadb.service mysql.service
+
+[Service]
+Type=simple
+User=leaguecut
+Group=leaguecut
+WorkingDirectory=/home/leaguecut/current
+ExecStart=/usr/bin/php /home/leaguecut/current/bin/realtime-server.php
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+LimitNOFILE=8192
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
