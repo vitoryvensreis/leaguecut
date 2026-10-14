@@ -11,6 +11,7 @@ require __DIR__ . '/routes-clip-video.php';
 require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/routes-public.php';
 require __DIR__ . '/routes-clipador.php';
+require __DIR__ . '/clip-admin-actions.php';
 require __DIR__ . '/routes-admin.php';
 if (is_file(LC_ROOT . '/vendor/autoload.php')) require_once LC_ROOT . '/vendor/autoload.php';
 
