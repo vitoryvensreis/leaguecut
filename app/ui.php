@@ -102,7 +102,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
     <a class="brand" href="/" aria-label="<?=lc_e($brand)?>, página inicial">
-      <?php if (lc_valid_https($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>" width="175" height="44" decoding="async"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
+      <?php if (lc_brand_logo_src($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>" width="175" height="44" decoding="async"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
     </a>
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
       <a class="<?=$active==='home'?'selected':''?>" <?=$active==='home'?'aria-current="page"':''?> href="/"><?=lc_icon("play")?> Início</a>
