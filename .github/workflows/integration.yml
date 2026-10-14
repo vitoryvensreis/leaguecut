@@ -10,6 +10,16 @@ on:
       - 'database/**'
       - 'composer.json'
       - '.github/workflows/integration.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/**'
+      - 'app/**'
+      - 'public/**'
+      - 'bin/**'
+      - 'database/**'
+      - 'composer.json'
+      - '.github/workflows/integration.yml'
   workflow_dispatch:
 permissions:
   contents: read
