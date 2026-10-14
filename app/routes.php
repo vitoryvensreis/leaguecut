@@ -5,6 +5,7 @@ require __DIR__ . '/realtime.php';
 require __DIR__ . '/home.php';
 require __DIR__ . '/routes-home-admin.php';
 require __DIR__ . '/drive.php';
+require __DIR__ . '/apify.php';
 require __DIR__ . '/routes-clip-video.php';
 require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/routes-public.php';
