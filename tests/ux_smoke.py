@@ -75,11 +75,28 @@ def main():
     verify(guest,"/cadastrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
     assert 'name="q"' in catalog, "Catalog search form"
     assert 'name="categoria"' in catalog, "Catalog category filter"
+    assert 'lc-catalog-showcase' in catalog and 'lc-catalog-shelf' in catalog, "Catalog showcase and shelves"
+    assert 'campaign-experience.css' in catalog
+    assert 'workspace-motion.css' not in catalog and 'workspace-motion.css' not in home, "No entrance animation in public marketing LP"
+    with guest.open(BASE+"/assets/campaign-experience.css",timeout=10) as asset:
+        css=asset.read().decode("utf-8")
+        assert 'overflow-x:clip' in css and '@media(max-width:580px)' in css
+
 
     admin=client()
     login(admin,"admin@leaguecut.test")
     dashboard=verify(admin,"/admin",["workspace.css","realtime.css","polish.css"],["landing.css","banner.css"])
     assert "Precisa da sua atenção" in dashboard
+    assert 'workspace-motion.css' in dashboard, "Admin panels animate"
+    with admin.open(BASE+"/assets/workspace-motion.css",timeout=10) as asset:
+        anim=asset.read().decode("utf-8")
+        assert 'prefers-reduced-motion:reduce' in anim
+        assert 'translate3d(0,12px,0)' in anim and 'translate3d(0,6px,0)' in anim
+        assert '.workspace-page' in anim, "Workspace animations must be scoped"
+    admin_campaigns=verify(admin,"/admin/campanhas",
+        ["workspace.css","workspace-motion.css","campaign-experience.css"],["landing.css"])
+    assert 'lc-catalog-showcase' in admin_campaigns and 'lc-catalog-shelves' in admin_campaigns
+
     assert 'aria-label="Atualizações"' in dashboard
     assert 'data-realtime-connection' in dashboard
     assert 'data-live="pending_users"' in dashboard
@@ -92,6 +109,8 @@ def main():
     login(creator,"creator@leaguecut.test")
     clipper=verify(creator,"/dashboard",["workspace.css","realtime.css","polish.css"],["landing.css","banner.css"])
     assert 'data-live="available_cents"' in clipper
+    assert 'workspace-motion.css' in clipper, "Creator panel animation loaded"
+
     for target in ("/redes","/biblioteca","/financeiro"):
         verify(creator,target,["workspace.css","realtime.css"],["landing.css"])
     assert any(a.get("href")=="/dashboard" and a.get("aria-current")=="page" for t,a in MarkupLinks(clipper).tags if t=="a")
