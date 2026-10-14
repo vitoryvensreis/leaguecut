@@ -127,6 +127,53 @@ try{
     }
     echo "MIGRACAO_DAILY_VIEWS_OK\n";
 
+    // Bloco 1: new role and additive creator subscription tables.
+    $roleType=lc_one("SELECT COLUMN_TYPE AS t FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='role'");
+    if(!$roleType)throw new RuntimeException('Papel de usuário indisponível.');
+    $creatorTables=['creator_packages','creator_subscriptions',
+                    'creator_subscription_cycles','creator_deliveries'];
+    $creatorMissing=[];
+    foreach($creatorTables as $table){
+        if(!lc_one("SELECT 1 AS ok FROM information_schema.TABLES
+                     WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?",[$table]))$creatorMissing[]=$table;
+    }
+    $roleNeedsUpgrade=!str_contains((string)$roleType['t'],"'criador'");
+    if($roleNeedsUpgrade || $creatorMissing){
+        lc_migration_backup();
+    }
+    if($roleNeedsUpgrade){
+        // MySQL ENUM addition preserves the values of existing admin/clipador users.
+        $db->exec("ALTER TABLE users MODIFY COLUMN role ENUM('clipador','admin','criador')
+                   NOT NULL DEFAULT 'clipador'");
+    }
+    $script=file_get_contents(dirname(__DIR__).'/database/migrations/20261014_007_creator_subscriptions.sql');
+    if(!is_string($script))throw new RuntimeException('SQL de assinaturas indisponível.');
+    $script=(string)preg_replace('/^\s*--[^\n]*\n/m','',$script);
+    $statements=array_values(array_filter(array_map('trim',explode(';',$script))));
+    $expected=$creatorTables;
+    if(count($statements)!==count($expected))throw new RuntimeException('Migração de assinaturas alterada inesperadamente.');
+    foreach($statements as $i=>$statement){
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($expected[$i],'/').'\s*\(/i',$statement))
+            throw new RuntimeException('Migração de assinaturas inválida: '.$expected[$i]);
+        $db->exec($statement);
+    }
+    $roleType=$db->query("SELECT COLUMN_TYPE FROM information_schema.COLUMNS
+             WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='role'")->fetchColumn();
+    if(!str_contains((string)$roleType,"'criador'"))throw new RuntimeException('Papel criador indisponível.');
+    foreach([
+       'creator_packages'=>['fulfillment_mode','monthly_clips','monthly_price_cents','status'],
+       'creator_subscriptions'=>['creator_id','package_id','price_cents_snapshot','fulfillment_mode_snapshot'],
+       'creator_subscription_cycles'=>['subscription_id','cycle_start','clips_included','clips_used','payment_status'],
+       'creator_deliveries'=>['subscription_id','cycle_id','creator_id','status']
+    ] as $table=>$columns){
+       $actual=$db->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS
+               WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=".$db->quote($table))->fetchAll(PDO::FETCH_COLUMN);
+       if(array_diff($columns,$actual))throw new RuntimeException('Estrutura do pacote incompleta: '.$table);
+    }
+    echo "MIGRACAO_CRIADOR_ASSINATURAS_OK\n";
+
+
 }catch(Throwable $e){
     fwrite(STDERR,'MIGRACAO_FALHOU: '.$e->getMessage()."\n");
     exit(1);
