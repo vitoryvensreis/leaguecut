@@ -10,3 +10,10 @@
 .creator-plan-editor .field{min-width:0}
 .creator-plan-editor textarea{min-height:112px}
 @media(max-width:640px){.creator-plan-grid{grid-template-columns:minmax(0,1fr);gap:12px}.creator-plan-card{min-height:auto}}
+
+/* Bloco 2: operational subscription requests and human-verified payments */
+.creator-billing-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:135px}
+.creator-billing-actions form{display:inline-flex;margin:0}
+.creator-billing-actions .btn,.creator-plan-card form .btn{border-radius:2px;white-space:nowrap}
+.creator-plan-card form{margin:14px 0 0}
+@media(max-width:720px){.creator-billing-actions{min-width:110px}}
