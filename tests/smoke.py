@@ -75,6 +75,31 @@ def submit_video(client, campaign_id, account_id, title, url):
         payload=json.load(resp)
         assert payload.get("ok") is True, payload
 
+def replace_clip_video(client, clip_id, account_id, title, url):
+    """CI multipart edit: fake Google Drive is available only on localhost."""
+    import json
+    boundary="leaguecut-test-edit-multipart"
+    fields={
+       "_csrf":csrf_from(client,f"/clipes/{clip_id}/editar"),
+       "social_account_id":str(account_id),
+       "title":title,
+       "published_url":url
+    }
+    parts=[]
+    for key,value in fields.items():
+        parts.append((f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n').encode())
+    mp4=b"\x00\x00\x00\x1cftypisom\x00\x00\x02\x00isomiso2mp41"
+    parts.append((f'--{boundary}\r\nContent-Disposition: form-data; name="video"; filename="novo.mp4"\r\nContent-Type: video/mp4\r\n\r\n').encode()+mp4+b"\r\n")
+    parts.append((f'--{boundary}--\r\n').encode())
+    req=urllib.request.Request(BASE+f"/clipes/{clip_id}/editar",
+       data=b"".join(parts),method="POST",
+       headers={"Content-Type":f"multipart/form-data; boundary={boundary}",
+                "X-Requested-With":"XMLHttpRequest"})
+    with client.open(req,timeout=15) as response:
+        assert response.headers.get("Content-Type","").startswith("application/json")
+        payload=json.load(response)
+        assert payload.get("ok") is True,payload
+
 def register(client,email,name):
     return submit(client,"/cadastrar",{
       "full_name":name,"email":email,"password":"This-Is-A-Test-Password-123",
@@ -300,6 +325,43 @@ def main():
     for i in range(5):
         submit_video(creator,(campaign_id,slug.group(1)),account_id,
           "Clipe de teste %02d" % i,"https://www.instagram.com/reel/test%d/" % i)
+    clips_before_edit=get(creator,"/biblioteca")
+    edit_links=re.findall(r'href="/clipes/(\d+)/editar"',clips_before_edit)
+    assert len(edit_links)==5, "Unapproved clips must show edit links"
+    assert len(re.findall(r'action="/clipes/(\d+)/excluir"',clips_before_edit))==5
+    pending_clip_id=edit_links[-1]
+    edit_page=get(creator,f"/clipes/{pending_clip_id}/editar")
+    assert 'data-optional-video="1"' in edit_page and 'name="social_account_id"' in edit_page
+    assert "Salvar alterações" in edit_page and 'id="lc-upload-percent"' in edit_page
+    changed=submit(creator,f"/clipes/{pending_clip_id}/editar",{
+       "title":"Clipe corrigido sem troca de arquivo",
+       "published_url":"https://www.instagram.com/reel/corrected_test/",
+       "social_account_id":account_id
+    },f"/clipes/{pending_clip_id}/editar")
+    assert "Clipe corrigido sem troca de arquivo" in changed
+    assert f'data-preview-url="/clipes/{pending_clip_id}/video"' in changed
+    replace_clip_video(creator,pending_clip_id,account_id,
+        "Clipe corrigido com novo original","https://www.instagram.com/reel/corrected_video/")
+    assert "Clipe corrigido com novo original" in get(creator,"/biblioteca")
+    from urllib.error import HTTPError
+    try:
+        get(creator,"/clipes/999999/editar")
+        raise AssertionError("Foreign/missing clip exposed")
+    except HTTPError as exc:
+        assert exc.code==404
+    try:
+        get(admin,f"/clipes/{pending_clip_id}/editar")
+        raise AssertionError("Admin must not edit via clipper workspace")
+    except HTTPError as exc:
+        assert exc.code==403
+    # Delete an unapproved upload, including its Drive original.
+    delete_clip_id=edit_links[-2]
+    after_delete=submit(creator,f"/clipes/{delete_clip_id}/excluir",{},"/biblioteca")
+    assert "original removido do Google Drive" in after_delete
+    assert f'href="/clipes/{delete_clip_id}/editar"' not in after_delete
+    submit_video(creator,(campaign_id,slug.group(1)),account_id,
+        "Clipe substituto pelo criador","https://www.instagram.com/reel/creator_replace/")
+    assert len(re.findall(r'href="/clipes/(\d+)/editar"',get(creator,"/biblioteca")))==5
     clips_page=get(creator,"/biblioteca")
     assert "Clipe de teste 04" in clips_page
     assert 'class="clip-preview-trigger"' in clips_page or 'clip-preview-trigger' in clips_page
@@ -345,11 +407,34 @@ def main():
             'Reprovar</button>' in approved_page), "Approved clip must show Reprovar"
     rejected=submit(admin,first_url,{"decision":"rejected"},"/admin/clipes")
     assert "Clipe reprovado" in rejected
+    assert f'href="/clipes/{first_id}/editar"' in get(creator,"/biblioteca")
+    revised=submit(creator,f"/clipes/{first_id}/editar",{
+        "title":"Clipe revisado após reprovação",
+        "published_url":"https://www.instagram.com/reel/after_rejection/",
+        "social_account_id":account_id
+    },f"/clipes/{first_id}/editar")
+    assert "Clipe revisado após reprovação" in revised
+    assert "Clipe revisado após reprovação" in get(admin,"/admin/clipes?status=pending")
     rejected_page=get(admin,"/admin/clipes?status=rejected")
     assert 'Aprovar</button>' in rejected_page, "Rejected clip must show Aprovar"
     submit(admin,first_url,{"decision":"approved"},"/admin/clipes")
     for url,_id in reviews[1:]:
         submit(admin,url,{"decision":"approved"},"/admin/clipes")
+    approved_library=get(creator,"/biblioteca")
+    assert 'Bloqueado após aprovação' in approved_library
+    for approved_url,approved_id in reviews:
+        assert f'href="/clipes/{approved_id}/editar"' not in approved_library
+        assert f'action="/clipes/{approved_id}/excluir"' not in approved_library
+        try:
+            get(creator,f"/clipes/{approved_id}/editar")
+            raise AssertionError("Approved clip edit page exposed")
+        except HTTPError as exc:
+            assert exc.code==403
+        try:
+            submit(creator,f"/clipes/{approved_id}/excluir",{},"/biblioteca")
+            raise AssertionError("Approved clip could be deleted")
+        except HTTPError as exc:
+            assert exc.code==403
     assert "Clipe de teste 04" in get(admin,"/admin/clipes?status=approved"), "Approved filter"
     assert "Clipe de teste 04" not in get(admin,"/admin/clipes?status=pending"), "Pending filter"
     finance=get(creator,"/financeiro")
