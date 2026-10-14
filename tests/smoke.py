@@ -77,7 +77,26 @@ def main():
     register(admin,"admin@leaguecut.test","Admin Teste")
     import subprocess
     subprocess.check_call(["php","bin/make-admin.php","admin@leaguecut.test"])
-    assert "Painel administrativo" in get(admin,"/admin")
+    admin_view=get(admin,"/admin")
+    assert "Painel administrativo" in admin_view
+    assert "Precisa da sua atenção" in admin_view
+    assert "Ferramentas de gestão" in admin_view
+    assert "ws-kpi-grid" in admin_view
+    assert 'class="workspace-shell"' in admin_view
+    assert 'assets/workspace.css' in admin_view
+    assert 'href="/admin/clipes"' in admin_view
+    assert 'href="/admin/home"' in admin_view
+    assert 'href="/admin/clipadores?status=pending"' in admin_view
+    assert 'href="/dashboard"' not in admin_view, "Admin cannot receive creator workspace shortcuts"
+    from urllib.error import HTTPError
+    try:
+        get(creator,"/admin")
+        raise AssertionError("Creators must not enter admin")
+    except HTTPError as exc:
+        assert exc.code==403, "Admin access control"
+    assert "Criador Teste" in get(admin,"/admin/clipadores?status=pending")
+    assert "Criador Teste" not in get(admin,"/admin/clipadores?status=approved")
+    assert "Pendente" in get(admin,"/admin/clipadores?status=pending")
     # Banner admin: edit all visible fields without altering active campaigns.
     home_editor=get(admin,"/admin/home")
     assert "Banner da página inicial" in home_editor, "Admin home editor"
@@ -148,7 +167,15 @@ def main():
     assert match, "Expected pending creator"
     approval=submit(admin,match.group(1),{},"/admin/clipadores")
     assert "aprovado" in approval.lower(), "Approval response"
-    assert "Olá," in get(creator,"/dashboard"), "Creator dashboard"
+    creator_dashboard=get(creator,"/dashboard")
+    assert "Olá," in creator_dashboard
+    assert "Seu próximo passo" in creator_dashboard
+    assert "Últimas publicações" in creator_dashboard
+    assert "workspace-shell" in creator_dashboard
+    assert 'href="/redes"' in creator_dashboard
+    assert 'href="/admin"' not in creator_dashboard, "Creator cannot see admin sidebar"
+    assert "Criador Teste" in get(admin,"/admin/clipadores?status=approved")
+    assert "Criador Teste" not in get(admin,"/admin/clipadores?status=pending"), "Creator dashboard"
 
     created=submit(admin,"/admin/campanhas",{
       "title":"Campanha Teste Real",
@@ -182,11 +209,19 @@ def main():
         },"/campanhas/"+slug.group(1))
     clips_page=get(creator,"/biblioteca")
     assert "Clipe de teste 04" in clips_page
+    creator_after=get(creator,"/dashboard")
+    assert "Clipe de teste 04" in creator_after, "Recent activity includes real clip"
+    assert "5" in creator_after, "Dashboard shows submitted clip count"
+    assert "Clipes em análise" in creator_after
+    assert "Clipe de teste 04" in get(admin,"/admin/clipes?status=pending")
+    assert "Clipe de teste 04" not in get(admin,"/admin/clipes?status=approved")
     review=get(admin,"/admin/clipes")
     reviews=re.findall(r'action="(/admin/clipes/(\d+)/revisar)"',review)
     assert len(reviews)>=5, "5 videos to review"
     for i,(url,_id) in enumerate(reviews[:5]):
         submit(admin,url,{"verified_views":"1000000" if i==0 else "200","decision":"approved"},"/admin/clipes")
+    assert "Clipe de teste 04" in get(admin,"/admin/clipes?status=approved"), "Approved filter"
+    assert "Clipe de teste 04" not in get(admin,"/admin/clipes?status=pending"), "Pending filter"
     finance=get(creator,"/financeiro")
     assert "R$ 95,00" in finance, "Five clips (R$75) + views bonus (R$20)"
     submit(admin,reviews[0][0],{"verified_views":"1000000","decision":"approved"},"/admin/clipes")
