@@ -78,7 +78,9 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/landing.css?v=1">
 <link rel="stylesheet" href="/assets/banner.css?v=1">
 <link rel="stylesheet" href="/assets/workspace.css?v=1">
+<link rel="stylesheet" href="/assets/realtime.css?v=1">
 <style>:root{--accent:<?=$primary?>}</style>
+<?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
 </head>
 <body class="<?=$workspace?'workspace-page':'public-page'?>">
 <header class="site-header <?=$workspace?'workspace-header':''?>">
@@ -98,7 +100,14 @@ function lc_page(string $title, callable $body, string $active = ''): void {
       <?php if ($u && $u['role']==='admin'): ?><a class="<?=$active==='admin'?'selected':''?>" href="/admin"><?=lc_icon("shield-check")?> Administração</a><?php endif; ?>
     </nav><?php else: ?><div class="workspace-breadcrumb"><?=lc_icon("layers")?> <?=lc_e($areaTitle)?> <span class="workspace-breadcrumb-slash">/</span> <?=lc_e($title)?></div><?php endif; ?>
     <div class="header-right">
-      <?php if($workspace): ?><a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a><?php endif; ?>
+      <?php if($workspace): ?>
+      <details class="rt-notifications" id="rt-notifications">
+        <summary aria-label="Atualizações" title="Atualizações"><?=lc_icon('bell')?><span class="rt-unread" data-realtime-unread hidden>0</span></summary>
+        <div class="rt-notification-panel"><div class="rt-panel-head"><strong>Atualizações</strong><span class="rt-connection-state" data-realtime-connection>Conectando</span></div>
+        <div class="rt-notification-list" data-realtime-feed><p>Nenhuma atualização recente.</p></div></div>
+      </details>
+      <a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a>
+      <?php endif; ?>
       <?php if ($u): ?>
       <span class="user-short"><?=lc_e(explode(' ', $u['full_name'])[0])?></span>
       <span class="avatar" title="<?=lc_e($u['full_name'])?>"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></span>
@@ -125,6 +134,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 </main>
 <?php if($workspace): ?></div></div><?php endif; ?>
 <footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span><span>Crie conteúdo. Faça parte. Receba pelo resultado.</span></footer>
+<?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
+<script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
 </body></html><?php
 }
 function lc_tile(array $c): void {

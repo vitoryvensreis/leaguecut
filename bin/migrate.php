@@ -69,6 +69,17 @@ try{
     $row=$db->query('SELECT id FROM homepage_banners WHERE id=1')->fetchColumn();
     if(!$row)throw new RuntimeException('Banner padrão não encontrado.');
     echo "MIGRACAO_HOME_BANNER_OK\n";
+    $realtimeExists=(bool)lc_one("SELECT 1 AS found FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='realtime_events'");
+    if(!$realtimeExists)lc_migration_backup();
+    $realtimeSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261014_003_realtime_events.sql'));
+    if(!preg_match('/^CREATE TABLE IF NOT EXISTS realtime_events\\b/i',$realtimeSql) ||
+        substr_count($realtimeSql,';')!==1)throw new RuntimeException('Migração realtime inválida.');
+    $db->exec($realtimeSql);
+    $columns=$db->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='realtime_events'")->fetchAll(PDO::FETCH_COLUMN);
+    if(array_diff(['id','scope','user_id','event_type','entity_type','entity_id','payload_json','created_at'],$columns)){
+        throw new RuntimeException('Tabela realtime_events possui estrutura incompatível.');
+    }
+    echo "MIGRACAO_REALTIME_OK\n";
 }catch(Throwable $e){
     fwrite(STDERR,'MIGRACAO_FALHOU: '.$e->getMessage()."\n");
     exit(1);

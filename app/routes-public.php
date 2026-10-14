@@ -138,6 +138,7 @@ function lc_public_routes(string $method,string $path): bool {
         lc_query("INSERT INTO users(full_name,email,password_hash,instagram,whatsapp,portfolio_url,pix_key_enc,consent_whatsapp) VALUES(?,?,?,?,?,?,?,?)",
             [$name,$email,password_hash($password,PASSWORD_DEFAULT),$instagram,$whatsapp,$portfolio?:null,lc_encrypt($pix),lc_bool('consent_whatsapp')?1:0]);
         session_regenerate_id(true);$_SESSION['uid']=(int)lc_db()->lastInsertId();
+        lc_realtime_emit('admin',null,'creator.registered','user',$_SESSION['uid']);
         lc_flash('Cadastro enviado! Aguarde a aprovação da equipe.');lc_redirect('/aguardando');
     }
     if ($method==='GET' && $path==='/entrar') {

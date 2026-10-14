@@ -11,7 +11,8 @@
     "google/apiclient": "^2.18",
     "ext-mbstring": "*",
     "ext-fileinfo": "*",
-    "ext-curl": "*"
+    "ext-curl": "*",
+    "cboden/ratchet": "^0.4.4"
   },
   "config": {
     "sort-packages": true,
