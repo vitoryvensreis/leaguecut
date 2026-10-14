@@ -1,12 +1,12 @@
 /* LeagueCut realtime notifications */
 .rt-notifications{position:relative;flex-shrink:0}
-.rt-notifications>summary{position:relative;display:grid;place-items:center;list-style:none;width:39px;height:39px;border-radius:12px;cursor:pointer;color:#bfc4d0;border:1px solid #ffffff18;background:#ffffff09}
+.rt-notifications>summary{position:relative;display:grid;place-items:center;list-style:none;width:39px;height:39px;border-radius:1.2px;cursor:pointer;color:#bfc4d0;border:1px solid #ffffff18;background:#ffffff09}
 .rt-notifications>summary::-webkit-details-marker{display:none}
 .rt-notifications>summary:hover{color:white;background:#ffffff15}
 .rt-notifications>summary .lc-icon{width:19px;height:19px}
-.rt-unread{position:absolute;right:-5px;top:-7px;min-width:18px;height:18px;border-radius:99px;background:var(--accent);border:2px solid #0b0c10;display:grid;place-items:center;font-size:.59rem;font-weight:900;color:white;padding:0 2px}
+.rt-unread{position:absolute;right:-5px;top:-7px;min-width:18px;height:18px;border-radius:4px;background:var(--accent);border:2px solid #0b0c10;display:grid;place-items:center;font-size:.59rem;font-weight:900;color:white;padding:0 2px}
 .rt-unread[hidden]{display:none}
-.rt-notification-panel{position:absolute;right:-60px;top:47px;z-index:70;width:min(355px,92vw);max-height:480px;display:flex;flex-direction:column;border:1px solid #ffffff24;background:#171921;border-radius:17px;box-shadow:0 25px 60px #000c;overflow:hidden}
+.rt-notification-panel{position:absolute;right:-60px;top:47px;z-index:70;width:min(355px,92vw);max-height:480px;display:flex;flex-direction:column;border:1px solid #ffffff24;background:#171921;border-radius:1.7px;box-shadow:0 25px 60px #000c;overflow:hidden}
 .rt-panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:17px 18px;border-bottom:1px solid #ffffff13}
 .rt-panel-head strong{font-size:.91rem}
 .rt-connection-state{font-size:.67rem;font-weight:700;color:#8fdda9}
@@ -16,7 +16,7 @@
 .rt-notification:last-child{border:0}
 .rt-notification strong{font-size:.81rem;line-height:1.4}
 .rt-notification span{font-size:.69rem;color:#929cac}
-.rt-live-announcer{position:fixed;bottom:23px;right:26px;padding:15px 20px;border-radius:15px;border:1px solid color-mix(in srgb,var(--accent) 35%,#ffffff26);background:#1b1d26;color:#f9fafa;z-index:100;box-shadow:0 14px 40px #0009;max-width:min(380px,calc(100% - 32px));font-size:.84rem;font-weight:800;opacity:0;transform:translateY(20px);pointer-events:none;transition:opacity .2s,transform .2s}
+.rt-live-announcer{position:fixed;bottom:23px;right:26px;padding:15px 20px;border-radius:1.5px;border:1px solid color-mix(in srgb,var(--accent) 35%,#ffffff26);background:#1b1d26;color:#f9fafa;z-index:100;box-shadow:0 14px 40px #0009;max-width:min(380px,calc(100% - 32px));font-size:.84rem;font-weight:800;opacity:0;transform:translateY(20px);pointer-events:none;transition:opacity .2s,transform .2s}
 .rt-live-announcer.is-visible{opacity:1;transform:translateY(0)}
 .rt-changed{animation:rt-emphasis 1.5s ease-out}
 @keyframes rt-emphasis{0%{color:var(--accent);filter:brightness(1.7)}100%{filter:none}}

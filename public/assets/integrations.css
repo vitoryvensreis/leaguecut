@@ -1,6 +1,6 @@
 /* Bloco 7 — Integrações e revisão de mídia */
 .integration-instructions{margin-top:22px}
-.integration-copy{background:#080b12;border:1px solid #ffffff20;padding:13px 16px;border-radius:12px;overflow-x:auto;max-width:100%}
+.integration-copy{background:#080b12;border:1px solid #ffffff20;padding:13px 16px;border-radius:1.2px;overflow-x:auto;max-width:100%}
 .integration-copy code{font:600 .85rem/1.65 ui-monospace,Consolas,monospace;color:#f4b3bd;overflow-wrap:anywhere}
 .drive-file-link{display:inline-flex;align-items:center;gap:6px;margin-top:7px;font-size:.78rem;font-weight:800;color:color-mix(in srgb,var(--accent) 63%,white)}
 .drive-file-link .lc-icon{width:15px;height:15px}

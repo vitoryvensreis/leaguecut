@@ -4,7 +4,7 @@ body { overflow-x: clip; }
 .skip-link {
   position: fixed; z-index: 9999; top: 12px; left: 12px;
   padding: 13px 20px; color: #fff; background: #202532;
-  border: 2px solid var(--focus-ring); border-radius: 12px;
+  border: 2px solid var(--focus-ring); border-radius: 1.2px;
   font-weight: 800; box-shadow: 0 12px 32px #0009;
   transform: translateY(-170%); transition: transform .15s ease;
 }
