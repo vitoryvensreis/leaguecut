@@ -37,7 +37,7 @@ function lc_campaign_form(?array $c): void {
 <?php lc_field('Capa (URL HTTPS)','cover_url','url',$get('cover_url'),false,'https://...'); ?>
 <label class="field"><span>Status</span><select name="status"><?php foreach(['draft'=>'Rascunho','active'=>'Ativa','paused'=>'Pausada','ended'=>'Encerrada'] as $value=>$label):?><option value="<?=$value?>" <?=$get('status','draft')===$value?'selected':''?>><?=$label?></option><?php endforeach;?></select></label>
 <?php lc_field('Mínimo de vídeos aprovados/semana','min_videos_week','number',$get('min_videos_week','5'),true,'5','min="0" max="100"'); ?>
-<?php lc_field('Pagamento por vídeo (R$)','payment_per_video','text',number_format((int)$get('payment_per_video_cents','1500')/100,2,',','.'),true,'15,00'); ?>
+<?php lc_field('Pagamento por vídeo (R$)','payment_per_video','text',lc_money((int)$get('payment_per_video_cents','1500') ) ? number_format((int)$get('payment_per_video_cents','1500')/100,2,',','.') : '15,00',true,'15,00'); ?>
 <?php lc_field('Meta de views por vídeo','milestone_views','number',$get('milestone_views','1000000'),true,'1000000','min="0" max="2000000000"'); ?>
 <?php lc_field('Bônus por meta de views (R$)','milestone_bonus','text',number_format((int)$get('milestone_bonus_cents','2000')/100,2,',','.'),true,'20,00'); ?>
 <?php lc_field('Bônus líder do mês (R$)','monthly_leader_bonus','text',number_format((int)$get('monthly_leader_bonus_cents','2000')/100,2,',','.'),true,'20,00'); ?>

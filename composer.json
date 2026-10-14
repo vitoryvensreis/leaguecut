@@ -8,10 +8,7 @@
     "ext-openssl": "*",
     "ext-json": "*",
     "phpmailer/phpmailer": "^6.9",
-    "google/apiclient": "^2.18",
-    "ext-mbstring": "*",
-    "ext-fileinfo": "*",
-    "ext-curl": "*"
+    "google/apiclient": "^2.18"
   },
   "config": {
     "sort-packages": true,

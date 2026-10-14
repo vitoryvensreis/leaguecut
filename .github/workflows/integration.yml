@@ -1,0 +1,60 @@
+name: Teste integrado LeagueCut
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/**'
+      - '.github/workflows/integration.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: integration
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -pintegration"
+          --health-interval=10s --health-timeout=5s --health-retries=15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_mysql,mbstring,curl,openssl,fileinfo
+          tools: composer
+      - name: Instalar dependencias
+        run: composer install --no-dev --no-interaction --prefer-dist
+      - name: Preparar banco de teste descartavel
+        run: mysql --host=127.0.0.1 --user=root --password=integration < database/schema.sql
+      - name: Iniciar aplicacao em localhost
+        env:
+          APP_URL: http://127.0.0.1:8080
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_NAME: leaguecut
+          DB_USER: root
+          DB_PASSWORD: integration
+        run: |
+          echo "APP_KEY=$(php -r 'echo base64_encode(random_bytes(32));')" >> "$GITHUB_ENV"
+          php -S 127.0.0.1:8080 -t public public/index.php > /tmp/leaguecut-php.log 2>&1 &
+          echo $! > /tmp/leaguecut-pid
+          sleep 3
+      - name: Testar operacao fim a fim
+        env:
+          APP_URL: http://127.0.0.1:8080
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_NAME: leaguecut
+          DB_USER: root
+          DB_PASSWORD: integration
+        run: |
+          set -e
+          curl --fail --silent http://127.0.0.1:8080/health
+          python3 tests/smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
