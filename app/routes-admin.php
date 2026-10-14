@@ -179,17 +179,18 @@ function lc_admin_routes(string $method,string $path): bool {
     if($method==='GET'&&$path==='/admin/clipes'){
         $filter=(string)($_GET['status']??'all');
         if(!in_array($filter,['all','pending','approved','rejected'],true))$filter='all';
-        $clips=lc_all('SELECT c.*,u.full_name,p.title AS campaign_title,s.network FROM clips c JOIN users u ON u.id=c.user_id JOIN campaigns p ON p.id=c.campaign_id JOIN social_accounts s ON s.id=c.social_account_id'.($filter==='all'?'':' WHERE c.status=?').' ORDER BY FIELD(c.status,"pending","approved","rejected"),c.id DESC LIMIT 150',$filter==='all'?[]:[$filter]);
+        $clips=lc_all('SELECT c.*,u.full_name,p.title AS campaign_title,s.network, (SELECT o.views FROM clip_view_samples o WHERE o.clip_id=c.id ORDER BY o.id DESC LIMIT 1) AS observed_views, (SELECT o.observed_at FROM clip_view_samples o WHERE o.clip_id=c.id ORDER BY o.id DESC LIMIT 1) AS observed_at FROM clips c JOIN users u ON u.id=c.user_id JOIN campaigns p ON p.id=c.campaign_id JOIN social_accounts s ON s.id=c.social_account_id'.($filter==='all'?'':' WHERE c.status=?').' ORDER BY FIELD(c.status,"pending","approved","rejected"),c.id DESC LIMIT 150',$filter==='all'?[]:[$filter]);
         lc_page('Clipes e visualizações',function()use($clips,$filter){?>
 <div class="container"><?php lc_heading('Curadoria','Conferir clipes','Confira a publicação e informe as visualizações verificadas antes de aprovar.'); ?>
 <div class="ws-filter-tabs" aria-label="Filtrar clipes por status">
 <?php foreach(['all'=>'Todos','pending'=>'Pendentes','approved'=>'Aprovados','rejected'=>'Rejeitados'] as $v=>$label):?><a href="/admin/clipes?status=<?=$v?>" class="<?=$filter===$v?'selected':''?>" <?=$filter===$v?'aria-current="page"':''?>><?=$label?></a><?php endforeach;?></div>
-<div class="alert">As visualizações são informadas manualmente nesta versão. Perfis cadastrados ainda não são contas verificadas por OAuth. Créditos aprovados exigem ajustes auditáveis.</div>
+<div class="alert">As views públicas podem ser coletadas pela Apify (quando configurada). Confirme os números antes de creditar bônus: o scraper não comprova a propriedade do perfil.</div>
 <div class="panel"><div class="ws-module-head"><h2>Publicações para revisar</h2><span class="tag"><?=count($clips)?> exibidos</span></div>
 <?php if(!$clips):lc_empty('Tudo em dia','Nenhum vídeo recebido até agora.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Criador / campanha</th><th>Atual</th><th>Views verificadas</th><th>Revisão</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr>
 <td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=lc_e(ucfirst($c['network']))?> <?=date('d/m/Y',strtotime($c['submitted_at']))?> · <?= $c['drive_file_id']?'Drive':'sem arquivo'?></small>
+<?php if($c['observed_views']!==null):?><small>Apify: <?=number_format((int)$c['observed_views'],0,',','.')?> views observadas · <?=lc_e($c['observed_at'])?> UTC</small><?php endif;?>
 <?php if($c['drive_file_id']):?>
 <button type="button" class="btn btn-ghost btn-sm clip-preview-trigger" data-preview-url="/clipes/<?=(int)$c['id']?>/video" data-preview-name="<?=lc_e($c['title'])?>"><?=lc_icon('play')?> Assistir aqui</button>
 <?php if($driveUrl=lc_drive_url((string)$c['drive_file_id'])):?><a class="drive-file-link" href="<?=lc_e($driveUrl)?>" target="_blank" rel="noopener noreferrer"><?=lc_icon('folder-open')?> Abrir no Drive</a><?php endif;?>
@@ -197,7 +198,7 @@ function lc_admin_routes(string $method,string $path): bool {
 <td><?=lc_e($c['full_name'])?><small><?=lc_e($c['campaign_title'])?></small></td>
 <td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td>
 <td colspan="2"><form class="mini-form" method="post" action="/admin/clipes/<?=(int)$c['id']?>/revisar"><?=lc_csrf()?>
-<input name="verified_views" type="number" min="<?=(int)$c['verified_views']?>" max="2000000000" value="<?=(int)$c['verified_views']?>" required aria-label="Views verificadas">
+<input name="verified_views" type="number" min="<?=(int)$c['verified_views']?>" max="2000000000" value="<?=max((int)$c['verified_views'],(int)($c['observed_views']??0))?>" required aria-label="Views verificadas (confirme dados Apify)">
 <select name="decision" aria-label="Decisão"><?php if($c['status']!=='approved'):?><option value="approved">Aprovar</option><option value="rejected">Rejeitar</option><?php else:?><option value="approved">Atualizar views</option><?php endif;?></select>
 <button class="btn btn-sm" type="submit">Confirmar</button></form></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php lc_clip_preview_modal(); },'admin');return true;
