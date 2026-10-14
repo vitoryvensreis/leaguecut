@@ -275,16 +275,28 @@ function lc_admin_routes(string $method,string $path): bool {
     if($method==='GET'&&$path==='/admin/configuracoes'){
         $s=lc_settings();
         lc_page('Personalização',function()use($s){?><div class="container container-md"><?php lc_heading('Sua marca','Personalização','Ajuste nome, cor primária e logo por URL HTTPS.'); ?>
-<div class="panel"><form method="post" action="/admin/configuracoes"><?=lc_csrf()?><div class="form-grid">
+<div class="panel"><form method="post" action="/admin/configuracoes" enctype="multipart/form-data"><?=lc_csrf()?><div class="form-grid">
 <?php lc_field('Nome da plataforma','brand_name','text',(string)($s['brand_name']??'LeagueCut'),true); ?>
 <?php lc_field('Cor principal','primary_color','color',(string)($s['primary_color']??'#e50914'),true); ?>
-<div class="full"><?php lc_field('URL HTTPS da logo','logo_url','url',(string)($s['logo_url']??''),false,'https://.../logo.svg'); ?></div>
+<label class="field full"><span>Enviar arquivo da logo</span>
+<input name="logo_upload" type="file" accept="image/*,.svg,image/svg+xml">
+<small>Envie PNG, JPG, WebP, GIF, AVIF ou SVG (até 5 MB). O arquivo é guardado de forma privada e exibido em toda a plataforma. SVG é higienizado para impedir scripts.</small></label>
+<?php if(!empty($s['logo_url'])&&lc_brand_logo_src((string)$s['logo_url'])):?>
+<div class="full"><strong>Logo atual</strong><div class="brand-settings-preview"><img src="<?=lc_e($s['logo_url'])?>" alt="Logo atual" loading="lazy"></div></div><?php endif;?>
+<div class="full"><?php lc_field('URL HTTPS da logo (alternativa ao upload)','logo_url','text',(string)($s['logo_url']??''),false,'https://.../logo.svg'); ?><small>Você pode manter a logo atual, informar uma URL HTTPS ou enviar um novo arquivo acima.</small></div>
 </div><div class="form-actions"><button class="btn" type="submit">Salvar identidade visual →</button></div></form></div></div>
 <?php },'admin');return true;
     }
     if($method==='POST'&&$path==='/admin/configuracoes'){
         $name=lc_post('brand_name',80);$color=lc_post('primary_color',7);$logo=lc_post('logo_url',800);
-        if(mb_strlen($name)<2||!preg_match('/^#[a-fA-F0-9]{6}$/',$color)||($logo!==''&&!lc_valid_https($logo))){lc_flash('Verifique os dados de personalização.','error');lc_redirect('/admin/configuracoes');}
+        if(mb_strlen($name)<2||!preg_match('/^#[a-fA-F0-9]{6}$/',$color)||($logo!==''&&!lc_brand_logo_src($logo))){
+            lc_flash('Verifique o nome, a cor e o endereço da logo.','error');lc_redirect('/admin/configuracoes');
+        }
+        $upload=$_FILES['logo_upload']??null;
+        if($upload && ($upload['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){
+            try{$logo=lc_brand_store_logo($upload);}
+            catch(Throwable $e){lc_flash($e->getMessage(),'error');lc_redirect('/admin/configuracoes');}
+        }
         foreach(['brand_name'=>$name,'primary_color'=>$color,'logo_url'=>$logo] as $key=>$value){
             lc_query('INSERT INTO platform_settings(setting_key,setting_value) VALUES(?,?) ON DUPLICATE KEY UPDATE setting_value=VALUES(setting_value)',[$key,$value]);
         }
