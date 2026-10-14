@@ -1,0 +1,41 @@
+name: LeagueCut realtime preflight
+on:
+  push:
+    branches: [feature/bloco5-realtime]
+    paths: [.github/workflows/realtime-preflight.yml]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Prepare SSH
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Inspect installed runtime only
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -e
+          echo "WHOAMI=$(id -un)"
+          if command -v node >/dev/null; then node --version; else echo 'NODE_MISSING'; fi
+          if command -v npm >/dev/null; then npm --version; else echo 'NPM_MISSING'; fi
+          if command -v curl >/dev/null; then echo "CURL_OK"; fi
+          if [ -d /home/leaguecut/shared ]; then echo "SHARED_OK"; fi
+          if command -v systemctl >/dev/null; then echo "SYSTEMCTL_PRESENT"; fi
+          if command -v pm2 >/dev/null; then echo "PM2_PRESENT"; else echo "PM2_MISSING"; fi
+          if command -v ss >/dev/null; then ss -ltn '( sport = :18765 )' | head -3; fi
+          REMOTE
