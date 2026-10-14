@@ -28,6 +28,7 @@ function lc_workspace_links(array $u): array {
           ['Saques','/admin/financeiro','wallet'],
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
           ['Pacotes para criadores','/admin/pacotes','layers'],
+          ['Assinaturas','/admin/assinaturas','circle-dollar-sign'],
           ['Banner da Home','/admin/home','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['Integrações','/admin/integracoes','settings-2'],
@@ -50,7 +51,7 @@ function lc_workspace_links(array $u): array {
 }
 function lc_workspace_nav(array $u, string $current): void {
     $links=lc_workspace_links($u);
-    $groups=$u['role']==='admin' ? ['Operação'=>array_slice($links,0,7),'Configuração'=>array_slice($links,7)] : ['Meu espaço'=>$links];
+    $groups=$u['role']==='admin' ? ['Operação'=>array_slice($links,0,8),'Configuração'=>array_slice($links,8)] : ['Meu espaço'=>$links];
     foreach($groups as $label=>$items): ?>
       <div class="ws-nav-group">
         <p class="ws-nav-label"><?=lc_e($label)?></p>
@@ -102,7 +103,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/realtime.css?v=10">
 <?php endif; ?>
 <link rel="stylesheet" href="/assets/polish.css?v=10">
-<link rel="stylesheet" href="/assets/creator-packages.css?v=1">
+<link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>

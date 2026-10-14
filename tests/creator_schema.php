@@ -39,6 +39,11 @@ try{
 }finally {
     if($db->inTransaction())$db->rollBack();
 }
-$subCount=(int)(lc_one('SELECT COUNT(*) AS cnt FROM creator_subscriptions WHERE creator_id=?',[$buyer['id']])['cnt']??0);
-if($subCount!==0)throw new RuntimeException('Test subscription persisted or a fake checkout occurred.');
-echo "CREATOR_SCHEMA_AND_QUOTA_PENDING_OK\n";
+$sub=lc_one("SELECT s.id,s.status,s.cancelled_at,cy.payment_status,cy.clips_included,cy.clips_used
+ FROM creator_subscriptions s JOIN creator_subscription_cycles cy ON cy.subscription_id=s.id
+ WHERE s.creator_id=? ORDER BY s.id DESC LIMIT 1",[$buyer['id']]);
+if(!$sub || $sub['status']!=='cancelled' || !$sub['cancelled_at'] ||
+   $sub['payment_status']!=='confirmed' || (int)$sub['clips_included']!==12 ||
+   (int)$sub['clips_used']!==0)
+    throw new RuntimeException('Creator billing lifecycle fixture was modified unexpectedly.');
+echo "CREATOR_SCHEMA_PAID_CYCLE_AND_CANCELLATION_OK\n";

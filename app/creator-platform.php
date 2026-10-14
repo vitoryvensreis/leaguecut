@@ -115,7 +115,8 @@ function lc_creator_admin_routes(string $method,string $path): bool {
 function lc_creator_routes(string $method,string $path): bool {
     if($path==='/planos' && $method==='GET'){
         $packages=lc_all("SELECT id,name,description,fulfillment_mode,monthly_clips,monthly_price_cents FROM creator_packages WHERE status='active' ORDER BY fulfillment_mode,id DESC");
-        lc_page('Planos para criadores',function()use($packages){?>
+        $viewer=lc_user();
+        lc_page('Planos para criadores',function()use($packages,$viewer){?>
 <div class="container">
 <?php lc_heading('Para quem cria lives e conteúdo','Pacotes mensais','Escolha entre receber cortes prontos para baixar ou contratar produção com postagem feita pela equipe LeagueCut.'); ?>
 <div class="creator-plan-grid">
@@ -126,8 +127,16 @@ function lc_creator_routes(string $method,string $path): bool {
   <h2><?=lc_e($p['name'])?></h2><p><?=lc_e($p['description'])?></p>
   <div class="creator-plan-price"><?=lc_money($p['monthly_price_cents'])?><small>/ mês</small></div>
   <p><strong><?=(int)$p['monthly_clips']?> clipes</strong> por mês</p>
-  <p class="hint">Contratação e cobrança online em implantação. Nenhum pagamento é feito nesta página.</p>
-  <a class="btn btn-ghost" href="/cadastrar/criador">Criar conta de criador <?=lc_icon('arrow-right')?></a>
+  <p class="hint">Solicitação sem cobrança online. A equipe confirma manualmente o pagamento recebido antes de liberar o primeiro ciclo mensal.</p>
+  <?php if($viewer && $viewer['role']==='criador'):?>
+   <form method="post" action="/criador/pacotes/<?=(int)$p['id']?>/solicitar"><?=lc_csrf()?>
+     <button class="btn" type="submit">Solicitar assinatura <?=lc_icon('arrow-right')?></button>
+   </form>
+  <?php elseif($viewer):?>
+   <span class="hint">Para contratar, acesse uma conta do tipo criador.</span>
+  <?php else:?>
+   <a class="btn btn-ghost" href="/cadastrar/criador">Criar conta de criador <?=lc_icon('arrow-right')?></a>
+  <?php endif;?>
 </article><?php endforeach;?>
 </div>
 </div>
@@ -172,25 +181,41 @@ function lc_creator_routes(string $method,string $path): bool {
         }
         session_regenerate_id(true);
         $_SESSION['uid']=(int)lc_db()->lastInsertId();
-        lc_flash('Conta de criador criada. Os pacotes ainda não estão disponíveis para contratação.');
+        lc_flash('Conta de criador criada. Você já pode solicitar um pacote mensal.');
         lc_redirect('/criador');
     }
     if($path==='/criador' && $method==='GET'){
         $u=lc_creator_only();
         $packages=lc_all("SELECT * FROM creator_packages WHERE status='active' ORDER BY fulfillment_mode,id DESC LIMIT 30");
-        $subscriptions=lc_all("SELECT s.*,p.name AS package_name FROM creator_subscriptions s
-             JOIN creator_packages p ON p.id=s.package_id WHERE s.creator_id=? ORDER BY s.id DESC LIMIT 15",[(int)$u['id']]);
+        $subscriptions=lc_all("SELECT s.*,p.name AS package_name,
+                 (SELECT cy.cycle_start FROM creator_subscription_cycles cy WHERE cy.subscription_id=s.id ORDER BY cy.cycle_end DESC LIMIT 1) AS cycle_start,
+                 (SELECT cy.cycle_end FROM creator_subscription_cycles cy WHERE cy.subscription_id=s.id ORDER BY cy.cycle_end DESC LIMIT 1) AS cycle_end
+             FROM creator_subscriptions s JOIN creator_packages p ON p.id=s.package_id
+             WHERE s.creator_id=? ORDER BY s.id DESC LIMIT 25",[(int)$u['id']]);
+        foreach($subscriptions as &$sub){
+            $sub['balance']=lc_creator_effective_balance((int)$sub['id'],(int)$u['id']);
+        }
+        unset($sub);
         lc_page('Minha área de criador',function()use($u,$packages,$subscriptions){?>
 <div class="container">
-<?php lc_heading('Área do criador','Seus clipes, sua marca','Acompanhe seus planos e futuras entregas. Download e postagem dependerão de uma assinatura ativa e de créditos disponíveis.'); ?>
+<?php lc_heading('Área do criador','Seus clipes, sua marca','Solicite planos, acompanhe o pagamento e veja seus ciclos mensais. Entregas e downloads ficarão disponíveis após a etapa de distribuição.'); ?>
 <div class="panel">
 <h2>Minhas assinaturas</h2>
-<?php if(!$subscriptions):lc_empty('Nenhuma assinatura ainda','Os pacotes poderão ser contratados depois que ativarmos a cobrança recorrente.');else:?>
-<div class="table-wrap"><table><thead><tr><th>Pacote</th><th>Modelo</th><th>Status</th><th>Clipes/mês</th></tr></thead><tbody>
+<?php if(!$subscriptions):lc_empty('Nenhuma assinatura ainda','Solicite um dos pacotes disponíveis e aguarde a confirmação de pagamento pela equipe.');else:?>
+<div class="table-wrap"><table><thead><tr><th>Pacote</th><th>Modelo</th><th>Situação</th><th>Créditos mensais</th><th>Período pago</th><th>Ações</th></tr></thead><tbody>
 <?php foreach($subscriptions as $s):?><tr>
 <td><?=lc_e($s['package_name'])?></td>
 <td><?=$s['fulfillment_mode_snapshot']==='download'?'Download':'Produção + postagem'?></td>
-<td><?=lc_e($s['status'])?></td><td><?=(int)$s['monthly_clips_snapshot']?></td>
+<td><span class="tag"><?=lc_e(lc_creator_subscription_label($s))?></span></td>
+<td><?php if($s['balance']):?><strong><?=(int)$s['balance']['remaining']?></strong> / <?=(int)$s['balance']['clips_included']?> clipes
+<?php else:?>Não liberados<?php endif;?></td>
+<td><?php if($s['balance']):?><?=date('d/m/Y',strtotime($s['balance']['cycle_start']))?> — <?=date('d/m/Y',strtotime($s['balance']['cycle_end']))?>
+<small>Data final exclusiva</small><?php else:?>Aguardando confirmação de recebimento<?php endif;?></td>
+<td><?php if(in_array($s['status'],['pending','active','past_due'],true)):?>
+<form method="post" action="/criador/assinaturas/<?=(int)$s['id']?>/cancelar" onsubmit="return confirm('Cancelar assinatura? O período pago ficará disponível até o fim do ciclo.');">
+<?=lc_csrf()?><button class="btn btn-ghost btn-sm" type="submit">Cancelar</button>
+</form>
+<?php else:?>—<?php endif;?></td>
 </tr><?php endforeach;?>
 </tbody></table></div><?php endif;?>
 </div>
@@ -201,7 +226,10 @@ function lc_creator_routes(string $method,string $path): bool {
 <h3><?=lc_e($p['name'])?></h3><p><?=lc_e($p['description'])?></p>
 <div class="creator-plan-price"><?=lc_money($p['monthly_price_cents'])?><small>/ mês</small></div>
 <p><?=(int)$p['monthly_clips']?> clipes mensais</p>
-<p class="hint">Contratação em breve.</p>
+<form method="post" action="/criador/pacotes/<?=(int)$p['id']?>/solicitar"><?=lc_csrf()?>
+<button type="submit" class="btn btn-ghost btn-sm">Solicitar assinatura <?=lc_icon('arrow-right')?></button>
+</form>
+<p class="hint">Sem cobrança no site. A ativação depende de confirmação manual do recebimento.</p>
 </article><?php endforeach;?></div>
 <?php if(!$packages):lc_empty('Pacotes em preparação','A equipe ainda está configurando as ofertas mensais.');endif;?>
 </div>
