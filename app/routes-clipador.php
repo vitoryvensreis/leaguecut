@@ -6,17 +6,56 @@ function lc_clipper_routes(string $method,string $path): bool {
         $u=lc_login_required();
         if($u['role']==='admin')lc_redirect('/admin');
         $balance=lc_balance((int)$u['id']);
-        $stats=lc_one("SELECT COUNT(*) AS total,SUM(status='approved') AS approved,COALESCE(SUM(verified_views),0) AS views FROM clips WHERE user_id=?",[$u['id']]);
-        $campaigns=lc_all("SELECT * FROM campaigns WHERE status='active' ORDER BY created_at DESC LIMIT 8");
-        lc_page('Minha área',function()use($u,$balance,$stats,$campaigns){?>
-<div class="container"><div class="profile-banner"><span class="big-avatar"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></span><div><span class="eyebrow">Painel do clipador</span><h1>Olá, <?=lc_e(explode(' ',$u['full_name'])[0])?>!</h1><p>Explore novas campanhas e acompanhe seus resultados.</p></div></div>
-<div class="stats-grid">
-<div class="metric"><small>Saldo disponível</small><strong><?=lc_money($balance['available'])?></strong></div>
-<div class="metric"><small>Clipes enviados</small><strong><?=(int)$stats['total']?></strong></div>
-<div class="metric"><small>Clipes aprovados</small><strong><?=(int)$stats['approved']?></strong></div>
-<div class="metric"><small>Views verificadas</small><strong><?=number_format((int)$stats['views'],0,',','.')?></strong></div></div>
-<div class="section-head"><h2>Campanhas para você</h2><a class="section-link" href="/explorar">Explorar catálogo <?=lc_icon("arrow-right")?></a></div>
-<?php if($campaigns):?><div class="catalog"><?php foreach($campaigns as $c)lc_tile($c);?></div><?php else:lc_empty('Aguarde novas campanhas','A equipe está preparando as próximas oportunidades.');endif;?></div>
+        $stats=lc_one("SELECT COUNT(*) AS total,COALESCE(SUM(status='approved'),0) AS approved,COALESCE(SUM(status='pending'),0) AS pending,COALESCE(SUM(verified_views),0) AS views FROM clips WHERE user_id=?",[$u['id']]);
+        $networks=(int)(lc_one("SELECT COUNT(*) AS total FROM social_accounts WHERE user_id=?",[$u['id']])['total']??0);
+        $recent=lc_all("SELECT c.title,c.status,c.submitted_at,c.verified_views,p.title AS campaign_title FROM clips c JOIN campaigns p ON p.id=c.campaign_id WHERE c.user_id=? ORDER BY c.id DESC LIMIT 5",[$u['id']]);
+        $campaigns=lc_all("SELECT * FROM campaigns WHERE status='active' ORDER BY created_at DESC LIMIT 4");
+        lc_page('Minha área',function()use($u,$balance,$stats,$networks,$recent,$campaigns){?>
+<div class="container ws-dashboard">
+  <section class="ws-hero" aria-labelledby="creator-overview-title">
+    <div><span class="eyebrow">Painel do clipador</span><h1 id="creator-overview-title">Olá, <?=lc_e(explode(' ',$u['full_name'])[0])?>!</h1>
+      <p>Seu espaço para descobrir campanhas, organizar suas publicações e acompanhar entregas e créditos confirmados.</p>
+    </div>
+    <div class="ws-hero-actions"><a href="/explorar" class="btn">Explorar campanhas <?=lc_icon('arrow-right')?></a><a href="/biblioteca" class="btn btn-ghost">Meus clipes</a></div>
+  </section>
+  <div class="ws-kpi-grid" aria-label="Indicadores da conta">
+  <?php foreach([
+     ['Saldo disponível',lc_money($balance['available']),'wallet','Créditos liberados para saque'],
+     ['Vídeos enviados',(string)(int)$stats['total'],'video','Publicações registradas'],
+     ['Clipes aprovados',(string)(int)$stats['approved'],'circle-check','Entregas já conferidas'],
+     ['Views verificadas',number_format((int)$stats['views'],0,',','.'),'chart-column','Conferidas manualmente no momento']
+    ] as [$name,$value,$icon,$help]):?>
+    <div class="ws-kpi"><div class="ws-kpi-top"><span><?=lc_e($name)?></span><span class="ws-kpi-icon"><?=lc_icon($icon)?></span></div><div class="ws-kpi-value"><?=lc_e($value)?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
+  <?php endforeach;?>
+  </div>
+  <div class="ws-dual">
+    <section class="panel" aria-labelledby="recent-creator-title">
+      <div class="ws-section-title"><h2 id="recent-creator-title">Últimas publicações</h2><a href="/biblioteca">Ver biblioteca <?=lc_icon('arrow-right')?></a></div>
+      <?php if(!$recent):?><div class="ws-empty-note">Você ainda não enviou nenhum clipe. Escolha uma campanha, leia as regras e publique seu primeiro vídeo.</div>
+      <?php else:?><div class="ws-recent"><?php foreach($recent as $clip):?>
+        <div class="ws-recent-item">
+          <div class="ws-recent-leading"><span class="ws-recent-icon"><?=lc_icon('video')?></span>
+           <div class="ws-recent-main"><strong><?=lc_e($clip['title'])?></strong><small><?=lc_e($clip['campaign_title'])?> · <?=date('d/m/Y',strtotime($clip['submitted_at']))?></small></div>
+          </div>
+          <span class="tag tag-<?=lc_e($clip['status'])?>"><?=lc_e(lc_status_label($clip['status']))?></span>
+        </div>
+      <?php endforeach;?></div><?php endif;?>
+    </section>
+    <section class="panel" aria-labelledby="next-creator-title">
+      <div class="ws-section-title"><h2 id="next-creator-title">Seu próximo passo</h2></div>
+      <div class="ws-queue">
+        <a class="ws-queue-link" href="/redes"><span><?=lc_icon('share-2')?></span><div><strong>Perfis de publicação</strong><small><?=$networks?> <?= $networks===1?'rede cadastrada':'redes cadastradas'?></small></div><?=lc_icon($networks?'check':'arrow-right')?></a>
+        <a class="ws-queue-link" href="/explorar"><span><?=lc_icon('compass')?></span><div><strong>Encontrar campanha</strong><small>Veja briefings e condições de participação</small></div><?=lc_icon('arrow-right')?></a>
+        <a class="ws-queue-link" href="/biblioteca"><span><?=lc_icon('clock-3')?></span><div><strong>Clipes em análise</strong><small><?=(int)$stats['pending']?> <?= (int)$stats['pending']===1?'publicação aguardando':'publicações aguardando'?></small></div><?=lc_icon('arrow-right')?></a>
+      </div>
+      <div class="ws-inline-notice">Os créditos são liberados somente quando os vídeos são aprovados e as metas da campanha são atingidas.</div>
+    </section>
+  </div>
+  <div class="ws-section-title"><h2>Campanhas em destaque</h2><a href="/explorar">Ver catálogo <?=lc_icon('arrow-right')?></a></div>
+  <?php if($campaigns):?><div class="catalog"><?php foreach($campaigns as $c)lc_tile($c);?></div>
+  <?php else:?><div class="ws-empty-note">Ainda não há campanhas ativas. Você pode preparar seus perfis e acompanhar as novidades.</div><?php endif;?>
+  <p class="ws-trace"><?=lc_icon('clock-3')?> Visualizações e status são atualizados após conferência. Dados em tempo real serão incorporados no Bloco 5.</p>
+</div>
 <?php },'dashboard');return true;
     }
     if($method==='GET' && $path==='/redes'){
@@ -57,7 +96,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         $host=strtolower((string)parse_url($url,PHP_URL_HOST));
         $validHost=$account && ($account['network']==='instagram'?in_array($host,['instagram.com','www.instagram.com'],true):in_array($host,['tiktok.com','www.tiktok.com','vm.tiktok.com','vt.tiktok.com'],true));
         if(!$campaign||!$account||mb_strlen($title)<4||!lc_valid_https($url)||!$validHost){
-            lc_flash('Verifique a campanha, o perfil e o link HTTPS da publicação na rede selecionada.','error');lc_redirect('/');
+            lc_flash('Verifique a campanha, o perfil e o link HTTPS da publicação na rede selecionada.','error');lc_redirect('/explorar');
         }
         if(lc_one('SELECT id FROM clips WHERE user_id=? AND published_url=?',[$u['id'],$url])){
             lc_flash('Esse link já foi enviado.','error');lc_redirect('/biblioteca');
@@ -81,7 +120,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
 else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th><th>Rede</th><th>Views conferidas</th><th>Status</th><th>Drive</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr><td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=date('d/m/Y',strtotime($c['submitted_at']))?></small></td>
 <td><?=lc_e($c['campaign_title'])?></td><td><?=lc_e(ucfirst($c['network']))?> @<?=lc_e($c['username'])?></td><td><?=number_format((int)$c['verified_views'],0,',','.')?></td>
-<td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e($c['status'])?></span></td><td><?= $c['drive_file_id']?'Armazenado':'Não enviado' ?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
+<td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td><td><?= $c['drive_file_id']?'Armazenado':'Não enviado' ?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'library');return true;
     }
     if($method==='GET' && $path==='/financeiro'){
@@ -97,7 +136,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
 <div class="panel"><h2>Extrato de créditos</h2><?php if(!$entries):lc_empty('Nenhum crédito liberado','A aprovação e as metas semanais determinam quando os créditos entram no saldo.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Data</th><th>Valor</th></tr></thead><tbody><?php foreach($entries as $e):?><tr><td><?=lc_e($e['description'])?><small><?=lc_e($e['kind'])?></small></td><td><?=date('d/m/Y',strtotime($e['created_at']))?></td><td><?=lc_money($e['amount_cents'])?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div>
 <div class="panel"><h2>Solicitações de saque</h2><?php if(!$withdrawals):lc_empty('Nenhuma solicitação','Quando tiver saldo disponível, você poderá solicitar um saque.');else:?>
-<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Valor</th><th>Data</th><th>Status</th></tr></thead><tbody><?php foreach($withdrawals as $w):?><tr><td>#<?=(int)$w['id']?></td><td><?=lc_money($w['amount_cents'])?></td><td><?=date('d/m/Y',strtotime($w['created_at']))?></td><td><span class="tag tag-<?=lc_e($w['status'])?>"><?=lc_e($w['status'])?></span></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
+<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Valor</th><th>Data</th><th>Status</th></tr></thead><tbody><?php foreach($withdrawals as $w):?><tr><td>#<?=(int)$w['id']?></td><td><?=lc_money($w['amount_cents'])?></td><td><?=date('d/m/Y',strtotime($w['created_at']))?></td><td><span class="tag tag-<?=lc_e($w['status'])?>"><?=lc_e(lc_status_label($w['status']))?></span></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'finance');return true;
     }
     if($method==='POST'&&$path==='/financeiro/saques'){
