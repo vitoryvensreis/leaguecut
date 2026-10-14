@@ -103,7 +103,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/realtime.css?v=10">
 <?php endif; ?>
 <link rel="stylesheet" href="/assets/polish.css?v=10">
-<link rel="stylesheet" href="/assets/creator-packages.css?v=1">
+<link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
