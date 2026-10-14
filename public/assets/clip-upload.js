@@ -16,9 +16,12 @@
     error.hidden=false;error.textContent=message;
  };
  form.addEventListener('submit',event=>{
-    event.preventDefault();
-    if(sending||!form.reportValidity())return;
+    if(sending)return event.preventDefault();
+    if(!form.reportValidity())return event.preventDefault();
     const file=input.files?.[0];
+    // Editing metadata is allowed without replacing the already stored original.
+    if(!file && form.dataset.optionalVideo==='1')return;
+    event.preventDefault();
     if(!file)return fail('Anexe um vídeo original antes de enviar.');
     if(file.size<1||file.size>1024*1024*1024)return fail('O vídeo deve ter até 1 GB e não pode estar vazio.');
     if(!/\.(mp4|mov|webm)$/i.test(file.name))return fail('Use MP4, MOV ou WebM.');
