@@ -57,7 +57,7 @@ function lc_integrations_routes(string $method,string $path): bool {
    <?php if(lc_env('APIFY_SYNC_ENABLED','0')!=='1'): ?>
       <p class="hint" role="status"><strong>Agendamento pausado.</strong> O token está guardado, mas nenhuma consulta programada será executada até confirmarmos os contadores de views do Actor oficial em um teste controlado.</p>
    <?php endif; ?>
-   <p>Consultas periódicas com cache e limite de custo. O sistema consulta URLs exatas de clipes Instagram em campanhas ativas e registra visualizações públicas observadas, sem aprovar recompensas automaticamente.</p>
+   <p>Consultas periódicas com cache e limite de custo. O sistema consulta URLs exatas de clipes Instagram aprovados, com vídeo original armazenado e em campanhas ativas, registrando visualizações públicas observadas, sem aprovar recompensas automaticamente.</p>
    <div class="stats-grid">
      <div class="metric"><small>Execuções hoje (UTC)</small><strong><?=$apifyUsage['runs']?> / <?=$apifyConfig['daily_runs']?></strong></div>
      <div class="metric"><small>Teto reservado hoje (USD)</small><strong>$<?=number_format($apifyUsage['max_reserved_usd'],3,'.','')?> / $<?=number_format($apifyConfig['daily_usd'],2,'.','')?></strong></div>
