@@ -208,7 +208,7 @@ function lc_public_routes(string $method,string $path): bool {
 </div>
 <div class="full clip-upload-error" id="lc-upload-error" hidden role="alert"></div>
 </div><div class="form-actions"><button class="btn" id="lc-clip-submit" type="submit" <?=lc_drive_ready()?'':'disabled'?>><span>Enviar para conferência</span> <?=lc_icon('arrow-right')?></button></div></form>
-<script defer src="/assets/clip-upload.js?v=8"></script>
+<script defer src="/assets/clip-upload.js?v=9"></script>
 <?php endif;?></div>
 <?php endif;?></div>
 <?php },'home');return true;
