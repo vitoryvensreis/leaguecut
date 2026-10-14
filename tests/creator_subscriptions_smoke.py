@@ -40,7 +40,7 @@ assert "R$ 199,90" in get(admin,"/admin/pacotes")
 assert "R$ 999,00" in get(admin,"/admin/pacotes")
 assert "Live Download Start" in get(make_client(),"/planos")
 assert "Live Produção Pro" in get(make_client(),"/planos")
-assert "Contratação e cobrança online em implantação" in get(make_client(),"/planos")
+assert "Solicitação sem cobrança online" in get(make_client(),"/planos")
 
 # Admin can edit a package; archived plans disappear from the public catalog,
 # without losing historical orders or records.
