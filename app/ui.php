@@ -166,6 +166,14 @@ function lc_tile(array $c): void {
   <div class="card-meta"><span><?=lc_e($c['category'])?></span><span>Ver campanha <?=lc_icon("arrow-right")?></span></div></div>
 </a><?php
 }
+function lc_clip_preview_modal(): void { ?>
+<dialog id="lc-clip-preview" class="clip-preview-dialog" aria-labelledby="lc-preview-title">
+ <div class="clip-preview-title"><strong id="lc-preview-title">Prévia do vídeo</strong><button type="button" id="lc-preview-close" class="btn btn-ghost btn-sm" aria-label="Fechar player">Fechar</button></div>
+ <video id="lc-preview-player" playsinline controls preload="none" controlslist="nodownload" aria-label="Vídeo original armazenado no Google Drive"></video>
+ <p class="hint">Vídeo privado: disponível apenas para o responsável ou um administrador. A reprodução depende do Google Drive.</p>
+</dialog>
+<script defer src="/assets/clip-preview.js?v=8"></script>
+<?php }
 function lc_field(string $label, string $name, string $type = 'text', string $value = '', bool $required = false, string $placeholder = '', string $extra = ''): void {
 ?><label class="field"><span><?=lc_e($label)?></span><input name="<?=lc_e($name)?>" type="<?=lc_e($type)?>" value="<?=lc_e($value)?>" placeholder="<?=lc_e($placeholder)?>" <?=$required?'required':''?> <?=$extra?>></label><?php
 }

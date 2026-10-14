@@ -190,15 +190,17 @@ function lc_admin_routes(string $method,string $path): bool {
 <div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Criador / campanha</th><th>Atual</th><th>Views verificadas</th><th>Revisão</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr>
 <td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=lc_e(ucfirst($c['network']))?> <?=date('d/m/Y',strtotime($c['submitted_at']))?> · <?= $c['drive_file_id']?'Drive':'sem arquivo'?></small>
-<?php if($c['drive_file_id']&&($driveUrl=lc_drive_url((string)$c['drive_file_id']))):?>
-<a class="drive-file-link" href="<?=lc_e($driveUrl)?>" target="_blank" rel="noopener noreferrer"><?=lc_icon('folder-open')?> Abrir original no Drive</a><?php endif;?></td>
+<?php if($c['drive_file_id']):?>
+<button type="button" class="btn btn-ghost btn-sm clip-preview-trigger" data-preview-url="/clipes/<?=(int)$c['id']?>/video" data-preview-name="<?=lc_e($c['title'])?>"><?=lc_icon('play')?> Assistir aqui</button>
+<?php if($driveUrl=lc_drive_url((string)$c['drive_file_id'])):?><a class="drive-file-link" href="<?=lc_e($driveUrl)?>" target="_blank" rel="noopener noreferrer"><?=lc_icon('folder-open')?> Abrir no Drive</a><?php endif;?>
+<?php endif;?></td>
 <td><?=lc_e($c['full_name'])?><small><?=lc_e($c['campaign_title'])?></small></td>
 <td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td>
 <td colspan="2"><form class="mini-form" method="post" action="/admin/clipes/<?=(int)$c['id']?>/revisar"><?=lc_csrf()?>
 <input name="verified_views" type="number" min="<?=(int)$c['verified_views']?>" max="2000000000" value="<?=(int)$c['verified_views']?>" required aria-label="Views verificadas">
 <select name="decision" aria-label="Decisão"><?php if($c['status']!=='approved'):?><option value="approved">Aprovar</option><option value="rejected">Rejeitar</option><?php else:?><option value="approved">Atualizar views</option><?php endif;?></select>
 <button class="btn btn-sm" type="submit">Confirmar</button></form></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
-<?php },'admin');return true;
+<?php lc_clip_preview_modal(); },'admin');return true;
     }
     if($method==='POST'&&preg_match('~^/admin/clipes/([0-9]+)/revisar$~',$path,$m)){
         $decision=lc_post('decision',20);$views=lc_int('verified_views',0,2000000000);

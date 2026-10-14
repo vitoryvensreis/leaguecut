@@ -13,7 +13,7 @@ function lc_drive_ready(): bool {
       (lc_env('GOOGLE_REFRESH_TOKEN')!=='' && lc_env('GOOGLE_DRIVE_FOLDER_ID')!=='');
 }
 function lc_drive_upload(array $upload, int $userId): array {
-    if (!lc_drive_ready()) throw new RuntimeException('O Google Drive ainda não foi habilitado pelo administrador. Envie apenas o link publicado por enquanto.');
+    if (!lc_drive_ready()) throw new RuntimeException('O Google Drive ainda não foi habilitado pelo administrador.');
     if (($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string)($upload['tmp_name'] ?? ''))) throw new RuntimeException('Arquivo inválido.');
     if ((int)$upload['size'] <= 0 || (int)$upload['size'] > 1024*1024*1024) throw new RuntimeException('O limite atual é 1 GB por vídeo.');
     $ext = strtolower(pathinfo((string)$upload['name'],PATHINFO_EXTENSION));

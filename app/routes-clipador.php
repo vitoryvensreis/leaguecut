@@ -1,6 +1,17 @@
 <?php
 declare(strict_types=1);
 
+function lc_clip_ajax(): bool {
+    return ($_SERVER['HTTP_X_REQUESTED_WITH']??'')==='XMLHttpRequest';
+}
+function lc_clip_submission_error(string $message,string $back): never {
+    if(lc_clip_ajax()){
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Cache-Control: no-store');http_response_code(422);
+        echo json_encode(['ok'=>false,'error'=>$message],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);exit;
+    }
+    lc_flash($message,'error');lc_redirect($back);
+}
 function lc_clipper_routes(string $method,string $path): bool {
     if($method==='GET' && $path==='/dashboard'){
         $u=lc_login_required();
@@ -101,10 +112,18 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         if(lc_one('SELECT id FROM clips WHERE user_id=? AND published_url=?',[$u['id'],$url])){
             lc_flash('Esse link já foi enviado.','error');lc_redirect('/biblioteca');
         }
-        $fileId=null;$filename=null;
-        if(isset($_FILES['video']) && ($_FILES['video']['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){
-            try {$uploaded=lc_drive_upload($_FILES['video'],(int)$u['id']);$fileId=$uploaded['id'];$filename=$uploaded['filename'];}
-            catch(Throwable $e){lc_flash($e->getMessage(),'error');lc_redirect('/campanhas/'.$campaign['slug']);}
+        // A link alone must NEVER create a clip: original is mandatory.
+        if(!isset($_FILES['video']) || ($_FILES['video']['error']??UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_NO_FILE){
+            lc_clip_submission_error('Anexe o vídeo original. O envio do arquivo é obrigatório.','/campanhas/'.$campaign['slug']);
+        }
+        if(!lc_drive_ready()){
+            lc_clip_submission_error('O Google Drive não está conectado. Contate o administrador.','/campanhas/'.$campaign['slug']);
+        }
+        try {
+            $uploaded=lc_drive_upload($_FILES['video'],(int)$u['id']);
+            $fileId=$uploaded['id'];$filename=$uploaded['filename'];
+        }catch(Throwable $e){
+            lc_clip_submission_error($e->getMessage(),'/campanhas/'.$campaign['slug']);
         }
         lc_db()->beginTransaction();
         try{
@@ -115,6 +134,11 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
             lc_realtime_emit('user',(int)$u['id'],'clip.submitted','clip',$clipId);
             lc_db()->commit();
         }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
+        if(lc_clip_ajax()){
+            header('Content-Type: application/json; charset=UTF-8');
+            header('Cache-Control: no-store');
+            echo json_encode(['ok'=>true,'redirect'=>'/biblioteca'],JSON_THROW_ON_ERROR);return true;
+        }
         lc_flash('Publicação enviada para conferência. Acompanhe sua biblioteca.');lc_redirect('/biblioteca');
     }
     if($method==='GET' && $path==='/biblioteca'){
@@ -127,8 +151,10 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
 else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th><th>Rede</th><th>Views conferidas</th><th>Status</th><th>Drive</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr><td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=date('d/m/Y',strtotime($c['submitted_at']))?></small></td>
 <td><?=lc_e($c['campaign_title'])?></td><td><?=lc_e(ucfirst($c['network']))?> @<?=lc_e($c['username'])?></td><td><?=number_format((int)$c['verified_views'],0,',','.')?></td>
-<td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td><td><?= $c['drive_file_id']?'Armazenado':'Não enviado' ?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
-<?php },'library');return true;
+<td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td><td>
+<?php if($c['drive_file_id']):?><button type="button" class="btn btn-ghost btn-sm clip-preview-trigger" data-preview-url="/clipes/<?=(int)$c['id']?>/video" data-preview-name="<?=lc_e($c['title'])?>"><?=lc_icon('play')?> Assistir</button><?php else:?>Sem original<?php endif;?>
+</td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
+<?php lc_clip_preview_modal(); },'library');return true;
     }
     if($method==='GET' && $path==='/financeiro'){
         $u=lc_login_required();$balance=lc_balance((int)$u['id']);
