@@ -41,7 +41,8 @@ final class LeagueCutHub implements \Ratchet\MessageComponentInterface {
         if(!$verified){$from->close();return;}
         $user=lc_one('SELECT id,role,status FROM users WHERE id=?',[(int)$verified['id']]);
         if(!$user || $user['role']!==$verified['role'] || $user['status']!=='approved'){$from->close();return;}
-        $this->clients[$from]=['user'=>['id'=>(int)$user['id'],'role'=>$user['role']],'opened'=>time()];
+        $recentId=(int)(lc_one('SELECT COALESCE(MAX(id),0) AS last_id FROM realtime_events')['last_id']??0);
+        $this->clients[$from]=['user'=>['id'=>(int)$user['id'],'role'=>$user['role']],'opened'=>time(),'min_id'=>$recentId];
         $from->send(json_encode(['type'=>'ready','cursor'=>$this->cursor],JSON_THROW_ON_ERROR));
     }
     public function onClose(\Ratchet\ConnectionInterface $conn): void {
@@ -66,7 +67,7 @@ final class LeagueCutHub implements \Ratchet\MessageComponentInterface {
                 foreach($this->clients as $conn){
                     $info=$this->clients[$conn];
                     $u=$info['user'];
-                    if(!$u)continue;
+                    if(!$u || (int)$row['id'] <= (int)($info['min_id']??0))continue;
                     $allowed=$row['scope']==='admin'?$u['role']==='admin':
                         ($u['role']==='clipador' && $u['id']===(int)$row['user_id']);
                     if($allowed)$conn->send($message);
