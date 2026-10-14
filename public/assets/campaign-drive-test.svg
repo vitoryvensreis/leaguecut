@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="ttl desc">
+<title id="ttl">LeagueCut — Campanha interna de teste Google Drive</title>
+<desc id="desc">Capa gráfica dark vermelha e preta para campanha de validação de upload de vídeo no Google Drive.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07090f"/><stop offset=".5" stop-color="#151018"/><stop offset="1" stop-color="#300a18"/></linearGradient>
+ <radialGradient id="glow"><stop stop-color="#e50914" stop-opacity=".57"/><stop offset="1" stop-color="#e50914" stop-opacity="0"/></radialGradient>
+ <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#ff4858"/><stop offset="1" stop-color="#c40621"/></linearGradient>
+ <pattern id="grid" width="48" height="48" patternUnits="userSpaceOnUse"><path d="M48 0H0V48" fill="none" stroke="#fff" opacity=".045" stroke-width="1"/></pattern>
+</defs>
+<rect width="1280" height="720" fill="url(#bg)"/>
+<rect width="1280" height="720" fill="url(#grid)"/>
+<circle cx="1010" cy="355" r="440" fill="url(#glow)"/>
+<circle cx="1060" cy="390" r="252" fill="none" stroke="#ffffff" stroke-opacity=".1" stroke-width="1.5"/>
+<circle cx="1060" cy="390" r="196" fill="none" stroke="#ffffff" stroke-opacity=".13" stroke-width="1.5"/>
+<rect x="72" y="80" width="246" height="42" rx="21" fill="#ee2537" fill-opacity=".14" stroke="#ff5267" stroke-opacity=".5"/>
+<circle cx="97" cy="101" r="6" fill="#ff4b5c"/>
+<text x="113" y="108" font-family="Arial,Helvetica,sans-serif" fill="#ffb1bc" font-size="15" font-weight="700" letter-spacing="2">AMBIENTE DE TESTE</text>
+<text x="73" y="208" font-family="Arial,Helvetica,sans-serif" fill="#fff" font-size="33" font-weight="700">LEAGUE<tspan fill="#f52236">CUT</tspan></text>
+<text x="73" y="350" font-family="Arial,Helvetica,sans-serif" fill="#fff" font-size="84" font-weight="800" letter-spacing="-2">PRIMEIRO</text>
+<text x="73" y="445" font-family="Arial,Helvetica,sans-serif" fill="#fff" font-size="84" font-weight="800" letter-spacing="-2">VÍDEO <tspan fill="#ff3a4b">/ DRIVE</tspan></text>
+<text x="77" y="513" font-family="Arial,Helvetica,sans-serif" fill="#bdc2ce" font-size="25">Crie. Publique. Envie. Valide.</text>
+<rect x="74" y="576" width="400" height="3" fill="url(#accent)"/>
+<text x="73" y="629" font-family="Arial,Helvetica,sans-serif" fill="#ff9baa" font-size="18" font-weight="700" letter-spacing="2">CAMPANHA INTERNA • SEM PAGAMENTO REAL</text>
+<g transform="translate(942 251) rotate(10)">
+<rect x="0" y="0" width="223" height="281" rx="29" fill="#1c202b" stroke="#ffffff" stroke-opacity=".25" stroke-width="2"/>
+<rect x="13" y="13" width="197" height="255" rx="20" fill="#0a0d13"/>
+<rect x="39" y="37" width="145" height="178" rx="14" fill="#bf122d" fill-opacity=".28"/>
+<circle cx="111" cy="126" r="47" fill="url(#accent)"/>
+<path d="M100 101L139 126L100 151Z" fill="#fff"/>
+<rect x="45" y="235" width="132" height="6" rx="3" fill="#f44558"/>
+</g>
+</svg>
