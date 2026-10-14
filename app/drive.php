@@ -118,6 +118,37 @@ function lc_drive_authenticated_client(): \Google\Client {
     }
     return $client;
 }
+/**
+ * Remove only the app-uploaded Drive file referenced by a clip. Metadata name
+ * must match the original stored name to prevent deleting an unrelated file.
+ * Missing files (404) are treated as already deleted.
+ */
+function lc_drive_delete_original(string $id,string $expectedName): void {
+    if(!preg_match('/^[A-Za-z0-9_-]{10,180}$/D',$id) || $expectedName===''){
+        throw new RuntimeException('Identificação do original inválida. Exclusão cancelada.');
+    }
+    if(lc_drive_ci_fake()){
+        if(!str_starts_with($id,'test-drive-') || !str_starts_with($expectedName,'e2e-original.')){
+            throw new RuntimeException('Arquivo fictício do teste inválido.');
+        }
+        return;
+    }
+    if(!preg_match('/^clip-[0-9]+-[a-f0-9]{16}\.(mp4|mov|webm)$/D',$expectedName)){
+        throw new RuntimeException('Original sem assinatura de nome LeagueCut. Exclusão cancelada para conferência.');
+    }
+    if(!lc_drive_ready())throw new RuntimeException('Google Drive não conectado. Não excluímos registros locais sem excluir o original.');
+    try {
+        $service=new \Google\Service\Drive(lc_drive_authenticated_client());
+        $metadata=$service->files->get($id,['fields'=>'id,name,trashed']);
+        if((string)($metadata->name??'')!==$expectedName)
+            throw new RuntimeException('O arquivo no Google Drive não corresponde ao original do clipe. Exclusão cancelada.');
+        $service->files->delete($id);
+    }catch(\Google\Service\Exception $e){
+        if((int)$e->getCode()===404)return;
+        error_log('LeagueCut Drive deletion failed, HTTP '.(int)$e->getCode());
+        throw new RuntimeException('Falha ao excluir o original no Google Drive. O clipe foi preservado na plataforma.');
+    }
+}
 function lc_drive_url(string $id): ?string {
     if(!preg_match('/^[A-Za-z0-9_-]{10,180}$/D',$id))return null;
     return 'https://drive.google.com/file/d/'.rawurlencode($id).'/view';
