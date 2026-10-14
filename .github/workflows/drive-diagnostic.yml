@@ -1,0 +1,58 @@
+name: LeagueCut private video diagnostic (read-only)
+on:
+  push:
+    branches: [qa/drive-range-player]
+    paths: ['.github/workflows/drive-diagnostic.yml']
+permissions: {contents: read}
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Setup SSH
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Verify metadata and 8 MB Google range on VPS
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = "leaguecut" ]
+          cd /home/leaguecut/current
+          echo "PHP_VERSION=$(php -r 'echo PHP_VERSION;')"
+          php -r '
+          require "app/core.php";require "vendor/autoload.php";require "app/drive.php";
+          echo "TEMP_DIR=".sys_get_temp_dir()." writable=".(is_writable(sys_get_temp_dir())?"yes":"no")."\n";
+          $t=tmpfile();echo "TMPFILE_OK=".($t?"yes":"no")."\n";if($t)fclose($t);
+          $rows=lc_all("SELECT id,drive_file_id FROM clips WHERE drive_file_id IS NOT NULL ORDER BY id DESC LIMIT 3");
+          foreach($rows as $row){
+            $client=lc_drive_authenticated_client();$api=new Google\Service\Drive($client);
+            $meta=$api->files->get($row["drive_file_id"],["fields"=>"id,mimeType,size,trashed"]);
+            $size=(int)$meta->size;
+            echo "CLIP=".$row["id"]." MIME=".$meta->mimeType." SIZE_MB=".round($size/1048576,1)."\n";
+            foreach([1023,1024*1024-1,8*1024*1024-1] as $rangeEnd){
+               $end=min($size-1,$rangeEnd);
+               $tmp=tmpfile();if(!$tmp)exit(1);
+               $ch=curl_init("https://www.googleapis.com/drive/v3/files/".rawurlencode($row["drive_file_id"])."?alt=media");
+               curl_setopt_array($ch,[
+                  CURLOPT_HTTPHEADER=>["Authorization: Bearer ".$client->getAccessToken()["access_token"],"Range: bytes=0-".$end],
+                  CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>80,
+                  CURLOPT_FILE=>$tmp,CURLOPT_HEADER=>false
+               ]);
+               $ok=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
+               $curlErr=curl_errno($ch);curl_close($ch);
+               $bytes=ftell($tmp);fclose($tmp);
+               echo "RANGE_END=".$end." STATUS=".$status." ERRNO=".$curlErr." RECEIVED=".$bytes." EXPECTED=".($end+1). " RESULT=".($ok&&($status===200||$status===206)&&$bytes===$end+1?"PASS":"FAIL")."\n";
+            }
+          }'
+          REMOTE
