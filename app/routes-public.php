@@ -35,7 +35,7 @@ else: ?><div class="catalog"><?php foreach($campaigns as $campaign)lc_tile($camp
 <?php lc_field('Senha (mínimo 10 caracteres)','password','password','',true,'Crie uma senha forte','minlength="10" autocomplete="new-password"'); ?>
 <?php lc_field('Instagram (seu @)','instagram','text','',true,'@seuperfil'); ?>
 <?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'85999999999'); ?>
-<?php lc_field('Portfólio (link HTTPS, opcional)','portfolio_url','url','','','https://...'); ?>
+<?php lc_field('Portfólio (link HTTPS, opcional)','portfolio_url','url','',false,'https://...'); ?>
 <?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?>
 <label class="field full"><span><input type="checkbox" name="consent_whatsapp" value="1" style="width:auto"> Aceito receber avisos operacionais sobre meu cadastro por WhatsApp.</span></label>
 </div><div class="form-actions"><button class="btn" type="submit">Enviar cadastro →</button><a href="/entrar">Já tenho conta</a></div>
