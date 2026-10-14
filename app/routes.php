@@ -5,6 +5,8 @@ require __DIR__ . '/realtime.php';
 require __DIR__ . '/home.php';
 require __DIR__ . '/routes-home-admin.php';
 require __DIR__ . '/drive.php';
+require __DIR__ . '/apify.php';
+require __DIR__ . '/routes-clip-video.php';
 require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/routes-public.php';
 require __DIR__ . '/routes-clipador.php';
@@ -24,6 +26,7 @@ if ($path==='/health' && $method==='GET') {
     lc_db()->query('SELECT 1');
     echo 'LeagueCut OK';return;
 }
+if(lc_clip_video_route($method,$path))return;
 if(lc_realtime_route($method,$path))return;
 if(lc_integrations_routes($method,$path))return;
 if(lc_home_admin_routes($method,$path))return;

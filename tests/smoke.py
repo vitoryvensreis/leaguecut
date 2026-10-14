@@ -50,6 +50,31 @@ def submit(client,path,fields,source):
     return html
 
 
+def submit_video(client, campaign_id, account_id, title, url):
+    """Real multipart upload in CI, where Drive is explicitly mocked only on localhost."""
+    boundary="leaguecut-test-multipart"
+    fields={
+       "_csrf":csrf_from(client,"/campanhas/"+campaign_id[1]),
+       "campaign_id":campaign_id[0],
+       "social_account_id":account_id,
+       "title":title,
+       "published_url":url
+    }
+    parts=[]
+    for key,value in fields.items():
+        parts.append(("--"+boundary+"\r\nContent-Disposition: form-data; name=\""+key+"\"\r\n\r\n"+value+"\r\n").encode())
+    # ISO BMFF magic recognized as video/mp4 by libmagic.
+    mp4=b"\x00\x00\x00\x1cftypisom\x00\x00\x02\x00isomiso2mp41"
+    parts.append(("--"+boundary+"\r\nContent-Disposition: form-data; name=\"video\"; filename=\"teste.mp4\"\r\nContent-Type: video/mp4\r\n\r\n").encode()+mp4+b"\r\n")
+    parts.append(("--"+boundary+"--\r\n").encode())
+    request=urllib.request.Request(BASE+"/clipes",data=b"".join(parts),method="POST",
+       headers={"Content-Type":"multipart/form-data; boundary="+boundary,"X-Requested-With":"XMLHttpRequest"})
+    with client.open(request,timeout=15) as resp:
+        assert resp.headers.get("Content-Type","").startswith("application/json")
+        import json
+        payload=json.load(resp)
+        assert payload.get("ok") is True, payload
+
 def register(client,email,name):
     return submit(client,"/cadastrar",{
       "full_name":name,"email":email,"password":"This-Is-A-Test-Password-123",
@@ -232,14 +257,33 @@ def main():
     campaign=get(creator,"/campanhas/"+slug.group(1))
     campaign_id=re.search(r'name="campaign_id" value="(\d+)"',campaign).group(1)
     account_id=re.search(r'<option value="(\d+)">Instagram',campaign).group(1)
-    for i in range(5):
+    # The original file is mandatory, even if someone bypasses HTML validation.
+    missing_url="https://www.instagram.com/reel/missingfile/"
+    from urllib.error import HTTPError
+    try:
         submit(creator,"/clipes",{
           "campaign_id":campaign_id,"social_account_id":account_id,
-          "title":"Clipe de teste %02d" % i,
-          "published_url":"https://www.instagram.com/reel/test%d/" % i
+          "title":"Clipe sem original",
+          "published_url":missing_url
         },"/campanhas/"+slug.group(1))
+    except HTTPError:
+        pass
+    assert "Clipe sem original" not in get(creator,"/biblioteca")
+    for i in range(5):
+        submit_video(creator,(campaign_id,slug.group(1)),account_id,
+          "Clipe de teste %02d" % i,"https://www.instagram.com/reel/test%d/" % i)
     clips_page=get(creator,"/biblioteca")
     assert "Clipe de teste 04" in clips_page
+    assert 'class="clip-preview-trigger"' in clips_page or 'clip-preview-trigger' in clips_page
+    assert "Assistir" in clips_page
+    assert 'src="/assets/clip-preview.js?v=8"' in clips_page
+    assert 'data-preview-url="/clipes/' in clips_page
+    assert "obrigatório" in get(creator,"/campanhas/"+slug.group(1))
+    # Existing private videos cannot be fetched by unauthenticated visitors.
+    from urllib.error import HTTPError
+    guest_video=get(make_client(),"/clipes/1/video")
+    assert 'Entrar' in guest_video and 'video/mp4' not in guest_video, "Preview must require authentication"
+
     creator_after=get(creator,"/dashboard")
     assert "Clipe de teste 04" in creator_after, "Recent activity includes real clip"
     assert "5" in creator_after, "Dashboard shows submitted clip count"

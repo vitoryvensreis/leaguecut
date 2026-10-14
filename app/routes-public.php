@@ -196,12 +196,19 @@ function lc_public_routes(string $method,string $path): bool {
 <?php elseif($u['role']==='clipador'):?>
 <div class="panel"><h2>Enviar publicação</h2>
 <?php if(!$networks):?><div class="alert">Cadastre primeiro seu perfil do Instagram ou TikTok em <a href="/redes">Minhas redes →</a>.</div><?php else:?>
-<form method="post" action="/clipes" enctype="multipart/form-data"><?=lc_csrf()?><input type="hidden" name="campaign_id" value="<?=(int)$c['id']?>">
+<form id="lc-clip-form" method="post" action="/clipes" enctype="multipart/form-data"><?=lc_csrf()?><input type="hidden" name="campaign_id" value="<?=(int)$c['id']?>">
 <div class="form-grid"><?php lc_field('Título do clipe','title','text','',true,'Ex.: A fala mais forte do episódio'); ?>
 <label class="field"><span>Rede usada</span><select name="social_account_id" required><?php foreach($networks as $n):?><option value="<?=(int)$n['id']?>"><?=lc_e(ucfirst($n['network']).' · @'.$n['username'])?></option><?php endforeach;?></select></label>
 <div class="full"><?php lc_field('Link do vídeo publicado','published_url','url','',true,'https://www.instagram.com/reel/...'); ?></div>
-<label class="field full"><span>Vídeo original (opcional)</span><input type="file" name="video" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm" <?=lc_drive_ready()?'':'disabled'?>><small><?=lc_drive_ready()?'Google Drive privado disponível. MP4, MOV ou WebM, até 1 GB (sujeito ao limite do servidor).':'Upload temporariamente indisponível: envie apenas o link. O administrador precisa conectar o Google Drive.'?></small></label>
-</div><div class="form-actions"><button class="btn" type="submit">Enviar para conferência →</button></div></form>
+<label class="field full"><span>Vídeo original (obrigatório)</span><input id="lc-clip-file" type="file" name="video" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm" required <?=lc_drive_ready()?'':'disabled'?>><small><?=lc_drive_ready()?'Obrigatório: MP4, MOV ou WebM. Arquivo deve respeitar os limites PHP/Nginx do servidor.':'Envios indisponíveis: o administrador precisa conectar o Google Drive.'?></small></label>
+<div class="full clip-upload-progress" id="lc-upload-progress" hidden role="status" aria-live="polite">
+  <div class="clip-upload-head"><span id="lc-upload-stage">Preparando vídeo…</span><strong id="lc-upload-percent">0%</strong></div>
+  <progress id="lc-upload-meter" value="0" max="100" aria-label="Progresso do upload do vídeo">0%</progress>
+  <small id="lc-upload-detail">O arquivo será transferido ao servidor e depois guardado no Google Drive.</small>
+</div>
+<div class="full clip-upload-error" id="lc-upload-error" hidden role="alert"></div>
+</div><div class="form-actions"><button class="btn" id="lc-clip-submit" type="submit" <?=lc_drive_ready()?'':'disabled'?>><span>Enviar para conferência</span> <?=lc_icon('arrow-right')?></button></div></form>
+<script defer src="/assets/clip-upload.js?v=8"></script>
 <?php endif;?></div>
 <?php endif;?></div>
 <?php },'home');return true;

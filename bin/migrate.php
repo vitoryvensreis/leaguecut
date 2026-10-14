@@ -90,6 +90,22 @@ try{
     $driveColumns=$db->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='google_drive_connections'")->fetchAll(PDO::FETCH_COLUMN);
     if(array_diff(['id','refresh_token_enc','folder_id','connected_by','connected_at'],$driveColumns))throw new RuntimeException('Tabela Drive incompleta.');
     echo "MIGRACAO_DRIVE_OK\n";
+    $metricTable=lc_one("SELECT 1 AS present FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='clip_view_samples'");
+    $costTable=lc_one("SELECT 1 AS present FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='apify_profile_runs'");
+    if(!$metricTable || !$costTable)lc_migration_backup();
+    $sqlText=(string)file_get_contents(dirname(__DIR__).'/database/migrations/20261014_005_apify_metrics.sql');
+    $metricsSql=trim(preg_replace('/^--[^\n]*\n/', '', $sqlText)??$sqlText);
+    $parts=array_values(array_filter(array_map('trim',explode(';',$metricsSql))));
+    if(count($parts)!==2 || !preg_match('/^CREATE TABLE IF NOT EXISTS clip_view_samples\\b/i',$parts[0]) ||
+       !preg_match('/^CREATE TABLE IF NOT EXISTS apify_profile_runs\\b/i',$parts[1]))throw new RuntimeException('Migração Apify inválida.');
+    foreach($parts as $statement)$db->exec($statement);
+    $required=['clip_view_samples'=>['clip_id','views','source','observed_at'],
+               'apify_profile_runs'=>['username','attempted_at','max_charge_usd','status']];
+    foreach($required as $table=>$cols){
+       $actual=$db->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=".$db->quote($table))->fetchAll(PDO::FETCH_COLUMN);
+       if(array_diff($cols,$actual))throw new RuntimeException('Schema de métricas incompatível.');
+    }
+    echo "MIGRACAO_APIFY_OK\n";
 }catch(Throwable $e){
     fwrite(STDERR,'MIGRACAO_FALHOU: '.$e->getMessage()."\n");
     exit(1);
