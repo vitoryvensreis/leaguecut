@@ -1,0 +1,89 @@
+name: Publicar LeagueCut (controlado)
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Digite PUBLICAR para liberar este deploy'
+        required: true
+        type: string
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: leaguecut-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm == 'PUBLICAR') || (github.event_name == 'push' && vars.LEAGUECUT_AUTO_DEPLOY == 'true') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Preparar SSH de deploy
+        shell: bash
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" > /dev/null
+
+      - name: Publicar release sem afetar outros sites
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/id_ed25519" -p "$SSH_PORT" \
+            -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
+            "$SSH_USER@$SSH_HOST" bash -s -- "$GITHUB_SHA" <<'REMOTE'
+          set -euo pipefail
+          REV="$1"
+          BASE="/home/leaguecut"
+          RELEASE="$BASE/releases/$REV"
+
+          if [ "$(whoami)" != "leaguecut" ]; then
+            echo "ERR: Deploy deve ser executado por leaguecut"; exit 1
+          fi
+          if [ ! -f "$BASE/shared/.env" ]; then
+            echo "ERR: Falta $BASE/shared/.env. Nenhuma versao foi publicada."; exit 1
+          fi
+          if [ -e "$BASE/current" ] && [ ! -L "$BASE/current" ]; then
+            echo "ERR: current existe e nao e um link simbolico. Abortando."; exit 1
+          fi
+          mkdir -p "$BASE/releases" "$BASE/shared/storage"
+          if [ ! -d "$RELEASE/.git" ]; then
+            git clone --quiet --depth 1 --branch main \
+              https://github.com/vitoryvensreis/leaguecut.git "$RELEASE"
+          fi
+          cd "$RELEASE"
+          git fetch --quiet --depth 1 origin "$REV"
+          git checkout --quiet --detach "$REV"
+          ln -sfn "$BASE/shared/.env" "$RELEASE/.env"
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
+
+          php -r 'require "app/core.php"; lc_db()->query("SELECT COUNT(*) FROM users"); echo "Banco OK\n";'
+          PREV="$(readlink -f "$BASE/current" || true)"
+          rm -f "$BASE/current.next"
+          ln -s "$RELEASE" "$BASE/current.next"
+          mv -Tf "$BASE/current.next" "$BASE/current"
+          if ! curl --fail --silent --show-error --max-time 20 https://leaguecut.com/health | grep -Fxq 'LeagueCut OK'; then
+            echo "ERR: Health check falhou. Revertendo ponteiro de deploy."
+            if [ -n "$PREV" ] && [ -d "$PREV" ]; then
+              ln -s "$PREV" "$BASE/current.rollback"
+              mv -Tf "$BASE/current.rollback" "$BASE/current"
+            else
+              rm -f "$BASE/current"
+            fi
+            exit 1
+          fi
+          echo "LeagueCut publicado: $REV"
+          REMOTE

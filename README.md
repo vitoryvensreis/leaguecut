@@ -23,7 +23,7 @@ Plataforma de campanhas de conteúdo e recompensas (PHP 8.4 + MySQL + CloudPanel
 1. No CloudPanel, rotacione a senha exposta em captura de tela e confirme o banco `leaguecut` e usuário isolado.
 2. Use uma pasta de aplicação fora do Document Root. Aponte o Nginx exclusivamente para `.../public` e configure `try_files $uri $uri/ /index.php?$query_string;` no **vhost deste site**, preservando `/.well-known`.
 3. Copie `.env.example` para `.env` **fora da pasta pública**; preencha `DB_*`, `APP_URL`, `APP_KEY` e email/Drive somente quando disponíveis.
-4. Importe `database/schema.sql` no banco específico, configure permissões mínimas e `composer install --no-dev --optimize-autoloader`.
+4. Selecione o banco `leaguecut` no phpMyAdmin e importe `database/schema.sql` (o arquivo não cria o banco), configure permissões mínimas e `composer install --no-dev --optimize-autoloader`.
 5. Acesse `/cadastrar`, crie usuário pessoal e promova-o via `php bin/make-admin.php email@example.com` no terminal com as credenciais do banco configuradas.
 6. Teste cadastro, status pendente, aprovação, notificações em fila, campanhas, clipes, saldos e saques antes de liberar usuários.
 7. Criar chave SSH própria para deploy (já testada). O workflow de deploy **não está habilitado ainda**; o workflow `ssh-test.yml` permanece apenas diagnóstico.

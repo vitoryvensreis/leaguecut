@@ -1,6 +1,5 @@
-CREATE DATABASE IF NOT EXISTS leaguecut CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
--- Selecione explicitamente o banco leaguecut antes de importar:
-USE leaguecut;
+-- Selecione o banco de dados existente 'leaguecut' no CloudPanel/phpMyAdmin antes de importar.
+-- Não utiliza CREATE DATABASE para funcionar com o usuário MySQL isolado do site.
 
 CREATE TABLE IF NOT EXISTS users (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

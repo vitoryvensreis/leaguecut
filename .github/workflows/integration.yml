@@ -37,7 +37,9 @@ jobs:
       - name: Instalar dependencias
         run: composer install --no-dev --no-interaction --prefer-dist
       - name: Preparar banco de teste descartavel
-        run: mysql --host=127.0.0.1 --user=root --password=integration < database/schema.sql
+        run: |
+          mysql --host=127.0.0.1 --user=root --password=integration -e "CREATE DATABASE leaguecut CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql --host=127.0.0.1 --user=root --password=integration leaguecut < database/schema.sql
       - name: Iniciar aplicacao em localhost
         env:
           APP_URL: http://127.0.0.1:8080

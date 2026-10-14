@@ -15,7 +15,7 @@ function lc_public_routes(string $method,string $path): bool {
 <div class="container">
 <section class="section"><div class="section-head"><h2>Em alta agora</h2><span class="tag"><?=count($campaigns)?> campanhas disponíveis</span></div>
 <?php if(!$campaigns): lc_empty('Em breve, novas campanhas','Estamos preparando oportunidades. Crie sua conta e acompanhe os lançamentos.');
-else: ?><div class="catalog"><?php foreach($campaigns as $campaign)lc_tile($campaign); ?></div><?php endif;?></section>
+else: ?><div class="catalog catalog-horizontal"><?php foreach($campaigns as $campaign)lc_tile($campaign); ?></div><?php endif;?></section>
 <section class="section large-surface"><span class="eyebrow">Como funciona</span><h2>Um espaço para quem cria.</h2><div class="rule-grid">
 <div><strong>01 · Cadastre-se</strong><p>Preencha seus dados e aguarde a aprovação da equipe.</p></div>
 <div><strong>02 · Escolha</strong><p>Encontre uma campanha e conheça as regras e recompensas.</p></div>
