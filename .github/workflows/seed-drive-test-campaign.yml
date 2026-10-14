@@ -1,0 +1,67 @@
+name: Criar campanha interna de teste - Google Drive
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/seed-drive-test-campaign.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: leaguecut-test-campaign-once
+  cancel-in-progress: false
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Preparar chave SSH
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+      - name: Executar criacao idempotente no banco do LeagueCut
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes \
+             -o BatchMode=yes -i "$HOME/.ssh/id_ed25519" \
+             -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = "leaguecut" ]
+          ROOT="$(readlink -f /home/leaguecut/current)"
+          [ -n "$ROOT" ] && [ -f "$ROOT/bin/seed-drive-test-campaign.php" ]
+          [ "$(git -C "$ROOT" rev-parse HEAD)" = "0e1f0469d0730be6f1ae1e6baa657f91e2ecb82f" ]
+          [ -f "$ROOT/.env" ]
+          curl --fail --silent --show-error --max-time 12 \
+             https://leaguecut.com/assets/campaign-drive-test.svg \
+             | grep -Fq 'AMBIENTE DE TESTE'
+          cd "$ROOT"
+          LEAGUECUT_SEED_TEST=CONFIRMO_TESTE_LEAGUECUT_2026 php bin/seed-drive-test-campaign.php
+          php -r '
+            require "app/core.php";
+            $slug="teste-drive-completo-leaguecut-2026";
+            $row=lc_one("SELECT id,status,slug,min_videos_week,payment_per_video_cents,milestone_views,milestone_bonus_cents,monthly_leader_bonus_cents FROM campaigns WHERE slug=?",[$slug]);
+            if(!$row || $row["status"]!=="active" || (int)$row["min_videos_week"]!==1 ||
+               (int)$row["payment_per_video_cents"]!==1 || (int)$row["milestone_views"]!==100 ||
+               (int)$row["milestone_bonus_cents"]!==1 || (int)$row["monthly_leader_bonus_cents"]!==1)exit(1);
+            echo "TEST_CAMPAIGN_DB_VERIFIED id=".$row["id"]."\n";
+          '
+          curl --fail --silent --show-error --max-time 12 \
+            https://leaguecut.com/campanhas/teste-drive-completo-leaguecut-2026 \
+            | grep -Fq 'TESTE INTERNO'
+          echo 'TEST_CAMPAIGN_PUBLIC_VERIFIED'
+          REMOTE
