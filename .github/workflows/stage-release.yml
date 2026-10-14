@@ -1,0 +1,68 @@
+name: Preparar release LeagueCut na VPS
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/stage-release.yml'
+permissions:
+  contents: read
+concurrency:
+  group: leaguecut-stage
+  cancel-in-progress: false
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - name: Preparar autenticacao
+        shell: bash
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" > /dev/null
+
+      - name: Preparar codigo e dependencias sem publicar
+        shell: bash
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/id_ed25519" -p "$PORT" \
+            -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 "$USER@$HOST" bash -s -- "$GITHUB_SHA" <<'REMOTE'
+          set -euo pipefail
+          REV="$1"
+          BASE="/home/leaguecut"
+          RELEASE="$BASE/releases/$REV"
+          [ "$(whoami)" = leaguecut ] || { echo "Usuario SSH incorreto"; exit 1; }
+          [ -d "$BASE/htdocs/leaguecut.com" ] || { echo "Pasta existente nao encontrada"; exit 1; }
+          mkdir -p "$BASE/releases" "$BASE/shared/storage"
+          if [ -d "$RELEASE" ]; then
+            echo "Release ja preparada: $REV"
+            exit 0
+          fi
+          TEMP="$(mktemp -d "$BASE/releases/.stage.XXXXXX")"
+          trap 'rm -rf -- "$TEMP"' EXIT
+          git clone -q --depth 1 --branch main https://github.com/vitoryvensreis/leaguecut.git "$TEMP/project"
+          cd "$TEMP/project"
+          if [ "$(git rev-parse HEAD)" != "$REV" ]; then
+            git fetch -q --depth 1 origin "$REV"
+            git checkout -q --detach "$REV"
+          fi
+          find app public bin -type f -name '*.php' -print0 | xargs -0 -n1 php -l >/dev/null
+          composer validate --no-check-publish
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress
+          mv "$TEMP/project" "$RELEASE"
+          echo "RELEASE_PREPARADA=$REV"
+          echo "PUBLICADO=NAO"
+          REMOTE
