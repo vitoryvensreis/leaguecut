@@ -165,18 +165,6 @@ function lc_admin_routes(string $method,string $path): bool {
 <?php if(!$campaigns):lc_empty('Sem campanhas ainda','Crie a primeira campanha no formulário acima.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Campanha</th><th>Status</th><th>Vídeos/semana</th><th>Valor</th><th>Editar</th></tr></thead><tbody><?php foreach($campaigns as $c):?>
 <tr><td><a href="/campanhas/<?=lc_e($c['slug'])?>"><?=lc_e($c['title'])?> ↗</a></td><td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td>
-<td class="views-readout">
-<?php if($c['observed_views']!==null):?>
-<strong><?=number_format((int)$c['observed_views'],0,',','.')?></strong>
-<small>Apify · leitura <?=date('d/m/Y',strtotime((string)$c['snapshot_date']))?></small>
-<?php elseif($c['network']!=='instagram'):?>
-<span>Sem integração</span><small><?=lc_e(ucfirst($c['network']))?>: aguardando coletor</small>
-<?php elseif($c['status']!=='approved' || !$c['drive_file_id']):?>
-<span>Não elegível</span><small>Aprovação e vídeo original obrigatórios</small>
-<?php else:?>
-<span>Aguardando coleta</span><small>Próxima tentativa: 02h de Fortaleza, sujeita a orçamento</small>
-<?php endif;?>
-</td>
 <td><?=(int)$c['min_videos_week']?></td><td><?=lc_money($c['payment_per_video_cents'])?></td>
 <td><a href="/admin/campanhas/<?=(int)$c['id']?>/editar">Editar →</a></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'admin');return true;
@@ -209,6 +197,18 @@ function lc_admin_routes(string $method,string $path): bool {
 <?php endif;?></td>
 <td><?=lc_e($c['full_name'])?><small><?=lc_e($c['campaign_title'])?></small></td>
 <td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td>
+<td class="views-readout">
+<?php if($c['observed_views']!==null):?>
+<strong><?=number_format((int)$c['observed_views'],0,',','.')?></strong>
+<small>Apify · leitura <?=date('d/m/Y',strtotime((string)$c['snapshot_date']))?></small>
+<?php elseif($c['network']!=='instagram'):?>
+<span>Sem integração</span><small><?=lc_e(ucfirst($c['network']))?>: aguardando coletor</small>
+<?php elseif($c['status']!=='approved' || !$c['drive_file_id']):?>
+<span>Não elegível</span><small>Aprovação e vídeo original obrigatórios</small>
+<?php else:?>
+<span>Aguardando coleta</span><small>Próxima tentativa: 02h de Fortaleza, sujeita a orçamento</small>
+<?php endif;?>
+</td>
 <td colspan="2"><form class="mini-form" method="post" action="/admin/clipes/<?=(int)$c['id']?>/revisar"><?=lc_csrf()?>
 <input name="verified_views" type="number" min="<?=(int)$c['verified_views']?>" max="2000000000" value="<?=(int)$c['verified_views']?>" required aria-label="Views verificadas (confirme dados Apify)">
 <select name="decision" aria-label="Decisão"><?php if($c['status']!=='approved'):?><option value="approved">Aprovar</option><option value="rejected">Rejeitar</option><?php else:?><option value="approved">Atualizar views</option><?php endif;?></select>
