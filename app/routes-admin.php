@@ -189,7 +189,9 @@ function lc_admin_routes(string $method,string $path): bool {
 <?php if(!$clips):lc_empty('Tudo em dia','Nenhum vídeo recebido até agora.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Criador / campanha</th><th>Atual</th><th>Views verificadas</th><th>Revisão</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr>
-<td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=lc_e(ucfirst($c['network']))?> <?=date('d/m/Y',strtotime($c['submitted_at']))?> · <?= $c['drive_file_id']?'Drive':'sem arquivo'?></small></td>
+<td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=lc_e(ucfirst($c['network']))?> <?=date('d/m/Y',strtotime($c['submitted_at']))?> · <?= $c['drive_file_id']?'Drive':'sem arquivo'?></small>
+<?php if($c['drive_file_id']&&($driveUrl=lc_drive_url((string)$c['drive_file_id']))):?>
+<a class="drive-file-link" href="<?=lc_e($driveUrl)?>" target="_blank" rel="noopener noreferrer"><?=lc_icon('folder-open')?> Abrir original no Drive</a><?php endif;?></td>
 <td><?=lc_e($c['full_name'])?><small><?=lc_e($c['campaign_title'])?></small></td>
 <td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td>
 <td colspan="2"><form class="mini-form" method="post" action="/admin/clipes/<?=(int)$c['id']?>/revisar"><?=lc_csrf()?>

@@ -200,7 +200,7 @@ function lc_public_routes(string $method,string $path): bool {
 <div class="form-grid"><?php lc_field('Título do clipe','title','text','',true,'Ex.: A fala mais forte do episódio'); ?>
 <label class="field"><span>Rede usada</span><select name="social_account_id" required><?php foreach($networks as $n):?><option value="<?=(int)$n['id']?>"><?=lc_e(ucfirst($n['network']).' · @'.$n['username'])?></option><?php endforeach;?></select></label>
 <div class="full"><?php lc_field('Link do vídeo publicado','published_url','url','',true,'https://www.instagram.com/reel/...'); ?></div>
-<label class="field full"><span>Enviar vídeo original para Drive (opcional no início)</span><input type="file" name="video" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm"><small><?=lc_drive_ready()?'Armazenamento privado do Drive habilitado. Limite por arquivo: 1 GB, sujeito a limites da hospedagem.':'Integração Drive ainda não configurada: envie o link sem anexar arquivo.'?></small></label>
+<label class="field full"><span>Vídeo original (opcional)</span><input type="file" name="video" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm" <?=lc_drive_ready()?'':'disabled'?>><small><?=lc_drive_ready()?'Google Drive privado disponível. MP4, MOV ou WebM, até 1 GB (sujeito ao limite do servidor).':'Upload temporariamente indisponível: envie apenas o link. O administrador precisa conectar o Google Drive.'?></small></label>
 </div><div class="form-actions"><button class="btn" type="submit">Enviar para conferência →</button></div></form>
 <?php endif;?></div>
 <?php endif;?></div>

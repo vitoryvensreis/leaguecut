@@ -77,6 +77,21 @@ def main():
     register(admin,"admin@leaguecut.test","Admin Teste")
     import subprocess
     subprocess.check_call(["php","bin/make-admin.php","admin@leaguecut.test"])
+    from urllib.error import HTTPError
+    # Bloco 7: Google Drive connection is admin-only and never exposes OAuth tokens.
+    integrations=get(admin,"/admin/integracoes")
+    assert "Google Drive" in integrations
+    assert "GOOGLE_CLIENT_ID" in integrations, "Setup instructions"
+    assert "admin/integracoes/google/callback" in integrations, "Google OAuth redirect"
+    assert 'name="_csrf"' in integrations
+    assert "Abrir original no Drive" not in integrations
+    try:
+        get(creator,"/admin/integracoes")
+        raise AssertionError("Creator must not access Google Drive integration settings")
+    except HTTPError as exc:
+        assert exc.code==403, "Drive settings require admin role"
+    guest_integrations=get(make_client(),"/admin/integracoes")
+    assert "Entrar" in guest_integrations and "GOOGLE_CLIENT_ID" not in guest_integrations
     admin_view=get(admin,"/admin")
     assert "Painel administrativo" in admin_view
     assert "Precisa da sua atenção" in admin_view

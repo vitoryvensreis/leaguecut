@@ -8,3 +8,9 @@
 - [x] **Bloco 6 — Polimento geral**: responsivo, performance, UX e testes ponta a ponta.
 
 Regra do ciclo: um bloco por entrega, GitHub -> testes -> deploy -> verificação humana -> aprovação antes do próximo.
+
+## Integrações operacionais
+
+- [x] **Bloco 7 — Google Drive operacional**: conexão OAuth pelo ADM com token criptografado e pasta privada, status no painel, acesso ao vídeo original na conferência. **Ativação real depende da autorização Google pelo administrador.**
+- [ ] **Bloco 8 — Notificações externas**: SMTP e WhatsApp com diagnóstico, templates, retries e visibilidade da fila.
+- [ ] **Bloco 9 — Pagamentos**: homologação de provedor e reconciliação financeira; sem efetuar Pix automaticamente até validação operacional.

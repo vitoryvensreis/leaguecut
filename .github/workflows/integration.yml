@@ -98,4 +98,6 @@ jobs:
           curl --fail --silent http://127.0.0.1:8080/health
           python3 tests/smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           python3 tests/ux_smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
+          php -r 'require "app/core.php"; require "app/drive.php"; $plain="refresh-token-for-ci-only"; $enc=lc_drive_encrypt_token($plain); if(lc_drive_decrypt_token($enc)!==$plain || str_contains($enc,$plain) || lc_drive_url("javascript:bad")!==null){exit(1);} echo "DRIVE_CRYPTO_OK\\n";'
+          php -r 'require "app/core.php"; require "app/drive.php"; $encrypted=lc_drive_encrypt_token("ci-fixture"); lc_query("INSERT INTO google_drive_connections(id,refresh_token_enc,folder_id) VALUES(1,?,?)",[$encrypted,"folder1234567890"]); $saved=lc_drive_connection(); if(!$saved||$saved["refresh_token_enc"]==="ci-fixture"||lc_drive_decrypt_token($saved["refresh_token_enc"])!=="ci-fixture"){exit(1);} lc_query("DELETE FROM google_drive_connections WHERE id=1"); echo "DRIVE_STORAGE_OK\\n";'
           python3 tests/ws_smoke.py || { tail -n 120 /tmp/leaguecut-ws.log; exit 1; }

@@ -29,6 +29,7 @@ function lc_workspace_links(array $u): array {
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
           ['Banner da Home','/admin/home','layers'],
           ['Personalização','/admin/configuracoes','palette'],
+          ['Integrações','/admin/integracoes','settings-2'],
           ['Administradores','/admin/administradores','shield-check']
         ];
     }
@@ -91,6 +92,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/realtime.css?v=6">
 <?php endif; ?>
 <link rel="stylesheet" href="/assets/polish.css?v=6">
+<?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=7"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
 </head>
