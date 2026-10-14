@@ -75,6 +75,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     $isHomeEditor=$path==='/admin/home';
     $needsLanding=$isHome||$isExplore;
     $needsBanner=$isHome||$isHomeEditor;
+    $needsCampaignExperience=$isExplore||$path==='/admin/campanhas'||str_starts_with($path,'/campanhas/');
 ?><!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -87,8 +88,10 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/v2.css?v=10">
 <?php if($needsLanding): ?><link rel="stylesheet" href="/assets/landing.css?v=10"><?php endif; ?>
 <?php if($needsBanner): ?><link rel="stylesheet" href="/assets/banner.css?v=10"><?php endif; ?>
+<?php if($needsCampaignExperience): ?><link rel="stylesheet" href="/assets/campaign-experience.css?v=1"><?php endif; ?>
 <?php if($workspace): ?>
 <link rel="stylesheet" href="/assets/workspace.css?v=10">
+<link rel="stylesheet" href="/assets/workspace-motion.css?v=1">
 <link rel="stylesheet" href="/assets/realtime.css?v=10">
 <?php endif; ?>
 <link rel="stylesheet" href="/assets/polish.css?v=10">

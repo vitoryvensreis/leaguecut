@@ -102,8 +102,8 @@ function lc_public_routes(string $method,string $path): bool {
  </div></div>
  <div class="lp-container explore-content">
   <div class="section-head"><div><span class="eyebrow">Catálogo LeagueCut</span><h2><?=$term!==''||$category!==''?'Resultados encontrados':'Disponíveis agora'?></h2></div><span class="tag"><?=count($campaigns)?> <?=count($campaigns)===1?'campanha':'campanhas'?></span></div>
-  <?php if($campaigns): ?><div class="catalog explore-catalog"><?php foreach($campaigns as $c)lc_tile($c);?></div>
-  <?php else:lc_empty($term!==''||$category!==''?'Nenhuma campanha encontrada':'Novas campanhas em breve',$term!==''||$category!==''?'Tente outro termo ou remova os filtros.':'Você pode criar sua conta enquanto preparamos novas oportunidades.');?>
+  <?php if($campaigns): lc_campaign_catalog($campaigns);
+  else:lc_empty($term!==''||$category!==''?'Nenhuma campanha encontrada':'Novas campanhas em breve',$term!==''||$category!==''?'Tente outro termo ou remova os filtros.':'Você pode criar sua conta enquanto preparamos novas oportunidades.');?>
   <div class="explore-empty-action"><a class="btn btn-ghost" href="<?=$term!==''||$category!==''?'/explorar':'/cadastrar'?>"><?=$term!==''||$category!==''?'Limpar filtros':'Seja um clipador'?> <?=lc_icon('arrow-right')?></a></div><?php endif;?>
   <p class="explore-disclaimer"><?=lc_icon('shield-check')?> Recompensas dependem das metas e da aprovação previstas em cada campanha.</p>
  </div>
@@ -184,12 +184,23 @@ function lc_public_routes(string $method,string $path): bool {
         if(!$c){http_response_code(404);lc_page('Não encontrada',fn()=>lc_empty('Campanha não encontrada','Confira o endereço.'));return true;}
         $networks=$u&&$u['role']==='clipador'&&$u['status']==='approved'?lc_all('SELECT * FROM social_accounts WHERE user_id=? ORDER BY created_at DESC',[$u['id']]):[];
         lc_page($c['title'],function()use($c,$u,$networks){?>
-<div class="container"><div class="page-heading"><span class="eyebrow"><?=lc_e($c['category'])?> · <?=lc_e(strtoupper($c['status']))?></span><h1><?=lc_e($c['title'])?></h1><p><?=nl2br(lc_e($c['description']))?></p></div>
+<div class="container lc-campaign-detail">
+<div class="lc-campaign-detail-hero">
+<?php if(lc_valid_https((string)$c['cover_url'])):?><img src="<?=lc_e($c['cover_url'])?>" alt="" class="lc-campaign-detail-cover" loading="eager"><?php endif;?>
+<div class="lc-campaign-detail-text">
+<a href="<?=$u&&$u['role']==='admin'?'/admin/campanhas':'/explorar'?>" class="lc-back-link"><?=lc_icon('arrow-left')?> Voltar ao catálogo</a>
+<span class="eyebrow"><?=lc_e($c['category'])?> · <?=lc_e(strtoupper($c['status']))?></span>
+<h1><?=lc_e($c['title'])?></h1>
+<p><?=nl2br(lc_e($c['description']))?></p>
+<?php if($u&&$u['role']==='admin'):?><a class="btn btn-ghost" href="/admin/campanhas/<?=(int)$c['id']?>/editar"><?=lc_icon('pencil')?> Editar campanha</a><?php endif;?>
+<a class="btn btn-ghost" href="#lc-leaderboard-title"><?=lc_icon('trophy')?> Ver classificação</a>
+</div></div>
 <div class="rule-grid">
 <div class="metric"><small>Por vídeo aprovado*</small><strong><?=lc_money($c['payment_per_video_cents'])?></strong></div>
 <div class="metric"><small>Meta de vídeos/semana</small><strong><?=lc_e($c['min_videos_week'])?></strong></div>
 <div class="metric"><small>Bônus por <?=number_format($c['milestone_views'],0,',','.')?> views</small><strong><?=lc_money($c['milestone_bonus_cents'])?></strong></div>
 <div class="metric"><small>Líder de views no mês</small><strong><?=lc_money($c['monthly_leader_bonus_cents'])?></strong></div></div>
+<?php lc_campaign_leaderboard((int)$c['id'],$u); ?>
 <div class="panel"><h2>Regras da campanha</h2><p>Os vídeos precisam ser publicados na rede cadastrada, enviados com o link e aprovados pelo administrador. *O valor por vídeo só é liberado quando você atinge a quantidade mínima de vídeos aprovados na semana. Visualizações exigem conferência; o bônus mensal depende do fechamento do mês.</p></div>
 <?php if(!$u): ?><a class="btn" href="/cadastrar">Quero participar →</a>
 <?php elseif($u['role']==='clipador'&&$u['status']!=='approved'): ?><div class="alert">Seu perfil aguarda aprovação antes de enviar clipes.</div>
