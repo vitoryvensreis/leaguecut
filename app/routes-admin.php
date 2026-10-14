@@ -109,7 +109,7 @@ function lc_admin_routes(string $method,string $path): bool {
     <a class="ws-action-card" href="/admin/bonus-mensal"><?=lc_icon('trophy')?><strong>Bônus mensal</strong><small>Feche períodos concluídos e confira o ranking.</small><span class="ws-action-arr">Acessar <?=lc_icon('arrow-right')?></span></a>
     <a class="ws-action-card" href="/admin/configuracoes"><?=lc_icon('palette')?><strong>Identidade visual</strong><small>Ajuste nome, logo e cor de destaque.</small><span class="ws-action-arr">Configurar <?=lc_icon('arrow-right')?></span></a>
   </div>
-  <p class="ws-trace"><?=lc_icon('clock-3')?> Indicadores calculados quando a página é aberta. Atualizações em tempo real serão adicionadas no Bloco 5.</p>
+  <p class="ws-trace"><?=lc_icon('clock-3')?> Conexão: <strong data-realtime-connection>Conectando</strong> · Indicadores sincronizados automaticamente.</p>
 </div>
 <?php },'admin');return true;
     }
