@@ -181,13 +181,13 @@ function lc_admin_routes(string $method,string $path): bool {
         if(!in_array($filter,['all','pending','approved','rejected'],true))$filter='all';
         $clips=lc_all('SELECT c.*,u.full_name,p.title AS campaign_title,s.network, (SELECT o.views FROM clip_daily_views o WHERE o.clip_id=c.id ORDER BY o.snapshot_date DESC LIMIT 1) AS observed_views, (SELECT o.snapshot_date FROM clip_daily_views o WHERE o.clip_id=c.id ORDER BY o.snapshot_date DESC LIMIT 1) AS snapshot_date FROM clips c JOIN users u ON u.id=c.user_id JOIN campaigns p ON p.id=c.campaign_id JOIN social_accounts s ON s.id=c.social_account_id'.($filter==='all'?'':' WHERE c.status=?').' ORDER BY FIELD(c.status,"pending","approved","rejected"),c.id DESC LIMIT 150',$filter==='all'?[]:[$filter]);
         lc_page('Clipes e visualizações',function()use($clips,$filter){?>
-<div class="container"><?php lc_heading('Curadoria','Conferir clipes','Confira a publicação e informe as visualizações verificadas antes de aprovar.'); ?>
+<div class="container"><?php lc_heading('Curadoria','Conferir clipes','Aprove, reprove ou exclua publicações. As visualizações públicas são atualizadas diariamente.'); ?>
 <div class="ws-filter-tabs" aria-label="Filtrar clipes por status">
 <?php foreach(['all'=>'Todos','pending'=>'Pendentes','approved'=>'Aprovados','rejected'=>'Rejeitados'] as $v=>$label):?><a href="/admin/clipes?status=<?=$v?>" class="<?=$filter===$v?'selected':''?>" <?=$filter===$v?'aria-current="page"':''?>><?=$label?></a><?php endforeach;?></div>
-<div class="alert">Views observadas: leitura automática diária às 2h para clipes Instagram aprovados. Valores verificados e pagamentos exigem conferência do ADM; contas TikTok ainda não possuem coletor.</div>
+<div class="alert">Visualizações públicas: coleta diária às 2h para clipes Instagram aprovados. Ações de aprovação não lançam bônus de views automaticamente. Clipes com créditos financeiros exigem estorno auditável antes de reprovação ou exclusão.</div>
 <div class="panel"><div class="ws-module-head"><h2>Publicações para revisar</h2><span class="tag"><?=count($clips)?> exibidos</span></div>
 <?php if(!$clips):lc_empty('Tudo em dia','Nenhum vídeo recebido até agora.');else:?>
-<div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Criador / campanha</th><th>Atual</th><th>Views públicas (automáticas)</th><th>Views verificadas</th><th>Revisão</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Criador / campanha</th><th>Atual</th><th>Views públicas (automáticas)</th><th>Ações</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr>
 <td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=lc_e(ucfirst($c['network']))?> <?=date('d/m/Y',strtotime($c['submitted_at']))?> · <?= $c['drive_file_id']?'Drive':'sem arquivo'?></small>
 
@@ -209,31 +209,35 @@ function lc_admin_routes(string $method,string $path): bool {
 <span>Aguardando coleta</span><small>Próxima tentativa: 02h de Fortaleza, sujeita a orçamento</small>
 <?php endif;?>
 </td>
-<td colspan="2"><form class="mini-form" method="post" action="/admin/clipes/<?=(int)$c['id']?>/revisar"><?=lc_csrf()?>
-<input name="verified_views" type="number" min="<?=(int)$c['verified_views']?>" max="2000000000" value="<?=(int)$c['verified_views']?>" required aria-label="Views verificadas (confirme dados Apify)">
-<select name="decision" aria-label="Decisão"><?php if($c['status']!=='approved'):?><option value="approved">Aprovar</option><option value="rejected">Rejeitar</option><?php else:?><option value="approved">Atualizar views</option><?php endif;?></select>
-<button class="btn btn-sm" type="submit">Confirmar</button></form></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
+<td><div class="clip-admin-actions">
+<form method="post" action="/admin/clipes/<?=(int)$c['id']?>/revisar" class="clip-admin-action-form"><?=lc_csrf()?>
+<input type="hidden" name="decision" value="<?=$c['status']==='approved'?'rejected':'approved'?>">
+<button class="btn btn-sm <?=$c['status']==='approved'?'btn-ghost':''?>" type="submit"><?=$c['status']==='approved'?'Reprovar':'Aprovar'?></button>
+</form>
+<form method="post" action="/admin/clipes/<?=(int)$c['id']?>/excluir" class="clip-admin-action-form" onsubmit="return confirm('Excluir permanentemente este clipe e seu arquivo original no Google Drive? Esta ação não poderá ser desfeita.');"><?=lc_csrf()?>
+<button class="btn btn-sm btn-delete-clip" type="submit" aria-label="Excluir clipe <?=lc_e($c['title'])?>">Excluir</button>
+</form>
+</div></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php lc_clip_preview_modal(); },'admin');return true;
     }
-    if($method==='POST'&&preg_match('~^/admin/clipes/([0-9]+)/revisar$~',$path,$m)){
-        $decision=lc_post('decision',20);$views=lc_int('verified_views',0,2000000000);
-        if(!in_array($decision,['approved','rejected'],true)){lc_flash('Decisão inválida.','error');lc_redirect('/admin/clipes');}
-        lc_db()->beginTransaction();
-        try{
-            $clip=lc_one('SELECT * FROM clips WHERE id=? FOR UPDATE',[(int)$m[1]]);
-            if(!$clip)throw new RuntimeException('Clipe não encontrado.');
-            if($clip['status']==='approved'&&$decision!=='approved')throw new RuntimeException('Clipe já creditado. Ajustes exigem estorno auditável.');
-            if($views<(int)$clip['verified_views'])throw new RuntimeException('Visualizações não podem ser reduzidas sem ajuste auditável.');
-            lc_query('UPDATE clips SET status=?,verified_views=?,reviewed_at=NOW(),reviewed_by=? WHERE id=?',[$decision,$views,$admin['id'],$clip['id']]);
-            lc_realtime_emit('user',(int)$clip['user_id'],'clip.reviewed','clip',(int)$clip['id']);
-            lc_realtime_emit('admin',null,'clip.reviewed','clip',(int)$clip['id']);
-            if($decision==='approved'){
-                lc_settle_week((int)$clip['campaign_id'],(int)$clip['user_id'],$clip['submitted_at']);
-                lc_credit_views((int)$clip['id']);
-            }
-            lc_db()->commit();
-        }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();lc_flash($e->getMessage(),'error');lc_redirect('/admin/clipes');}
-        lc_flash('Clipe revisado. Créditos gerados conforme as regras e a meta semanal.');lc_redirect('/admin/clipes');
+    if($method==='POST'&&preg_match('~^/admin/clipes/([0-9]+)/revisar$~D',$path,$m)){
+        try {
+            $decision=lc_post('decision',20);
+            $message=lc_admin_change_clip((int)$m[1],$decision,(int)$admin['id']);
+            lc_flash($message);
+        }catch(Throwable $e){
+            lc_flash($e->getMessage(),'error');
+        }
+        lc_redirect('/admin/clipes');
+    }
+    if($method==='POST'&&preg_match('~^/admin/clipes/([0-9]+)/excluir$~D',$path,$m)){
+        try {
+            $message=lc_admin_delete_clip((int)$m[1],(int)$admin['id']);
+            lc_flash($message);
+        }catch(Throwable $e){
+            lc_flash($e->getMessage(),'error');
+        }
+        lc_redirect('/admin/clipes');
     }
     if($method==='GET'&&$path==='/admin/financeiro'){
         $withdrawals=lc_all('SELECT w.*,u.full_name,u.email,u.pix_key_enc FROM withdrawals w JOIN users u ON u.id=w.user_id ORDER BY FIELD(w.status,"requested","processing","paid","rejected"),w.id DESC LIMIT 120');

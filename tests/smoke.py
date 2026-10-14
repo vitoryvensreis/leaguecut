@@ -319,24 +319,59 @@ def main():
     assert "Clipe de teste 04" in get(admin,"/admin/clipes?status=pending")
     assert "Clipe de teste 04" not in get(admin,"/admin/clipes?status=approved")
     review=get(admin,"/admin/clipes")
+    assert 'name="verified_views"' not in review, "Manual views input must be removed"
+    assert '<select name="decision"' not in review, "Review select must be removed"
+    assert 'value="approved"' in review, "Approvals use a hidden decision, not a select"
+    assert 'Excluir' in review and '/excluir"' in review, "Delete button for all clips"
     reviews=re.findall(r'action="(/admin/clipes/(\d+)/revisar)"',review)
     assert len(reviews)>=5, "5 videos to review"
-    for i,(url,_id) in enumerate(reviews[:5]):
-        submit(admin,url,{"verified_views":"1000000" if i==0 else "200","decision":"approved"},"/admin/clipes")
+    # Delete an uncredited clip: it must disappear from the database, its Drive
+    # original must be deleted (or the fake Drive must explicitly accept it).
+    deleted_id=reviews[-1][1]
+    removed=submit(admin,"/admin/clipes/"+deleted_id+"/excluir",{},"/admin/clipes")
+    assert "original removido do Google Drive" in removed
+    assert ("action=\"/admin/clipes/"+deleted_id+"/revisar\"") not in get(admin,"/admin/clipes")
+    submit_video(creator,(campaign_id,slug.group(1)),account_id,
+        "Clipe substituto","https://www.instagram.com/reel/substitution/")
+    review=get(admin,"/admin/clipes")
+    reviews=re.findall(r'action="(/admin/clipes/(\d+)/revisar)"',review)
+    assert len(reviews)==5, "Five after deletion and replacement"
+    first_url,first_id=reviews[0]
+    # A single button switches from Approve to Reject according to status.
+    approved=submit(admin,first_url,{"decision":"approved"},"/admin/clipes")
+    assert "Clipe aprovado" in approved
+    approved_page=get(admin,"/admin/clipes?status=approved")
+    assert ('value="rejected"' in approved_page and
+            'Reprovar</button>' in approved_page), "Approved clip must show Reprovar"
+    rejected=submit(admin,first_url,{"decision":"rejected"},"/admin/clipes")
+    assert "Clipe reprovado" in rejected
+    rejected_page=get(admin,"/admin/clipes?status=rejected")
+    assert 'Aprovar</button>' in rejected_page, "Rejected clip must show Aprovar"
+    submit(admin,first_url,{"decision":"approved"},"/admin/clipes")
+    for url,_id in reviews[1:]:
+        submit(admin,url,{"decision":"approved"},"/admin/clipes")
     assert "Clipe de teste 04" in get(admin,"/admin/clipes?status=approved"), "Approved filter"
     assert "Clipe de teste 04" not in get(admin,"/admin/clipes?status=pending"), "Pending filter"
     finance=get(creator,"/financeiro")
-    assert "R$ 95,00" in finance, "Five clips (R$75) + views bonus (R$20)"
-    submit(admin,reviews[0][0],{"verified_views":"1000000","decision":"approved"},"/admin/clipes")
+    assert "R$ 75,00" in finance, "Five clips (R$75); public views do not auto-credit"
+    # Once a weekly payment is credited, review/delete must require an audited
+    # financial reversal rather than silently corrupting the user's balance.
+    refused=submit(admin,first_url,{"decision":"rejected"},"/admin/clipes")
+    assert "estorno auditável" in refused
+    blocked=submit(admin,"/admin/clipes/"+first_id+"/excluir",{},"/admin/clipes")
+    assert "estorno auditável" in blocked
+    assert ('action=\"/admin/clipes/'+first_id+'/revisar\"') in get(admin,"/admin/clipes")
     finance=get(creator,"/financeiro")
-    assert "R$ 95,00" in finance, "Idempotence"
+    assert "R$ 75,00" in finance, "Credits unchanged by blocked actions"
+    # Approving an already-approved clip is idempotent.
+    submit(admin,first_url,{"decision":"approved"},"/admin/clipes")
     submit(creator,"/financeiro/saques",{"amount":"10,00"},"/financeiro")
     finance=get(creator,"/financeiro")
-    assert "R$ 85,00" in finance, "Withdrawal reserves available balance"
+    assert "R$ 65,00" in finance, "Withdrawal reserves available balance"
     creator_latest=json.loads(get(creator,"/api/realtime/snapshot"))
-    assert creator_latest["state"]["available_cents"]==8500
+    assert creator_latest["state"]["available_cents"]==6500
     assert creator_latest["state"]["approved_clips"]==5
-    assert creator_latest["state"]["verified_views"]>=1000000
+    assert creator_latest["state"]["verified_views"]==0, "No manual view credit in new flow"
     assert creator_latest["state"]["pending_clips"]==0
     assert "withdrawal.requested" in [x["type"] for x in creator_latest["events"]]
     admin_latest=json.loads(get(admin,"/api/realtime/snapshot"))
@@ -345,7 +380,7 @@ def main():
     assert "creator.approved" not in [x["type"] for x in admin_latest["events"]], "No creator-only event leakage"
     assert "Campanha Teste Real" in get(creator,"/explorar")
     assert "Campanha Teste Real" not in get(creator,"/")
-    print("SMOKE PASSED: register -> admin approval -> campaigns -> social -> 5 clips -> views bonus -> idempotence -> withdrawal")
+    print("SMOKE PASSED: register -> admin approval -> campaigns -> social -> 5 clips -> rejection -> Drive deletion -> safe credits -> withdrawal")
 
 
 if __name__ == "__main__":
