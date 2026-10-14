@@ -1,0 +1,60 @@
+name: LeagueCut read-only Drive video range QA
+on:
+  push:
+    branches: [qa/drive-range-player]
+    paths: [.github/workflows/drive-playback-qa.yml]
+permissions:
+  contents: read
+jobs:
+  range:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Prepare SSH
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Check existing Google Drive private video supports byte range
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = "leaguecut" ]
+          cd /home/leaguecut/current
+          php -r '
+          require "app/core.php";require "app/drive.php";
+          $r=lc_one("SELECT drive_file_id FROM clips WHERE drive_file_id IS NOT NULL ORDER BY id DESC LIMIT 1");
+          if(!$r){echo "DRIVE_QA_NO_MEDIA\n";exit(1);}
+          $id=$r["drive_file_id"];
+          $client=lc_drive_authenticated_client();
+          $drive=new Google\Service\Drive($client);
+          $f=$drive->files->get($id,["fields"=>"mimeType,size,trashed"]);
+          $size=(int)$f->size;
+          if($size<=0||$f->trashed||!str_starts_with((string)$f->mimeType,"video/"))exit(1);
+          $end=min($size-1,1023);
+          $n=0;$url="https://www.googleapis.com/drive/v3/files/".rawurlencode($id)."?alt=media";
+          $curl=curl_init($url);
+          $access=$client->getAccessToken()["access_token"]??"";
+          curl_setopt_array($curl,[
+            CURLOPT_HTTPHEADER=>["Authorization: Bearer ".$access,"Range: bytes=0-".$end],
+            CURLOPT_FOLLOWLOCATION=>false,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>60,
+            CURLOPT_WRITEFUNCTION=>static function($ch,string $part)use(&$n){$n+=strlen($part);return $n>2048?0:strlen($part);}
+          ]);
+          $okay=curl_exec($curl);$status=(int)curl_getinfo($curl,CURLINFO_HTTP_CODE);
+          curl_close($curl);
+          if(!$okay || !($status===206||($status===200&&$size<=1024))||$n!==$end+1){
+            echo "DRIVE_RANGE_INVALID status=".$status." bytes=".$n." expected=".($end+1)."\n";exit(1);
+          }
+          echo "DRIVE_RANGE_OK status=".$status." bytes=".$n." private_file=yes\n";
+          '
+          REMOTE
