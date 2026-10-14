@@ -7,6 +7,9 @@ function lc_clipper_editable_clip(int $clipId,int $userId,bool $lock=false): arr
         [$clipId,$userId]);
     if(!$clip){http_response_code(404);exit('Clipe não encontrado.');}
     if($clip['status']==='approved'){
+        // During Drive replacement a concurrent admin may approve the clip.
+        // Throw while holding a lock, so the newly uploaded file gets cleaned.
+        if($lock)throw new RuntimeException('Esse clipe já foi aprovado e não pode mais ser alterado.');
         http_response_code(403);
         exit('Esse clipe já foi aprovado e não pode mais ser editado ou excluído pelo clipador.');
     }
@@ -100,6 +103,7 @@ function lc_clipper_update_clip(int $clipId,int $userId,array $post,array $files
     }
 }
 function lc_clipper_delete_clip(int $clipId,int $userId): string {
+    lc_clipper_editable_clip($clipId,$userId); // immediate 403 for an approved clip
     lc_db()->beginTransaction();
     try {
         $clip=lc_clipper_editable_clip($clipId,$userId,true);
