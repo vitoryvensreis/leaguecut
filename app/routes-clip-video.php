@@ -73,6 +73,10 @@ function lc_clip_video_route(string $method, string $path): bool {
             if(!$ok || !in_array($status,[200,206],true) || ($status===200 && ($start!==0||$bytes!==$size))){
                 throw new RuntimeException('O Drive não confirmou o trecho solicitado.');
             }
+            // libcurl writes to the temporary stream outside PHP's stream pointer.
+            // After CURLOPT_FILE, ftell() may still be zero even for a valid 206.
+            // Seek to the physical end before checking the actual byte count.
+            if(fseek($tmp,0,SEEK_END)!==0)throw new RuntimeException('Não foi possível verificar o vídeo recebido.');
             $length=ftell($tmp);
             if($length!==$bytes)throw new RuntimeException('Trecho incompleto recebido do Drive.');
             rewind($tmp);
