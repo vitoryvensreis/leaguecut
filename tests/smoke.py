@@ -407,6 +407,8 @@ def main():
             'Reprovar</button>' in approved_page), "Approved clip must show Reprovar"
     rejected=submit(admin,first_url,{"decision":"rejected"},"/admin/clipes")
     assert "Clipe reprovado" in rejected
+    rejected_page=get(admin,"/admin/clipes?status=rejected")
+    assert 'Aprovar</button>' in rejected_page, "Rejected clip must show Aprovar"
     assert f'href="/clipes/{first_id}/editar"' in get(creator,"/biblioteca")
     revised=submit(creator,f"/clipes/{first_id}/editar",{
         "title":"Clipe revisado após reprovação",
@@ -415,8 +417,8 @@ def main():
     },f"/clipes/{first_id}/editar")
     assert "Clipe revisado após reprovação" in revised
     assert "Clipe revisado após reprovação" in get(admin,"/admin/clipes?status=pending")
-    rejected_page=get(admin,"/admin/clipes?status=rejected")
-    assert 'Aprovar</button>' in rejected_page, "Rejected clip must show Aprovar"
+    # Editing a rejected clip resets its state to pending.
+    assert "Clipe revisado após reprovação" not in get(admin,"/admin/clipes?status=rejected")
     submit(admin,first_url,{"decision":"approved"},"/admin/clipes")
     for url,_id in reviews[1:]:
         submit(admin,url,{"decision":"approved"},"/admin/clipes")
