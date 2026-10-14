@@ -120,6 +120,31 @@ def main():
         assert exc.code==403, "Drive settings require admin role"
     guest_integrations=get(make_client(),"/admin/integracoes")
     assert "Entrar" in guest_integrations and "GOOGLE_CLIENT_ID" not in guest_integrations
+    # Upload a real SVG logo to private storage and ensure the public URL is safe.
+    brand_settings=get(admin,"/admin/configuracoes")
+    assert "logo_upload" in brand_settings
+    csrf=re.search(r'name="_csrf" value="([^"]+)"',brand_settings).group(1)
+    svg=b'<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)" viewBox="0 0 120 40"><rect width="120" height="40" fill="#f00"/></svg>'
+    boundary="leaguecut-ci-svg-brand"
+    fields={"_csrf":csrf,"brand_name":"LeagueCut","primary_color":"#e50914","logo_url":""}
+    segments=[]
+    for k,v in fields.items():
+        segments.append((f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n').encode())
+    segments.append((f'--{boundary}\r\nContent-Disposition: form-data; name="logo_upload"; filename="brand.svg"\r\nContent-Type: image/svg+xml\r\n\r\n').encode()+svg+b"\r\n")
+    segments.append((f'--{boundary}--\r\n').encode())
+    request=urllib.request.Request(BASE+"/admin/configuracoes",data=b"".join(segments),method="POST",
+        headers={"Content-Type":"multipart/form-data; boundary="+boundary})
+    with admin.open(request,timeout=15) as response:
+        assert response.status==200
+        assert "Marca atualizada" in response.read().decode()
+    header=get(creator,"/")
+    logo_match=re.search(r'src="(/media/brand/[a-f0-9]{36})"',header)
+    assert logo_match,"Uploaded SVG must appear as public brand logo"
+    with creator.open(BASE+logo_match.group(1),timeout=12) as logo_response:
+        assert logo_response.headers.get("Content-Type")=="image/svg+xml"
+        data=logo_response.read()
+        assert b"<rect" in data and b"onload" not in data and b"javascript" not in data
+    assert "LeagueCut" in get(admin,"/admin/configuracoes")
     admin_view=get(admin,"/admin")
     assert "Painel administrativo" in admin_view
     assert "Precisa da sua atenção" in admin_view

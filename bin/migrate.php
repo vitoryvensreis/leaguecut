@@ -106,6 +106,27 @@ try{
        if(array_diff($cols,$actual))throw new RuntimeException('Schema de métricas incompatível.');
     }
     echo "MIGRACAO_APIFY_OK\n";
+    $dailyTable=(bool)lc_one("SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='clip_daily_views'");
+    $checksTable=(bool)lc_one("SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='apify_post_checks'");
+    if(!$dailyTable||!$checksTable)lc_migration_backup();
+    $dailySql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261014_006_daily_clip_views.sql'));
+    $dailySql=trim(preg_replace('/^--[^\n]*\n/', '', $dailySql)??$dailySql);
+    $dailyParts=array_values(array_filter(array_map('trim',explode(';',$dailySql))));
+    // Statements may contain comment lines between them; remove SQL comments safely.
+    $dailyParts=array_map(static fn(string $sql):string=>
+        trim((string)preg_replace('/^\s*--[^\n]*\n/m','',$sql)),$dailyParts);
+    if(count($dailyParts)!==2 ||
+       !preg_match('/^CREATE TABLE IF NOT EXISTS clip_daily_views\b/i',$dailyParts[0]) ||
+       !preg_match('/^CREATE TABLE IF NOT EXISTS apify_post_checks\b/i',$dailyParts[1]))
+       throw new RuntimeException('Migração diária inválida.');
+    foreach($dailyParts as $statement)$db->exec($statement);
+    foreach(['clip_daily_views'=>['clip_id','snapshot_date','views','observed_at'],
+             'apify_post_checks'=>['shortcode','last_checked_at','last_run_id']] as $table=>$cols){
+       $actual=$db->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=".$db->quote($table))->fetchAll(PDO::FETCH_COLUMN);
+       if(array_diff($cols,$actual))throw new RuntimeException('Migração de views diárias incompleta.');
+    }
+    echo "MIGRACAO_DAILY_VIEWS_OK\n";
+
 }catch(Throwable $e){
     fwrite(STDERR,'MIGRACAO_FALHOU: '.$e->getMessage()."\n");
     exit(1);

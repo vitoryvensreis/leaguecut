@@ -3,6 +3,7 @@ declare(strict_types=1);
 require __DIR__ . '/finance.php';
 require __DIR__ . '/realtime.php';
 require __DIR__ . '/home.php';
+require __DIR__ . '/brand.php';
 require __DIR__ . '/routes-home-admin.php';
 require __DIR__ . '/drive.php';
 require __DIR__ . '/apify.php';
@@ -18,6 +19,9 @@ $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/'
 $path = $path==='/'?'/':rtrim($path,'/');
 if (!in_array($method,['GET','POST'],true)) {http_response_code(405);header('Allow: GET, POST');exit('Método não permitido.');}
 if ($method==='POST') lc_check_csrf();
+if($method==='GET' && preg_match('~^/media/brand/([a-f0-9]{36})$~D',$path,$brandMatch)) {
+    lc_brand_logo_response($brandMatch[1]);
+}
 if($method==='GET' && preg_match('~^/media/home/([a-f0-9]{36})$~D',$path,$mediaMatch)) {
     lc_home_media_response($mediaMatch[1]);
 }

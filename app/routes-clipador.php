@@ -144,8 +144,8 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
     if($method==='GET' && $path==='/biblioteca'){
         $u=lc_login_required();
         $clips=lc_all('SELECT c.*,p.title AS campaign_title,s.network,s.username,
- (SELECT o.views FROM clip_view_samples o WHERE o.clip_id=c.id ORDER BY o.id DESC LIMIT 1) AS observed_views,
- (SELECT o.observed_at FROM clip_view_samples o WHERE o.clip_id=c.id ORDER BY o.id DESC LIMIT 1) AS observed_at
+ (SELECT o.views FROM clip_daily_views o WHERE o.clip_id=c.id ORDER BY o.snapshot_date DESC LIMIT 1) AS observed_views,
+ (SELECT o.snapshot_date FROM clip_daily_views o WHERE o.clip_id=c.id ORDER BY o.snapshot_date DESC LIMIT 1) AS snapshot_date
  FROM clips c JOIN campaigns p ON p.id=c.campaign_id JOIN social_accounts s ON s.id=c.social_account_id WHERE c.user_id=? ORDER BY c.submitted_at DESC LIMIT 150',[$u['id']]);
         lc_page('Minha biblioteca',function()use($clips){?>
 <div class="container"><?php lc_heading('Seu conteúdo','Minha biblioteca','Suas publicações, vídeos armazenados e resultados verificados.'); ?>
@@ -155,7 +155,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
 <?php foreach($clips as $c):?><tr><td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=date('d/m/Y',strtotime($c['submitted_at']))?></small></td>
 <td><?=lc_e($c['campaign_title'])?></td><td><?=lc_e(ucfirst($c['network']))?> @<?=lc_e($c['username'])?></td>
  <td><?=number_format((int)$c['verified_views'],0,',','.')?>
- <?php if($c['observed_views']!==null):?><small>Apify: <?=number_format((int)$c['observed_views'],0,',','.')?> (observadas, não verificadas)</small><?php endif;?></td>
+ <?php if($c['observed_views']!==null):?><small>Views públicas: <?=number_format((int)$c['observed_views'],0,',','.')?> (Apify, <?=lc_e($c['snapshot_date'])?>; sem confirmação financeira)</small><?php endif;?></td>
 <td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td><td>
 <?php if($c['drive_file_id']):?><button type="button" class="btn btn-ghost btn-sm clip-preview-trigger" data-preview-url="/clipes/<?=(int)$c['id']?>/video" data-preview-name="<?=lc_e($c['title'])?>"><?=lc_icon('play')?> Assistir</button><?php else:?>Sem original<?php endif;?>
 </td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
