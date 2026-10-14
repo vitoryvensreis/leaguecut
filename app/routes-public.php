@@ -2,28 +2,105 @@
 declare(strict_types=1);
 
 function lc_public_routes(string $method,string $path): bool {
+
+    // Public marketing landing. Campaigns are deliberately NOT queried here.
     if ($method==='GET' && $path==='/') {
-        $campaigns = lc_all("SELECT * FROM campaigns WHERE status='active' ORDER BY created_at DESC LIMIT 60");
-        $featured = $campaigns[0] ?? null;
-        lc_page('Explore campanhas',function()use($campaigns,$featured){ ?>
-<section class="hero"><div class="hero-deco"><?=lc_icon("play")?></div><div class="hero-inner">
-<span class="eyebrow">LeagueCut Originals • Comunidade criativa</span>
-<h1>Seus vídeos.<br>Novas oportunidades.</h1>
-<p>Escolha campanhas, crie conteúdos para as redes e receba pelas entregas e metas verificadas. Tudo em um só lugar.</p>
-<div class="btn-row"><a class="btn" href="<?= $featured? '/campanhas/'.lc_e($featured['slug']) : '/cadastrar' ?>"><?= $featured?'Explorar destaque':'Quero participar' ?> <?=lc_icon('arrow-right')?></a><a class="btn btn-ghost" href="/cadastrar">Seja um clipador</a></div>
+        lc_page('Crie, publique e conquiste',function(){ ?>
+<div class="lp">
+<section class="lp-hero" aria-labelledby="lp-title">
+ <div class="lp-grid" aria-hidden="true"></div>
+ <div class="lp-container lp-hero-layout">
+  <div class="lp-hero-content">
+   <span class="lp-eyebrow"><?=lc_icon('sparkles')?> Criadores no centro de tudo</span>
+   <h1 id="lp-title">Seu talento.<br><span>Mais alcance.</span><br>Novas conquistas.</h1>
+   <p>O espaço de quem transforma vídeos em oportunidades. Participe de campanhas, publique seus conteúdos e acompanhe recompensas verificadas conforme as regras.</p>
+   <div class="lp-actions"><a class="btn lp-primary" href="/cadastrar">Quero ser clipador <?=lc_icon('arrow-right')?></a><a class="btn btn-ghost" href="/explorar">Conhecer campanhas <?=lc_icon('compass')?></a></div>
+   <div class="lp-trust"><span><?=lc_icon('shield-check')?> Aprovação de perfis</span><span><?=lc_icon('chart-column')?> Metas transparentes</span><span><?=lc_icon('wallet')?> Ganhos acompanhados</span></div>
+  </div>
+  <div class="lp-hero-art" aria-hidden="true">
+   <div class="lp-halo"></div>
+   <div class="lp-player">
+    <div class="lp-player-top"><span><?=lc_icon('play')?> LEAGUECUT</span><span class="lp-player-status"><i></i> CREATOR STUDIO</span></div>
+    <div class="lp-player-screen"><span class="lp-player-icon"><?=lc_icon('play')?></span><strong>VOCÊ CRIA.<br>O MUNDO VÊ.</strong><div class="lp-bars"><i></i><i></i><i></i><i></i></div></div>
+    <div class="lp-player-timeline"><span></span><span></span><span></span><span></span><span></span></div>
+    <div class="lp-player-caption"><?=lc_icon('clapperboard')?> Seu próximo projeto começa aqui</div>
+   </div>
+   <div class="lp-float lp-float-one"><?=lc_icon('sparkles')?> Sua criatividade em movimento</div>
+   <div class="lp-float lp-float-two"><?=lc_icon('circle-check')?> Entregas verificadas</div>
+  </div>
+ </div>
+</section>
+<section class="lp-section lp-benefits" id="beneficios" aria-labelledby="benefits-title">
+ <div class="lp-container">
+  <div class="lp-section-intro"><span class="eyebrow">Feito para criadores</span><h2 id="benefits-title">Crie com liberdade.<br><em>Evolua com estratégia.</em></h2><p>Da escolha da campanha à solicitação de saque: o processo organizado em um só lugar.</p></div>
+  <div class="lp-features">
+   <article class="lp-feature"><span class="lp-feature-icon"><?=lc_icon('clapperboard')?></span><small>01 / CAMPANHAS</small><h3>Escolha seu desafio</h3><p>Briefings, regras, entregas e valores para você decidir em quais oportunidades participar.</p></article>
+   <article class="lp-feature"><span class="lp-feature-icon"><?=lc_icon('chart-column')?></span><small>02 / RESULTADOS</small><h3>Acompanhe sua evolução</h3><p>Organize publicações, confira o status dos clipes e acompanhe visualizações validadas.</p></article>
+   <article class="lp-feature"><span class="lp-feature-icon"><?=lc_icon('circle-dollar-sign')?></span><small>03 / RECOMPENSAS</small><h3>Entenda cada ganho</h3><p>Consulte pagamentos por vídeo e bônus, quando previstos nas regras de cada campanha.</p></article>
+  </div>
+ </div>
+</section>
+<section class="lp-section lp-process" id="como-funciona" aria-labelledby="process-title">
+ <div class="lp-container lp-process-grid">
+  <div class="lp-process-lead"><span class="eyebrow">Simples de começar</span><h2 id="process-title">Do primeiro login à primeira entrega.</h2><p>Um caminho direto, com aprovação manual e acompanhamento das entregas.</p><a class="lp-inline-link" href="/cadastrar">Criar minha conta <?=lc_icon('arrow-right')?></a></div>
+  <div class="lp-process-steps">
+   <div><span>01</span><div><h3>Cadastre-se</h3><p>Informe seus dados, portfólio e perfis para análise da equipe.</p></div><?=lc_icon('users-round')?></div>
+   <div><span>02</span><div><h3>Explore as campanhas</h3><p>Leia o briefing e entenda metas e recompensas antes de começar.</p></div><?=lc_icon('compass')?></div>
+   <div><span>03</span><div><h3>Publique seus vídeos</h3><p>Envie sua publicação e o link para conferência do administrador.</p></div><?=lc_icon('upload-cloud')?></div>
+   <div><span>04</span><div><h3>Acompanhe seu saldo</h3><p>Veja créditos liberados e solicite saques conforme a disponibilidade.</p></div><?=lc_icon('wallet')?></div>
+  </div>
+ </div>
+</section>
+<section class="lp-section lp-showcase"><div class="lp-container"><div class="lp-showcase-inner">
+ <div class="lp-showcase-icon"><?=lc_icon('sparkles')?></div>
+ <div><span class="eyebrow">O próximo desafio espera por você</span><h2>Uma plataforma para quem vive de criar.</h2><p>Seu conteúdo merece organização, visibilidade e oportunidades com regras transparentes.</p></div>
+ <a class="btn lp-primary" href="/explorar">Conhecer campanhas <?=lc_icon('arrow-right')?></a>
+</div></div></section>
+<section class="lp-section lp-faq" aria-labelledby="faq-title"><div class="lp-container lp-faq-grid">
+ <div><span class="eyebrow">Perguntas frequentes</span><h2 id="faq-title">Sem mistério.</h2><p>Saiba como funciona antes de começar.</p></div>
+ <div class="lp-accordion">
+  <details><summary>Preciso de aprovação para enviar vídeos? <?=lc_icon('plus')?></summary><p>Sim. Após preencher o cadastro, nossa equipe analisa seu perfil manualmente antes de liberar a participação.</p></details>
+  <details><summary>Como são calculadas as recompensas? <?=lc_icon('plus')?></summary><p>Cada campanha estabelece critérios próprios, como quantidade de vídeos aprovados, metas de views e bônus. Ganhos dependem da conferência e do cumprimento dessas regras.</p></details>
+  <details><summary>Posso cadastrar vários perfis? <?=lc_icon('plus')?></summary><p>Sim, você pode informar perfis do Instagram e TikTok. Nesta versão, os perfis ainda não contam com verificação automática de propriedade ou métricas.</p></details>
+  <details><summary>Como recebo os pagamentos? <?=lc_icon('plus')?></summary><p>Quando os créditos estiverem liberados, você poderá solicitar um saque. Os pagamentos são processados manualmente nesta fase.</p></details>
+ </div>
 </div></section>
-<div class="container">
-<section class="section"><div class="section-head"><h2>Em alta agora</h2><span class="tag"><?=count($campaigns)?> campanhas disponíveis</span></div>
-<?php if(!$campaigns): lc_empty('Em breve, novas campanhas','Estamos preparando oportunidades. Crie sua conta e acompanhe os lançamentos.');
-else: ?><div class="catalog catalog-horizontal"><?php foreach($campaigns as $campaign)lc_tile($campaign); ?></div><?php endif;?></section>
-<section class="section large-surface"><span class="eyebrow">Como funciona</span><h2>Um espaço para quem cria.</h2><div class="rule-grid">
-<div><strong>01 · Cadastre-se</strong><p>Preencha seus dados e aguarde a aprovação da equipe.</p></div>
-<div><strong>02 · Escolha</strong><p>Encontre uma campanha e conheça as regras e recompensas.</p></div>
-<div><strong>03 · Publique</strong><p>Envie seu vídeo e o link da publicação para conferência.</p></div>
-<div><strong>04 · Receba</strong><p>Acompanhe metas, créditos e solicite saques disponíveis.</p></div>
-</div></section>
+<section class="lp-closer"><div class="lp-container"><div class="lp-closer-box"><span class="eyebrow">Você no próximo nível</span><h2>Tem uma boa ideia de vídeo?<br><span>Faça acontecer.</span></h2><p>Entre para o LeagueCut e descubra oportunidades para criar.</p><div class="lp-actions"><a class="btn lp-primary" href="/cadastrar">Quero participar <?=lc_icon('arrow-right')?></a><a class="btn btn-ghost" href="/entrar">Já tenho conta</a></div></div></div></section>
 </div>
-<?php },'home'); return true;
+<?php },'home');return true;
+    }
+
+    // Dedicated public campaign catalog with safe SQL parameters and empty states.
+    if ($method==='GET' && $path==='/explorar') {
+        $term=mb_substr(trim((string)($_GET['q']??'')),0,80);
+        $category=mb_substr(trim((string)($_GET['categoria']??'')),0,70);
+        $categories=lc_all("SELECT DISTINCT category FROM campaigns WHERE status='active' ORDER BY category LIMIT 50");
+        $allowed=array_column($categories,'category');
+        if($category!==''&&!in_array($category,$allowed,true))$category='';
+        $where=["status='active'"];
+        $args=[];
+        if($term!==''){$where[]='(title LIKE ? OR description LIKE ?)';$args[]='%'.$term.'%';$args[]='%'.$term.'%';}
+        if($category!==''){$where[]='category=?';$args[]=$category;}
+        $campaigns=lc_all('SELECT title,slug,category,cover_url,status,payment_per_video_cents FROM campaigns WHERE '.implode(' AND ',$where).' ORDER BY created_at DESC LIMIT 80',$args);
+        lc_page('Explorar campanhas',function()use($campaigns,$categories,$category,$term){ ?>
+<div class="explore-page">
+ <div class="explore-banner"><div class="lp-container"><span class="eyebrow">Oportunidades para criadores</span>
+  <h1>Descubra sua próxima <span>campanha.</span></h1><p>Encontre briefings e conheça as regras antes de criar seu conteúdo.</p>
+  <form class="explore-filters" action="/explorar" method="get" role="search">
+   <label class="explore-search"><?=lc_icon('compass')?><span class="sr-only">Buscar campanhas</span><input name="q" type="search" value="<?=lc_e($term)?>" maxlength="80" placeholder="Buscar por nome ou palavra-chave"></label>
+   <label class="explore-category"><span class="sr-only">Categoria</span><select name="categoria" aria-label="Categoria"><option value="">Todas as categorias</option><?php foreach($categories as $item):?><option value="<?=lc_e($item['category'])?>" <?=$category===$item['category']?'selected':''?>><?=lc_e($item['category'])?></option><?php endforeach;?></select></label>
+   <button class="btn" type="submit">Filtrar <?=lc_icon('arrow-right')?></button>
+  </form>
+ </div></div>
+ <div class="lp-container explore-content">
+  <div class="section-head"><div><span class="eyebrow">Catálogo LeagueCut</span><h2><?=$term!==''||$category!==''?'Resultados encontrados':'Disponíveis agora'?></h2></div><span class="tag"><?=count($campaigns)?> <?=count($campaigns)===1?'campanha':'campanhas'?></span></div>
+  <?php if($campaigns): ?><div class="catalog explore-catalog"><?php foreach($campaigns as $c)lc_tile($c);?></div>
+  <?php else:lc_empty($term!==''||$category!==''?'Nenhuma campanha encontrada':'Novas campanhas em breve',$term!==''||$category!==''?'Tente outro termo ou remova os filtros.':'Você pode criar sua conta enquanto preparamos novas oportunidades.');?>
+  <div class="explore-empty-action"><a class="btn btn-ghost" href="<?=$term!==''||$category!==''?'/explorar':'/cadastrar'?>"><?=$term!==''||$category!==''?'Limpar filtros':'Seja um clipador'?> <?=lc_icon('arrow-right')?></a></div><?php endif;?>
+  <p class="explore-disclaimer"><?=lc_icon('shield-check')?> Recompensas dependem das metas e da aprovação previstas em cada campanha.</p>
+ </div>
+</div>
+<?php },'explore');return true;
     }
     if ($method==='GET' && $path==='/cadastrar') {
         if (lc_user()) lc_redirect('/dashboard');
@@ -87,7 +164,7 @@ else: ?><div class="catalog catalog-horizontal"><?php foreach($campaigns as $cam
 <div class="container container-sm"><span class="eyebrow">Análise de cadastro</span>
 <div class="large-surface"><h1><?= $u['status']==='pending'?'Estamos analisando seu perfil.':($u['status']==='rejected'?'Cadastro não aprovado.':'Conta suspensa.') ?></h1>
 <p><?= $u['status']==='pending'?'Seu cadastro foi recebido. Nossa equipe verificará os dados; quando aprovado, você terá acesso ao painel.':'Entre em contato com a administração para obter informações.' ?></p>
-<span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(strtoupper($u['status']))?></span><div class="form-actions"><a class="btn btn-ghost" href="/">Ver campanhas disponíveis</a></div></div></div>
+<span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(strtoupper($u['status']))?></span><div class="form-actions"><a class="btn btn-ghost" href="/explorar">Ver campanhas disponíveis</a></div></div></div>
 <?php });return true;
     }
     if($method==='GET' && preg_match('~^/campanhas/([a-z0-9-]+)$~',$path,$m)){
