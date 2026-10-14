@@ -111,7 +111,7 @@ function lc_public_routes(string $method,string $path): bool {
 <?php },'explore');return true;
     }
     if ($method==='GET' && $path==='/cadastrar') {
-        if (lc_user()) lc_redirect('/dashboard');
+        if ($current=lc_user()) lc_redirect($current['role']==='criador'?'/criador':'/dashboard');
         lc_page('Crie sua conta',function(){ ?>
 <div class="auth-layout"><div class="auth-box"><span class="eyebrow">Comece por aqui</span><h1>Junte-se aos criadores.</h1><p>Preencha o cadastro para entrar na fila de aprovação.</p>
 <div class="panel"><form action="/cadastrar" method="post"><?=lc_csrf()?><div class="form-grid">
@@ -142,7 +142,7 @@ function lc_public_routes(string $method,string $path): bool {
         lc_flash('Cadastro enviado! Aguarde a aprovação da equipe.');lc_redirect('/aguardando');
     }
     if ($method==='GET' && $path==='/entrar') {
-        if(lc_user())lc_redirect('/dashboard');
+        if($current=lc_user())lc_redirect($current['role']==='criador'?'/criador':'/dashboard');
         lc_page('Entrar',function(){ ?>
 <div class="auth-layout"><div class="auth-box"><span class="eyebrow">Bem-vindo de volta</span><h1>Sua próxima campanha começa aqui.</h1><p>Entre para acompanhar suas entregas e recompensas.</p>
 <div class="panel"><form method="post" action="/entrar"><?=lc_csrf()?><div class="form-grid">
@@ -161,14 +161,15 @@ function lc_public_routes(string $method,string $path): bool {
             lc_flash('E-mail ou senha inválidos.','error');lc_redirect('/entrar');
         }
         session_regenerate_id(true);$_SESSION['uid']=(int)$user['id'];
-        lc_redirect('/dashboard');
+        $role=lc_one('SELECT role FROM users WHERE id=?',[(int)$user['id']])['role']??'clipador';
+        lc_redirect($role==='criador'?'/criador':'/dashboard');
     }
     if ($method==='POST' && $path==='/sair') {
         $_SESSION=[];session_regenerate_id(true);lc_redirect('/');
     }
     if ($method==='GET' && $path==='/aguardando') {
         $u=lc_login_required(false);
-        if($u['role']==='admin'||$u['status']==='approved') lc_redirect('/dashboard');
+        if($u['role']==='admin'||$u['status']==='approved') lc_redirect($u['role']==='criador'?'/criador':'/dashboard');
         lc_page('Status do cadastro',function()use($u){?>
 <div class="container container-sm"><span class="eyebrow">Análise de cadastro</span>
 <div class="large-surface"><h1><?= $u['status']==='pending'?'Estamos analisando seu perfil.':($u['status']==='rejected'?'Cadastro não aprovado.':'Conta suspensa.') ?></h1>
