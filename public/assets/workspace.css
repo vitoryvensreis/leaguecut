@@ -134,3 +134,11 @@
 }
 @media(max-width:380px){.ws-action-cards{grid-template-columns:1fr}.ws-kpi-grid{grid-template-columns:1fr 1fr}}
 @media(prefers-reduced-motion:reduce){.ws-action-card,.ws-kpi,.ws-queue-link,.ws-nav-link{transition:none}}
+
+/* Daily public views readout — never confused with verified financial views. */
+.views-readout{min-width:176px;vertical-align:middle}
+.views-readout strong{font-size:1.3rem;display:block;color:#f7f8fa;font-variant-numeric:tabular-nums;line-height:1.2}
+.views-readout small{display:block;color:#a0adbb;font-size:.71rem;line-height:1.45;margin-top:5px;white-space:normal}
+.views-readout span{font-size:.79rem;color:#b9c0cd;font-weight:700}
+.brand-settings-preview{margin:10px 0 16px;padding:13px 16px;border:1px solid #ffffff22;background:#090c11;border-radius:2px;max-width:430px;min-height:94px;display:flex;align-items:center;justify-content:center}
+.brand-settings-preview img{object-fit:contain;max-width:100%;max-height:100px}
