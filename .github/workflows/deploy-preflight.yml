@@ -1,0 +1,65 @@
+name: Preflight de produção LeagueCut
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/deploy-preflight.yml
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Preparar acesso SSH
+        shell: bash
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
+      - name: Diagnóstico somente leitura da VPS
+        shell: bash
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_ed25519 -p "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -e
+          echo "USER=$(whoami)"
+          echo "HOME=$HOME"
+          php -v | head -1 || :
+          composer --version | head -1 || :
+          git --version || :
+          echo "PATHS:"
+          for p in /home/leaguecut/shared/.env /home/leaguecut/current /home/leaguecut/releases /home/leaguecut/htdocs/leaguecut.com /home/leaguecut/htdocs/leaguecut.com/index.php; do
+            if [ -L "$p" ]; then echo "$p [symlink -> $(readlink "$p")]";
+            elif [ -f "$p" ]; then echo "$p [file present]";
+            elif [ -d "$p" ]; then echo "$p [directory present]";
+            else echo "$p [absent]"; fi
+          done
+          echo "WRITE_ACCESS:"
+          for p in /home/leaguecut /home/leaguecut/htdocs/leaguecut.com; do
+            if [ -w "$p" ]; then echo "$p [writable]"; else echo "$p [not writable]"; fi
+          done
+          echo "VHOST_INFO:"
+          for p in /etc/nginx/sites-enabled/leaguecut.com.conf /etc/nginx/sites-available/leaguecut.com.conf; do
+            if [ -r "$p" ]; then
+              grep -E '^[[:space:]]*(root|fastcgi_pass|server_name|try_files|include)[[:space:]]+' "$p" | head -25 || :
+            fi
+          done
+          echo "DB_CONFIG: environment file $(test -r /home/leaguecut/shared/.env && echo readable || echo missing)"
+          REMOTE
+      - name: Verificar HTTPS publico
+        shell: bash
+        run: |
+          curl -IL --connect-timeout 10 --max-time 15 https://leaguecut.com/ | head -n 25
