@@ -28,4 +28,29 @@ try {lc_apify_parse_dataset_response(403,$example);throw new RuntimeException('A
 catch(RuntimeException $e){if(str_contains($e->getMessage(),'mistakenly'))throw $e;}
 try {lc_apify_parse_dataset_response(201,'{"error":"bad"}');throw new RuntimeException('Error object mistakenly accepted');}
 catch(RuntimeException $e){if(str_contains($e->getMessage(),'mistakenly'))throw $e;}
+
+$official=lc_apify_official_input('https://www.instagram.com/reel/DA6aVUpytOB/?igsh=abcd');
+if($official!==[
+ 'username'=>['https://www.instagram.com/reel/DA6aVUpytOB/'],
+ 'resultsLimit'=>1,'dataDetailLevel'=>'detailedData'
+])throw new RuntimeException('Official URL input invalid');
+if(lc_apify_official_input('https://www.instagram.com/p/DA6aVUpytOB/')!==[
+ 'username'=>['https://www.instagram.com/p/DA6aVUpytOB/'],
+ 'resultsLimit'=>1,'dataDetailLevel'=>'detailedData'
+])throw new RuntimeException('Photo/post input invalid');
+try{lc_apify_official_input('https://malicious.example/reel/DA6aVUpytOB/');throw new RuntimeException('Untrusted domain accepted');}
+catch(InvalidArgumentException $e){}
+$officialRow=[
+ 'shortCode'=>'DA6aVUpytOB','url'=>'https://www.instagram.com/reel/DA6aVUpytOB/',
+ 'ownerUsername'=>'creator.test','videoViewCount'=>1234,'videoPlayCount'=>4321
+];
+if(lc_apify_post_views($officialRow,'creator.test','DA6aVUpytOB')!==1234)
+  throw new RuntimeException('Video views should be preferred over play count');
+$officialRow['videoViewCount']=null;
+if(lc_apify_post_views($officialRow,'creator.test','DA6aVUpytOB')!==4321)
+  throw new RuntimeException('Video play count fallback absent');
+unset($officialRow['videoPlayCount']);
+if(lc_apify_post_views($officialRow,'creator.test','DA6aVUpytOB')!==null)
+  throw new RuntimeException('Missing views improperly treated as real');
+
 echo "APIFY_ACTOR_SAMPLE_OK\n";
