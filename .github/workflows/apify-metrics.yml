@@ -1,7 +1,7 @@
-name: LeagueCut Apify views - limited sync
+name: LeagueCut views daily 02h Fortaleza - limited Apify
 on:
   schedule:
-    - cron: '17 0,6,12,18 * * *'
+    - cron: '0 5 * * *'
   workflow_dispatch:
 permissions:
   contents: read
@@ -11,7 +11,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    timeout-minutes: 9
+    timeout-minutes: 12
     steps:
       - name: Prepare SSH
         env:
