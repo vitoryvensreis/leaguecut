@@ -1,0 +1,80 @@
+/* Bloco 6 — polish, keyboard accessibility, mobile UX, reduced motion. */
+:root { --focus-ring: color-mix(in srgb,var(--accent) 48%,#fff); }
+body { overflow-x: clip; }
+.skip-link {
+  position: fixed; z-index: 9999; top: 12px; left: 12px;
+  padding: 13px 20px; color: #fff; background: #202532;
+  border: 2px solid var(--focus-ring); border-radius: 12px;
+  font-weight: 800; box-shadow: 0 12px 32px #0009;
+  transform: translateY(-170%); transition: transform .15s ease;
+}
+.skip-link:focus { transform: translateY(0); }
+#conteudo:focus { outline: none; }
+:where(a, button, input, textarea, select, summary):focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+:where(button, .btn, .ws-nav-link, .pill, .campaign-card) { -webkit-tap-highlight-color: transparent; }
+:where(input, select, textarea):disabled { opacity: .6; cursor: not-allowed; }
+:where(input, textarea)::placeholder { color: #8993a4; opacity: 1; }
+a, button { touch-action: manipulation; }
+.brand-image { height: auto; object-fit: contain; }
+.ws-site-link, .ws-nav-link, .ws-action-card { text-decoration: none; }
+.ws-nav-link[aria-current="page"], .main-nav a[aria-current="page"] { color: #fff; }
+.table-wrap { max-width: 100%; overflow-x: auto; scrollbar-width: thin; overscroll-behavior-x: contain; }
+.table-wrap:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 3px; }
+.table-wrap table { width: 100%; }
+.ws-dashboard .ws-kpi, .ws-dashboard .ws-action-card { min-width: 0; }
+.ws-recent-main strong, .ws-queue-link strong { overflow-wrap: anywhere; }
+.ws-queue-link small, .ws-recent-main small { overflow-wrap: anywhere; }
+form .form-actions .btn, form .mini-form .btn { min-height: 44px; }
+.auth-box .field input, .auth-box .field select { min-height: 48px; }
+.lp-feature, .ws-kpi, .panel { contain: layout style; }
+.lp-hero .lp-hero-content, .lp-hero .lp-hero-art { min-width: 0; }
+.lp-hero-media video, .lp-hero-media img { background-color: #0b0c12; }
+@media (max-width: 970px) {
+  .ws-mobile-menu summary { min-height: 48px; }
+  .ws-mobile-menu .ws-nav-link { min-height: 44px; }
+}
+@media (max-width: 840px) {
+  .public-page .header-inner { flex-wrap: wrap; }
+  .public-page .main-nav { flex: 1 0 100%; max-width: 100%; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .public-page .main-nav::-webkit-scrollbar { display: none; }
+  .public-page .main-nav a { min-height: 44px; }
+  .public-page .header-right { margin-left: auto; }
+  .main-nav .selected { box-shadow: inset 0 0 0 1px color-mix(in srgb,var(--accent) 20%,#ffffff20); }
+}
+@media (max-width: 620px) {
+  input, select, textarea { font-size: 16px; }
+  .workspace-body .table-wrap { margin-inline: 0; }
+  .workspace-body .table-wrap th, .workspace-body .table-wrap td { padding: 13px 12px; }
+  .workspace-body .form-actions .btn { width: 100%; min-height: 48px; }
+  .workspace-body .form-actions a { width: 100%; justify-content: center; }
+  .site-footer { gap: 4px; }
+  .lp-actions .btn { max-width: 100%; }
+  .lp-hero h1 { overflow-wrap: break-word; }
+}
+@media (max-width: 400px) {
+  .public-page .header-inner { padding-inline: 14px; column-gap: 10px; }
+  .public-page .brand { font-size: 1.06rem; }
+  .public-page .header-right { gap: 5px; }
+  .public-page .header-right .btn { padding: 9px 10px; }
+  .lp-actions { flex-direction: column; align-items: stretch; }
+  .lp-actions .btn { width: 100%; }
+  .ws-kpi-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .ws-kpi-value { font-size: 1.26rem; overflow-wrap: anywhere; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+@media (prefers-contrast: more) {
+  .field input, .field textarea, .field select,
+  .panel, .ws-kpi, .campaign-card { border-color: #929cad; }
+  .tag, .ws-recent-main small, .page-heading p { color: #fff; }
+}
