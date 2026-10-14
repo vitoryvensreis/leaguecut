@@ -1,0 +1,45 @@
+name: LeagueCut cron 02h timezone readiness
+on:
+  push:
+    branches: [ops/leaguecut-views-cron]
+    paths: ['.github/workflows/cron-views-readiness.yml']
+permissions: {contents: read}
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: SSH setup
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Read-only VPS timezone, cron and Apify status
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes \
+             -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = leaguecut ]
+          echo "TZ_OFFSET=$(date +%z)"
+          echo "TZ_NAME=$(date +%Z)"
+          echo "CRONTAB_AVAILABLE=$(command -v crontab >/dev/null && echo yes || echo no)"
+          echo "CRON_SERVICE=$(systemctl is-active cron 2>/dev/null || echo unknown)"
+          echo "PHP_BIN=$(command -v php || echo missing)"
+          echo "CURRENT_COMMIT=$(readlink -f /home/leaguecut/current | sed 's@.*/@@' | cut -c1-12)"
+          if crontab -l >/dev/null 2>&1; then
+            if crontab -l | grep -q 'LEAGUECUT_VIEWS_DAILY_02FORTALEZA';then echo "EXISTING_VIEWS_CRON=yes";else echo "EXISTING_VIEWS_CRON=no";fi
+          else echo "EXISTING_VIEWS_CRON=none";fi
+          cd /home/leaguecut/current
+          php -r 'require "app/core.php"; echo "APIFY_ENABLED=".lc_env("APIFY_SYNC_ENABLED","1")."\n"; echo "APIFY_TOKEN_PRESENT=".(lc_env("APIFY_API_TOKEN")!==""?"yes":"no")."\n";'
+          REMOTE
