@@ -51,8 +51,8 @@ jobs:
                ]);
                $ok=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
                $curlErr=curl_errno($ch);curl_close($ch);
-               $bytes=ftell($tmp);fclose($tmp);
-               echo "RANGE_END=".$end." STATUS=".$status." ERRNO=".$curlErr." RECEIVED=".$bytes." EXPECTED=".($end+1). " RESULT=".($ok&&($status===200||$status===206)&&$bytes===$end+1?"PASS":"FAIL")."\n";
+               $before=ftell($tmp);$seek=fseek($tmp,0,SEEK_END);$bytes=ftell($tmp);rewind($tmp);$sample=strlen(fread($tmp,16));fclose($tmp);
+               echo "RANGE_END=".$end." STATUS=".$status." ERRNO=".$curlErr." INITIAL=".$before." FSEEK=".$seek." SAMPLE=".$sample." RECEIVED=".$bytes." EXPECTED=".($end+1). " RESULT=".($ok&&($status===200||$status===206)&&$bytes===$end+1?"PASS":"FAIL")."\n";
             }
           }'
           REMOTE
