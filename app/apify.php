@@ -158,11 +158,26 @@ function lc_apify_import_profile(string $username,array $rows): int {
     $clips=lc_all("SELECT c.id,c.published_url,s.username FROM clips c
       JOIN social_accounts s ON s.id=c.social_account_id JOIN campaigns p ON p.id=c.campaign_id
       WHERE s.network='instagram' AND LOWER(s.username)=?
-      AND c.status IN ('pending','approved') AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY)
+      AND c.status='approved' AND c.drive_file_id IS NOT NULL
+      AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY)
       AND p.status='active'",[strtolower($username)]);
     $count=0;
     foreach($clips as $clip)$count+=lc_apify_import_clip($clip,$rows);
     return $count;
+}
+/**
+ * Only reviewed clips with a mandatory original may spend Apify budget.
+ * Pending/rejected and legacy link-only clips are excluded by database query.
+ */
+function lc_apify_eligible_clips(int $limit=150): array {
+    $limit=max(1,min(150,$limit));
+    return lc_all("SELECT c.id,c.published_url,s.username,c.submitted_at FROM clips c
+       JOIN social_accounts s ON s.id=c.social_account_id
+       JOIN campaigns p ON p.id=c.campaign_id
+       WHERE s.network='instagram' AND p.status='active'
+         AND c.status='approved' AND c.drive_file_id IS NOT NULL
+         AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
+       ORDER BY c.submitted_at DESC LIMIT ".$limit);
 }
 /**
  * Cost-bounded, idempotent Instagram link sync.
@@ -175,13 +190,7 @@ function lc_apify_sync(): void {
     $lock=$db->query("SELECT GET_LOCK('leaguecut_apify_metrics_v1',0) AS acquired")->fetch(PDO::FETCH_ASSOC);
     if((int)($lock['acquired']??0)!==1){echo "APIFY_ALREADY_RUNNING\n";return;}
     try{
-        $clips=lc_all("SELECT c.id,c.published_url,s.username,c.submitted_at FROM clips c
-            JOIN social_accounts s ON s.id=c.social_account_id
-            JOIN campaigns p ON p.id=c.campaign_id
-            WHERE s.network='instagram' AND p.status='active'
-              AND c.status IN ('pending','approved')
-              AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
-            ORDER BY c.submitted_at DESC LIMIT 150");
+        $clips=lc_apify_eligible_clips();
         $usage=lc_apify_usage();
         $runs=$usage['runs'];$reserved=$usage['max_reserved_usd'];
         $seen=[];
