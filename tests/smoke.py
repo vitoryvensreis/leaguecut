@@ -106,6 +106,9 @@ def main():
     # Bloco 7: Google Drive connection is admin-only and never exposes OAuth tokens.
     integrations=get(admin,"/admin/integracoes")
     assert "Google Drive" in integrations
+    assert "Métricas Instagram" in integrations
+    assert "Verificar token (sem cobrança)" in integrations
+    assert "Nenhum custo foi reservado." in integrations
     assert "GOOGLE_CLIENT_ID" in integrations, "Setup instructions"
     assert "admin/integracoes/google/callback" in integrations, "Google OAuth redirect"
     assert 'name="_csrf"' in integrations

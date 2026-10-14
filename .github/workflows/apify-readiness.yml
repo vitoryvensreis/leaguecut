@@ -1,0 +1,50 @@
+name: LeagueCut Apify readiness (no paid runs)
+on:
+  push:
+    branches: [feature/apify-metrics-validation]
+    paths: [.github/workflows/apify-readiness.yml]
+permissions: {contents: read}
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: SSH setup
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Inspect Apify settings and counters only
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = "leaguecut" ]
+          cd /home/leaguecut/current
+          php -r '
+          require "app/core.php";
+          require "app/apify.php";
+          $config=lc_apify_config();
+          echo "APIFY_TOKEN_CONFIGURED=".($config["token"]!==""?"yes":"no")."\n";
+          echo "APIFY_MAX_POSTS=".$config["max_posts"]."\n";
+          echo "APIFY_DAILY_LIMIT_RUNS=".$config["daily_runs"]."\n";
+          echo "APIFY_DAILY_LIMIT_USD=".$config["daily_usd"]."\n";
+          $usage=lc_apify_usage();
+          echo "APIFY_RUNS_TODAY=".$usage["runs"]."\n";
+          echo "APIFY_RESERVED_USD_TODAY=".$usage["max_reserved_usd"]."\n";
+          $profiles=lc_one("SELECT COUNT(DISTINCT LOWER(s.username)) AS n FROM clips c JOIN social_accounts s ON s.id=c.social_account_id JOIN campaigns p ON p.id=c.campaign_id WHERE s.network=? AND p.status=? AND c.status IN (?,?) AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY)",["instagram","active","pending","approved"]);
+          echo "APIFY_ELIGIBLE_PROFILES=".(int)($profiles["n"]??0)."\n";
+          $last=lc_one("SELECT status,matched_clips,result_count FROM apify_profile_runs ORDER BY id DESC LIMIT 1");
+          echo "APIFY_LAST_RUN_STATUS=".($last["status"]??"none")."\n";
+          if($last){echo "APIFY_LAST_RESULT_COUNT=".$last["result_count"]."\n"; echo "APIFY_LAST_MATCHED_CLIPS=".$last["matched_clips"]."\n";}
+          '
+          REMOTE

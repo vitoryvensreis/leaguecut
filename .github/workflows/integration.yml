@@ -99,6 +99,7 @@ jobs:
           curl --fail --silent http://127.0.0.1:8080/health
           python3 tests/smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           python3 tests/ux_smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
+          php tests/apify_actor_sample.php
           php -r 'require "app/core.php"; require "app/apify.php"; $row=["shortcode"=>"ABCde12","ownerUsername"=>"criador.validado","videoPlayCount"=>321]; if(lc_apify_post_views($row,"criador.validado","ABCde12")!==321 || lc_apify_post_views($row,"other.user","ABCde12")!==null || lc_apify_post_views($row,"criador.validado","otherpost")!==null){exit(1);} $clip=lc_one("SELECT id FROM clips LIMIT 1"); if(!$clip || !lc_apify_observe((int)$clip["id"],321)){exit(1);} echo "APIFY_CONTRACT_OK\\n";'
           php -r 'require "app/core.php"; require "app/apify.php"; $usage=lc_apify_usage(); if($usage["runs"]!==0){exit(1);} echo "APIFY_BUDGET_OK\\n";'
 
