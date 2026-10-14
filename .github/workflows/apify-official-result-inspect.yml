@@ -1,0 +1,84 @@
+name: LeagueCut inspect official Apify result (read only)
+on:
+  push:
+    branches: [ops/apify-official-single-pilot]
+    paths: ['.github/workflows/apify-official-result-inspect.yml']
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: SSH credentials
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$PRIVATE_KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Inspect cached dataset without starting Actors
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
+             -i ~/.ssh/id_ed25519 -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = leaguecut ]
+          cd /home/leaguecut/current
+          php -r '
+          require "app/core.php";require "app/apify.php";
+          $token=lc_env("APIFY_API_TOKEN");
+          if(!$token)exit(1);
+          function apify_get(string $url,string $token): array {
+            $ch=curl_init($url);
+            curl_setopt_array($ch,[
+              CURLOPT_HTTPHEADER=>["Authorization: Bearer ".$token,"Accept: application/json"],
+              CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>20,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_FOLLOWLOCATION=>false
+            ]);
+            $raw=curl_exec($ch);$http=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
+            return [$http,is_string($raw)?json_decode($raw,true):null];
+          }
+          [$runHttp,$run]=apify_get("https://api.apify.com/v2/acts/apify~instagram-post-scraper/runs/last?status=SUCCEEDED",$token);
+          echo "ACTOR_META_HTTP=".$runHttp."\n";
+          $meta=$run["data"]??[];
+          if($runHttp!==200 || !$meta || !is_string($meta["defaultDatasetId"]??null))exit(1);
+          $dataset=$meta["defaultDatasetId"];
+          if(!preg_match("/^[a-zA-Z0-9]{10,30}$/D",$dataset))exit(1);
+          echo "ACTOR_RUN_STATUS=".($meta["status"]??"unknown")."\n";
+          echo "ACTOR_REPORTED_COST_USD=".($meta["usageTotalUsd"]??"unknown")."\n";
+          [$http,$rows]=apify_get("https://api.apify.com/v2/datasets/".$dataset."/items?limit=3&clean=true",$token);
+          echo "DATASET_HTTP=".$http."\n";
+          if($http!==200||!is_array($rows)||!array_is_list($rows))exit(1);
+          echo "DATASET_RESULTS=".count($rows)."\n";
+          if(!$rows)exit(0);
+          $row=$rows[0];
+          $keys=array_keys($row);sort($keys);
+          echo "FIELDS=".implode(",",$keys)."\n";
+          $viewFields=array_values(array_filter($keys,static fn($k)=>stripos($k,"view")!==false||stripos($k,"play")!==false));
+          echo "VIEW_FIELDS=".($viewFields?implode(",",$viewFields):"none")."\n";
+          $clips=lc_all("SELECT c.id,c.published_url,s.username FROM clips c JOIN social_accounts s ON s.id=c.social_account_id JOIN campaigns p ON p.id=c.campaign_id WHERE s.network=? AND p.status=? AND c.status IN (?,?) ORDER BY c.submitted_at DESC LIMIT 20",["instagram","active","pending","approved"]);
+          $sc=lc_apify_data_shortcode($row);
+          $owner=lc_apify_data_author($row);
+          echo "EXTRACTED_SHORTCODE=".($sc?"yes":"no")."\n";
+          echo "EXTRACTED_AUTHOR=".($owner?"yes":"no")."\n";
+          foreach($clips as $clip){
+            $matchingCode=$sc!==null && lc_apify_shortcode($clip["published_url"])===$sc;
+            if(!$matchingCode)continue;
+            echo "LINK_SHORTCODE_MATCH=yes\n";
+            $matchingOwner=$owner!==null && $owner===strtolower(ltrim($clip["username"],"@"));
+            echo "REGISTERED_AUTHOR_MATCH=".($matchingOwner?"yes":"no")."\n";
+            $views=lc_apify_post_views($row,$clip["username"],$sc);
+            echo "VALID_VIEWS_AVAILABLE=".($views!==null?"yes":"no")."\n";
+            if($views!==null)echo "VALID_VIEW_COUNT=".$views."\n";
+            exit(0);
+          }
+          echo "LINK_SHORTCODE_MATCH=no\n";
+          '
+          REMOTE
