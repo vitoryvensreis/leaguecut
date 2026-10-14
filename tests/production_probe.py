@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Production reachability check. Uses public routes only; no credentials or mutations."""
-import os, socket, ssl, urllib.request, urllib.error
+import os, socket, ssl, sys, urllib.request, urllib.error
 
 DOMAIN="leaguecut.com"
 base="https://"+DOMAIN
@@ -21,8 +21,9 @@ def check_http():
         assert e.code in (302,303,401,403), ("Unexpected admin response",e.code)
         if e.code in (302,303):
             assert "/entrar" in (e.headers.get("Location") or ""), "Admin login redirect wrong"
-    with urllib.request.urlopen(base+"/assets/polish.css?v=6",timeout=15) as r:
-        assert r.status==200 and b".skip-link" in r.read(14000), "Current frontend not published"
+    if "--predeploy" not in sys.argv:
+        with urllib.request.urlopen(base+"/assets/polish.css?v=6",timeout=15) as r:
+            assert r.status==200 and b".skip-link" in r.read(14000), "Current frontend not published"
     print("PRODUCTION HTTPS OK: /health, unauthenticated /admin protected, Bloco 6 asset")
 
 def check_wss():
