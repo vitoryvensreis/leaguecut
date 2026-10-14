@@ -15,8 +15,14 @@ function lc_integrations_routes(string $method,string $path): bool {
         $count=(int)(lc_one('SELECT COUNT(*) AS n FROM clips WHERE drive_file_id IS NOT NULL')['n']??0);
         $apifyConfig=lc_apify_config();
         $apifyUsage=lc_apify_usage();
+        $todayFortaleza=(new DateTimeImmutable('now',new DateTimeZone('America/Fortaleza')))->format('Y-m-d');
+        $dailyProgress=lc_one("SELECT COUNT(*) AS total,
+           SUM(EXISTS(SELECT 1 FROM clip_daily_views d WHERE d.clip_id=c.id AND d.snapshot_date=?)) AS updated
+           FROM clips c JOIN social_accounts s ON s.id=c.social_account_id
+           WHERE c.status='approved' AND c.drive_file_id IS NOT NULL AND s.network='instagram'",
+           [$todayFortaleza])??['total'=>0,'updated'=>0];
         $apifyRuns=lc_all('SELECT attempted_at,status,matched_clips,result_count,max_charge_usd FROM apify_profile_runs ORDER BY id DESC LIMIT 8');
-        lc_page('Integrações',function()use($admin,$connected,$clientConfigured,$legacy,$active,$folderPresent,$oauthRedirect,$count,$apifyConfig,$apifyUsage,$apifyRuns){?>
+        lc_page('Integrações',function()use($admin,$connected,$clientConfigured,$legacy,$active,$folderPresent,$oauthRedirect,$count,$apifyConfig,$apifyUsage,$apifyRuns,$dailyProgress){?>
 <div class="container container-md">
  <?php lc_heading('Configurações do sistema','Integrações','Conecte serviços externos sem salvar tokens ou senhas no banco de configurações públicas.'); ?>
  <div class="panel">
@@ -58,7 +64,9 @@ function lc_integrations_routes(string $method,string $path): bool {
       <p class="hint" role="status"><strong>Agendamento pausado.</strong> O token está guardado, mas nenhuma consulta programada será executada até confirmarmos os contadores de views do Actor oficial em um teste controlado.</p>
    <?php endif; ?>
    <p>Consultas periódicas com cache e limite de custo. O sistema consulta URLs exatas de clipes Instagram aprovados, com vídeo original armazenado e em campanhas ativas, registrando visualizações públicas observadas, sem aprovar recompensas automaticamente.</p>
+   <p class="hint"><strong>Atualização automática:</strong> diariamente às 02:00 de Fortaleza (05:00 UTC). São consultadas publicações de clipes aprovados com original; o alcance depende do limite de consumo e da disponibilidade do provedor. Os dados são observacionais, sem crédito financeiro automático.</p>
    <div class="stats-grid">
+     <div class="metric"><small>Clipes monitorados hoje</small><strong><?=(int)$dailyProgress['updated']?> / <?=(int)$dailyProgress['total']?></strong></div>
      <div class="metric"><small>Execuções hoje (UTC)</small><strong><?=$apifyUsage['runs']?> / <?=$apifyConfig['daily_runs']?></strong></div>
      <div class="metric"><small>Teto reservado hoje (USD)</small><strong>$<?=number_format($apifyUsage['max_reserved_usd'],3,'.','')?> / $<?=number_format($apifyConfig['daily_usd'],2,'.','')?></strong></div>
      <div class="metric"><small>Links por execução</small><strong><?=min(20,(int)$apifyConfig['max_posts'])?></strong></div>
@@ -82,6 +90,8 @@ function lc_integrations_routes(string $method,string $path): bool {
        <?php endforeach;?></tbody></table>
      </div>
    <?php else: ?><p class="hint">Ainda não existem consultas registradas. Nenhum custo foi reservado.</p><?php endif;?>
+   <p class="hint">TikTok e clipes rejeitados não estão incluídos no coletor Instagram. Se o total de clipes ultrapassar a capacidade do orçamento diário, o restante aparecerá como aguardando coleta, sem inventar dados.</p>
+   <a href="/admin/clipes" class="btn btn-ghost">Ver views dos clipes <?=lc_icon('arrow-right')?></a>
    <a href="https://apify.com/apify/instagram-post-scraper" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">Ver Actor e custos <?=lc_icon('external-link')?></a>
  </div>
  <div class="panel"><h2>Fluxo de envio</h2>
