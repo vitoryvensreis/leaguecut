@@ -1,0 +1,85 @@
+name: LeagueCut approved clips Apify read-only inspection
+on:
+  push:
+    branches: [qa/approved-clip-apify-target-20261014]
+    paths: ['.github/workflows/apify-approved-inspect.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: SSH setup
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Compare approved records with cached Apify data without starting Actor
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = "leaguecut" ]
+          cd /home/leaguecut/current
+          php -r '
+          require "app/core.php";require "app/apify.php";
+          $approved=lc_all("SELECT c.id,c.published_url,c.verified_views,s.username FROM clips c JOIN social_accounts s ON s.id=c.social_account_id JOIN campaigns p ON p.id=c.campaign_id WHERE c.status=? AND s.network=? AND p.status=? ORDER BY c.id DESC LIMIT 40",["approved","instagram","active"]);
+          $valid=0;$cached=0;
+          foreach($approved as $c){
+            $code=lc_apify_shortcode($c["published_url"]);
+            if(!$code)continue;
+            $valid++;
+            $r=lc_one("SELECT id,status FROM apify_profile_runs WHERE username=? ORDER BY id DESC LIMIT 1",["post:".$code]);
+            if($r)$cached++;
+          }
+          echo "APPROVED_INSTAGRAM_CLIPS=".count($approved)."\n";
+          echo "APPROVED_VALID_INSTAGRAM_LINKS=".$valid."\n";
+          echo "APPROVED_ALREADY_QUERIED=".$cached."\n";
+          $token=lc_env("APIFY_API_TOKEN");if(!$token){echo "TOKEN_NOT_CONFIGURED\n";exit(0);}
+          function read_api(string $url,string $token): array{
+             $ch=curl_init($url);
+             curl_setopt_array($ch,[CURLOPT_HTTPHEADER=>["Authorization: Bearer ".$token,"Accept: application/json"],
+                CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>20,CURLOPT_CONNECTTIMEOUT=>6,CURLOPT_FOLLOWLOCATION=>false]);
+             $body=curl_exec($ch);$http=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
+             return [$http,is_string($body)?json_decode($body,true):null];
+          }
+          [$http,$run]=read_api("https://api.apify.com/v2/acts/apify~instagram-post-scraper/runs/last?status=SUCCEEDED",$token);
+          echo "CACHED_LAST_RUN_HTTP=".$http."\n";
+          $dataset=$run["data"]["defaultDatasetId"]??"";
+          if($http!==200||!is_string($dataset)||!preg_match("/^[a-zA-Z0-9]{10,30}$/D",$dataset))exit(0);
+          [$status,$rows]=read_api("https://api.apify.com/v2/datasets/".$dataset."/items?limit=5&clean=true",$token);
+          echo "CACHED_DATASET_HTTP=".$status."\n";
+          if($status!==200||!is_array($rows)||!array_is_list($rows))exit(0);
+          echo "CACHED_POST_COUNT=".count($rows)."\n";
+          $matched=0;$withViews=0;
+          foreach($approved as $clip){
+            $sc=lc_apify_shortcode($clip["published_url"]);if(!$sc)continue;
+            foreach($rows as $row){
+              if(!is_array($row))continue;
+              if(lc_apify_data_shortcode($row)!==$sc)continue;
+              $matched++;
+              $v=lc_apify_post_views($row,$clip["username"],$sc);
+              if($v!==null)$withViews++;
+              break;
+            }
+          }
+          echo "CACHED_MATCHED_APPROVED_LINKS=".$matched."\n";
+          echo "CACHED_APPROVED_WITH_VERIFIABLE_VIEWS=".$withViews."\n";
+          $usage=lc_apify_usage();
+          echo "DAILY_RUNS_ALREADY=".$usage["runs"]."\n";
+          echo "DAILY_RESERVED_ALREADY_USD=".$usage["max_reserved_usd"]."\n";
+          '
+          REMOTE
