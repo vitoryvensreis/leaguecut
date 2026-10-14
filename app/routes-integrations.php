@@ -54,18 +54,18 @@ function lc_integrations_routes(string $method,string $path): bool {
  <div class="panel"><h2><?=lc_icon('chart-column')?> Métricas Instagram · Apify</h2>
    <span class="tag <?=$apifyConfig['token']!==''?'tag-approved':'tag-pending'?>"><?=$apifyConfig['token']!==''?'Token configurado':'Ainda não configurado'?></span>
 
-   <?php if(lc_env('APIFY_SYNC_ENABLED','0')!=='1'): ?>
+   <?php if(lc_env('APIFY_SYNC_ENABLED','1')!=='1'): ?>
       <p class="hint" role="status"><strong>Agendamento pausado.</strong> O token está guardado, mas nenhuma consulta programada será executada até confirmarmos os contadores de views do Actor oficial em um teste controlado.</p>
    <?php endif; ?>
    <p>Consultas periódicas com cache e limite de custo. O sistema consulta URLs exatas de clipes Instagram aprovados, com vídeo original armazenado e em campanhas ativas, registrando visualizações públicas observadas, sem aprovar recompensas automaticamente.</p>
    <div class="stats-grid">
      <div class="metric"><small>Execuções hoje (UTC)</small><strong><?=$apifyUsage['runs']?> / <?=$apifyConfig['daily_runs']?></strong></div>
      <div class="metric"><small>Teto reservado hoje (USD)</small><strong>$<?=number_format($apifyUsage['max_reserved_usd'],3,'.','')?> / $<?=number_format($apifyConfig['daily_usd'],2,'.','')?></strong></div>
-     <div class="metric"><small>Links por execução</small><strong>1</strong></div>
+     <div class="metric"><small>Links por execução</small><strong><?=min(20,(int)$apifyConfig['max_posts'])?></strong></div>
      <div class="metric"><small>Intervalo por publicação</small><strong><?=(int)$apifyConfig['min_hours']?>h</strong></div>
    </div>
    <p class="hint">Actor oficial: <strong>apify/instagram-post-scraper</strong>, entrada por link e <code>detailedData</code> (pode ter custo adicional). Valores observados não geram crédito automaticamente.</p>
-   <p class="hint">Para ativar: adicione <code>APIFY_API_TOKEN</code> no arquivo privado <code>/home/leaguecut/shared/.env</code>. Após salvar, verifique o token gratuitamente. O agendamento verifica a cada seis horas, mas respeita as cotas. A API não fornece métricas em tempo real nem garante views de todos os posts; números e gastos reais dependem do provedor.</p>
+   <p class="hint">Para ativar: adicione <code>APIFY_API_TOKEN</code> no arquivo privado <code>/home/leaguecut/shared/.env</code>. Após salvar, verifique o token gratuitamente. O agendamento executa uma vez por dia às 02h (Fortaleza, UTC−3; cron 05:00 UTC), mas respeita as cotas. A API não fornece métricas em tempo real nem garante views de todos os posts; números e gastos reais dependem do provedor.</p>
    <div class="form-actions">
      <form method="post" action="/admin/integracoes/apify/verificar"><?=lc_csrf()?>
        <button class="btn btn-ghost" type="submit" <?=$apifyConfig['token']===''?'disabled':''?>><?=lc_icon('circle-check')?> Verificar token (sem cobrança)</button>
