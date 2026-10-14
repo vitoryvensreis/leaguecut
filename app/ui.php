@@ -8,6 +8,55 @@ function lc_icon(string $name, string $class = ''): string {
     return '<svg class="lc-icon ' . lc_e($class) . '" aria-hidden="true" focusable="false"><use href="/assets/icons.svg#' . lc_e($name) . '"></use></svg>';
 }
 
+/** Portuguese, accessible status labels without changing persisted enum values. */
+function lc_status_label(string $status): string {
+    return [
+        'pending'=>'Pendente','approved'=>'Aprovado','rejected'=>'Rejeitado',
+        'suspended'=>'Suspenso','requested'=>'Solicitado','processing'=>'Em análise',
+        'paid'=>'Pago','draft'=>'Rascunho','active'=>'Ativa','paused'=>'Pausada',
+        'ended'=>'Encerrada','sent'=>'Enviado','failed'=>'Falhou'
+    ][$status]??ucfirst($status);
+}
+
+function lc_workspace_links(array $u): array {
+    if($u['role']==='admin'){
+        return [
+          ['Visão geral','/admin','layout-dashboard'],
+          ['Clipadores','/admin/clipadores','users-round'],
+          ['Conferir clipes','/admin/clipes','clipboard-check'],
+          ['Campanhas','/admin/campanhas','clapperboard'],
+          ['Saques','/admin/financeiro','wallet'],
+          ['Bônus mensal','/admin/bonus-mensal','trophy'],
+          ['Banner da Home','/admin/home','layers'],
+          ['Personalização','/admin/configuracoes','palette'],
+          ['Administradores','/admin/administradores','shield-check']
+        ];
+    }
+    return [
+      ['Visão geral','/dashboard','layout-dashboard'],
+      ['Explorar campanhas','/explorar','compass'],
+      ['Minha biblioteca','/biblioteca','library'],
+      ['Minhas redes','/redes','share-2'],
+      ['Financeiro','/financeiro','wallet']
+    ];
+}
+function lc_workspace_nav(array $u, string $current): void {
+    $links=lc_workspace_links($u);
+    $groups=$u['role']==='admin' ? ['Operação'=>array_slice($links,0,6),'Configuração'=>array_slice($links,6)] : ['Meu espaço'=>$links];
+    foreach($groups as $label=>$items): ?>
+      <div class="ws-nav-group">
+        <p class="ws-nav-label"><?=lc_e($label)?></p>
+        <?php foreach($items as [$name,$url,$icon]):
+            $selected=$current===$url||($url!=='/admin'&&$url!=='/dashboard'&&$url!=='/explorar'&&str_starts_with($current,$url.'/')); ?>
+          <a href="<?=lc_e($url)?>" class="ws-nav-link <?=$selected?'is-current':''?>" <?=$selected?'aria-current="page"':''?>>
+            <?=lc_icon($icon)?><span><?=lc_e($name)?></span>
+            <?php if($selected): ?><span class="ws-current-dot" aria-hidden="true"></span><?php endif; ?>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    <?php endforeach;
+}
+
 function lc_page(string $title, callable $body, string $active = ''): void {
     $u = lc_user();
     $s = lc_settings();
@@ -16,6 +65,9 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $primary)) $primary = '#e50914';
     $logo = (string)($s['logo_url'] ?? '');
     $flash = lc_take_flash();
+    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && in_array($active,['admin','dashboard','library','social','finance'],true);
+    $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
+    $areaTitle=$u && $u['role']==='admin'?'Administração':'Área do clipador';
 ?><!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
@@ -25,15 +77,16 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/v2.css?v=1">
 <link rel="stylesheet" href="/assets/landing.css?v=1">
 <link rel="stylesheet" href="/assets/banner.css?v=1">
+<link rel="stylesheet" href="/assets/workspace.css?v=1">
 <style>:root{--accent:<?=$primary?>}</style>
 </head>
-<body>
-<header class="site-header">
+<body class="<?=$workspace?'workspace-page':'public-page'?>">
+<header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
     <a class="brand" href="/" aria-label="<?=lc_e($brand)?>, página inicial">
       <?php if (lc_valid_https($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
     </a>
-    <nav class="main-nav" aria-label="Navegação principal">
+    <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
       <a class="<?=$active==='home'?'selected':''?>" href="/"><?=lc_icon("play")?> Início</a>
       <a class="<?=$active==='explore'?'selected':''?>" href="/explorar"><?=lc_icon("compass")?> Campanhas</a>
       <?php if ($u && $u['status']==='approved'): ?>
@@ -43,8 +96,9 @@ function lc_page(string $title, callable $body, string $active = ''): void {
       <a class="<?=$active==='social'?'selected':''?>" href="/redes"><?=lc_icon("share-2")?> Redes</a>
       <?php endif; ?>
       <?php if ($u && $u['role']==='admin'): ?><a class="<?=$active==='admin'?'selected':''?>" href="/admin"><?=lc_icon("shield-check")?> Administração</a><?php endif; ?>
-    </nav>
+    </nav><?php else: ?><div class="workspace-breadcrumb"><?=lc_icon("layers")?> <?=lc_e($areaTitle)?> <span class="workspace-breadcrumb-slash">/</span> <?=lc_e($title)?></div><?php endif; ?>
     <div class="header-right">
+      <?php if($workspace): ?><a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a><?php endif; ?>
       <?php if ($u): ?>
       <span class="user-short"><?=lc_e(explode(' ', $u['full_name'])[0])?></span>
       <span class="avatar" title="<?=lc_e($u['full_name'])?>"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></span>
@@ -55,10 +109,21 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     </div>
   </div>
 </header>
+<?php if($workspace): ?>
+<div class="workspace-shell">
+  <aside class="workspace-sidebar" aria-label="Navegação da <?=lc_e($areaTitle)?>">
+    <div class="ws-sidebar-top"><div class="ws-area-icon"><?=lc_icon($u['role']==='admin'?'shield-check':'clapperboard')?></div><div><strong><?=lc_e($areaTitle)?></strong><span>Central LeagueCut</span></div></div>
+    <nav aria-label="Menu de <?=lc_e($areaTitle)?>"><?php lc_workspace_nav($u,$path); ?></nav>
+    <div class="ws-sidebar-bottom"><div class="ws-sidebar-avatar"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></div><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':'Clipador')?></span></div></div>
+  </aside>
+  <div class="ws-mobile-menu"><details><summary><?=lc_icon("menu")?> Menu do painel <?=lc_icon("chevron-right")?></summary><nav aria-label="Menu mobile do painel"><?php lc_workspace_nav($u,$path); ?></nav></details></div>
+  <div class="workspace-body">
+<?php endif; ?>
 <main>
   <?php if ($flash): ?><div class="toast <?=$flash['type']==='error'?'toast-error':''?>" role="status"><?=lc_e($flash['message'])?></div><?php endif; ?>
   <?php $body(); ?>
 </main>
+<?php if($workspace): ?></div></div><?php endif; ?>
 <footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span><span>Crie conteúdo. Faça parte. Receba pelo resultado.</span></footer>
 </body></html><?php
 }
