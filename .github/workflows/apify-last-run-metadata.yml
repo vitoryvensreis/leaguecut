@@ -1,0 +1,49 @@
+name: LeagueCut inspect Apify last run metadata (free)
+on:
+  push:
+    branches: [ops/apify-single-validation-20261014]
+    paths: [.github/workflows/apify-last-run-metadata.yml]
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: SSH setup
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Inspect metadata of existing Apify Actor run
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = leaguecut ]
+          cd /home/leaguecut/current
+          php -r '
+            require "app/core.php";
+            $token=lc_env("APIFY_API_TOKEN");if(!$token)exit(1);
+            $ch=curl_init("https://api.apify.com/v2/acts/danek~instagram-posts-scraper-ppr/runs/last?status=SUCCEEDED");
+            curl_setopt_array($ch,[CURLOPT_HTTPHEADER=>["Authorization: Bearer ".$token],CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>15]);
+            $body=curl_exec($ch);$status=curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
+            if($status!==200||!is_string($body)){echo "RUN_METADATA_FAILED\n";exit(1);}
+            $row=json_decode($body,true)["data"]??[];
+            if(!$row){echo "NO_RUN_METADATA\n";exit(0);}
+            echo "ACTOR_STATUS=".($row["status"]??"none")."\n";
+            echo "ACTOR_EXIT=".($row["exitCode"]??"none")."\n";
+            echo "ACTOR_COST_USD=".($row["usageTotalUsd"]??"unknown")."\n";
+            echo "ACTOR_STATUS_MESSAGE_TYPE=".(isset($row["statusMessage"])?(preg_match("/(limit|charge|budget|failed|blocked|no results|empty)/i",$row["statusMessage"])?"possible_issue":"normal"):"none")."\n";
+            $stats=$row["stats"]??[];
+            foreach(["computeUnits","durationMillis","totalChargedAmount"] as $field)if(isset($stats[$field]))echo "RUN_".strtoupper($field)."=".$stats[$field]."\n";
+          '
+          REMOTE
