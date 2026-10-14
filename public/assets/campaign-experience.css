@@ -118,3 +118,18 @@
 /* Containment guards: no horizontal document scrolling, unlike a traditional carousel. */
 .lc-catalog-grid>*,.lc-catalog-shelf,.lc-catalog-hero-content,.lc-campaign-detail-text,.lc-rank-row>*,.lc-podium>*{min-width:0}
 .lc-campaign-detail,.lc-admin-catalog,.explore-content{overflow-wrap:anywhere}
+
+/* Extra-small/mobile containment with readable cards and no page-side scrollbar. */
+html:has(.lc-catalog-shelves),body:has(.lc-catalog-shelves),
+html:has(.lc-leaderboard),body:has(.lc-leaderboard){overflow-x:clip}
+.lc-catalog-grid,.lc-catalog-item,.lc-catalog-item a,.lc-catalog-showcase,.lc-leaderboard{box-sizing:border-box}
+.explore-page .explore-content,.lc-admin-catalog,.lc-campaign-detail{width:100%;min-width:0}
+@media(max-width:620px){
+.explore-page .explore-filters{grid-template-columns:minmax(0,1fr)}
+.explore-page .explore-filters .btn{grid-column:1}
+.explore-page .explore-search,.explore-page .explore-category{min-width:0;width:100%}
+.explore-page .explore-banner{padding:37px 0 28px}
+.explore-page .explore-content{padding-top:30px;padding-bottom:48px}
+.lc-catalog-shelf-heading{align-items:start}
+.lc-catalog-shelf-heading>span{white-space:normal;text-align:end}
+}
