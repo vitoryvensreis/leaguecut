@@ -80,6 +80,16 @@ try{
         throw new RuntimeException('Tabela realtime_events possui estrutura incompatível.');
     }
     echo "MIGRACAO_REALTIME_OK\n";
+    $driveExists=(bool)lc_one("SELECT 1 AS found FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='google_drive_connections'");
+    if(!$driveExists)lc_migration_backup();
+    $driveSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261014_004_google_drive_connections.sql'));
+    $driveSql=trim(preg_replace('/^--[^\n]*\n/', '', $driveSql)??$driveSql);
+    if(!preg_match('/^CREATE TABLE IF NOT EXISTS google_drive_connections\\b/i',$driveSql) ||
+       substr_count($driveSql,';')!==1)throw new RuntimeException('Migração Drive inválida.');
+    $db->exec($driveSql);
+    $driveColumns=$db->query("SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='google_drive_connections'")->fetchAll(PDO::FETCH_COLUMN);
+    if(array_diff(['id','refresh_token_enc','folder_id','connected_by','connected_at'],$driveColumns))throw new RuntimeException('Tabela Drive incompleta.');
+    echo "MIGRACAO_DRIVE_OK\n";
 }catch(Throwable $e){
     fwrite(STDERR,'MIGRACAO_FALHOU: '.$e->getMessage()."\n");
     exit(1);
