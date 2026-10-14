@@ -15,7 +15,8 @@ function lc_integrations_routes(string $method,string $path): bool {
         $count=(int)(lc_one('SELECT COUNT(*) AS n FROM clips WHERE drive_file_id IS NOT NULL')['n']??0);
         $apifyConfig=lc_apify_config();
         $apifyUsage=lc_apify_usage();
-        lc_page('Integrações',function()use($admin,$connected,$clientConfigured,$legacy,$active,$folderPresent,$oauthRedirect,$count,$apifyConfig,$apifyUsage){?>
+        $apifyRuns=lc_all('SELECT attempted_at,status,matched_clips,result_count,max_charge_usd FROM apify_profile_runs ORDER BY id DESC LIMIT 8');
+        lc_page('Integrações',function()use($admin,$connected,$clientConfigured,$legacy,$active,$folderPresent,$oauthRedirect,$count,$apifyConfig,$apifyUsage,$apifyRuns){?>
 <div class="container container-md">
  <?php lc_heading('Configurações do sistema','Integrações','Conecte serviços externos sem salvar tokens ou senhas no banco de configurações públicas.'); ?>
  <div class="panel">
@@ -59,7 +60,23 @@ function lc_integrations_routes(string $method,string $path): bool {
      <div class="metric"><small>Posts por consulta</small><strong><?=(int)$apifyConfig['max_posts']?></strong></div>
      <div class="metric"><small>Intervalo por perfil</small><strong><?=(int)$apifyConfig['min_hours']?>h</strong></div>
    </div>
-   <p class="hint">Para ativar: adicione <code>APIFY_API_TOKEN</code> no arquivo <code>/home/leaguecut/shared/.env</code>. O agendamento verifica a cada seis horas, mas respeita as cotas. A API não fornece métricas em tempo real nem garante todos os posts; números e gastos reais dependem do provedor.</p>
+   <p class="hint">Para ativar: adicione <code>APIFY_API_TOKEN</code> no arquivo privado <code>/home/leaguecut/shared/.env</code>. Após salvar, verifique o token gratuitamente. O agendamento verifica a cada seis horas, mas respeita as cotas. A API não fornece métricas em tempo real nem garante views de todos os posts; números e gastos reais dependem do provedor.</p>
+   <div class="form-actions">
+     <form method="post" action="/admin/integracoes/apify/verificar"><?=lc_csrf()?>
+       <button class="btn btn-ghost" type="submit" <?=$apifyConfig['token']===''?'disabled':''?>><?=lc_icon('circle-check')?> Verificar token (sem cobrança)</button>
+     </form>
+   </div>
+   <?php if($apifyRuns): ?>
+     <h3>Últimas consultas</h3>
+     <div class="table-wrap" tabindex="0" aria-label="Histórico recente das consultas Apify">
+       <table><thead><tr><th>Data (UTC)</th><th>Situação</th><th>Posts retornados</th><th>Clipes atualizados</th><th>Teto reservado</th></tr></thead><tbody>
+       <?php foreach($apifyRuns as $run): ?>
+       <tr><td><?=lc_e($run['attempted_at'])?></td><td><?=lc_e($run['status']==='completed'?'Concluída':($run['status']==='failed'?'Falhou':'Reservada'))?></td>
+       <td><?=(int)$run['result_count']?></td><td><?=(int)$run['matched_clips']?></td>
+       <td>US$ <?=number_format((float)$run['max_charge_usd'],3,',','.')?></td></tr>
+       <?php endforeach;?></tbody></table>
+     </div>
+   <?php else: ?><p class="hint">Ainda não existem consultas registradas. Nenhum custo foi reservado.</p><?php endif;?>
    <a href="https://apify.com/danek/instagram-posts-scraper-ppr" target="_blank" rel="noopener noreferrer" class="btn btn-ghost">Ver Actor e custos <?=lc_icon('external-link')?></a>
  </div>
  <div class="panel"><h2>Fluxo de envio</h2>
@@ -69,6 +86,16 @@ function lc_integrations_routes(string $method,string $path): bool {
  </div>
 </div>
 <?php },'admin');return true;
+    }
+    if($method==='POST'&&$path==='/admin/integracoes/apify/verificar'){
+        try {
+            if(lc_apify_check_connection())lc_flash('Apify autenticada com sucesso. Esta verificação não iniciou Actors e não consumiu o orçamento de consultas.');
+            else lc_flash('Não foi possível autenticar na Apify. Confira o token no .env e as permissões da conta.','error');
+        }catch(Throwable $e){
+            error_log('LeagueCut Apify: consulta de diagnóstico indisponível');
+            lc_flash('Não foi possível contactar a Apify agora. Tente novamente mais tarde.','error');
+        }
+        lc_redirect('/admin/integracoes');
     }
     if($method==='POST'&&$path==='/admin/integracoes/google/conectar'){
         try {
