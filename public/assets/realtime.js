@@ -7,7 +7,7 @@
 
   const liveFields = document.querySelectorAll('[data-live]');
   const badge = document.querySelector('[data-realtime-unread]');
-  const stateLabel = document.querySelector('[data-realtime-connection]');
+  const stateLabels = document.querySelectorAll('[data-realtime-connection]');
   const opener = document.querySelector('#rt-notifications');
   const toast = document.querySelector('[data-realtime-toast]');
   const wsEnabled = script.dataset.rtEnabled === '1';
@@ -35,7 +35,7 @@
   const seen = new Set();
   const notifications = [];
 
-  function setConnection(text) { if (stateLabel) stateLabel.textContent = text; }
+  function setConnection(text) { for (const label of stateLabels) label.textContent = text; }
   function updateBadge() {
     if (!badge) return;
     badge.textContent = unread > 9 ? '9+' : String(unread);

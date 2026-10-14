@@ -68,36 +68,49 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && in_array($active,['admin','dashboard','library','social','finance'],true);
     $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
     $areaTitle=$u && $u['role']==='admin'?'Administração':'Área do clipador';
+    // Load only assets used on this page. Keep the base design system everywhere.
+    $isHome=$active==='home';
+    $isExplore=$active==='explore';
+    $isHomeEditor=$path==='/admin/home';
+    $needsLanding=$isHome||$isExplore;
+    $needsBanner=$isHome||$isHomeEditor;
 ?><!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#101114"><meta name="description" content="LeagueCut — campanhas e recompensas para criadores de conteúdo">
 <title><?=lc_e($title)?> · <?=lc_e($brand)?></title>
-<link rel="stylesheet" href="/assets/app.css?v=2">
-<link rel="stylesheet" href="/assets/v2.css?v=1">
-<link rel="stylesheet" href="/assets/landing.css?v=1">
-<link rel="stylesheet" href="/assets/banner.css?v=1">
-<link rel="stylesheet" href="/assets/workspace.css?v=1">
-<link rel="stylesheet" href="/assets/realtime.css?v=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/assets/app.css?v=6">
+<link rel="stylesheet" href="/assets/v2.css?v=6">
+<?php if($needsLanding): ?><link rel="stylesheet" href="/assets/landing.css?v=6"><?php endif; ?>
+<?php if($needsBanner): ?><link rel="stylesheet" href="/assets/banner.css?v=6"><?php endif; ?>
+<?php if($workspace): ?>
+<link rel="stylesheet" href="/assets/workspace.css?v=6">
+<link rel="stylesheet" href="/assets/realtime.css?v=6">
+<?php endif; ?>
+<link rel="stylesheet" href="/assets/polish.css?v=6">
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
 </head>
 <body class="<?=$workspace?'workspace-page':'public-page'?>">
+<a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
     <a class="brand" href="/" aria-label="<?=lc_e($brand)?>, página inicial">
-      <?php if (lc_valid_https($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
+      <?php if (lc_valid_https($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>" width="175" height="44" decoding="async"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
     </a>
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
-      <a class="<?=$active==='home'?'selected':''?>" href="/"><?=lc_icon("play")?> Início</a>
-      <a class="<?=$active==='explore'?'selected':''?>" href="/explorar"><?=lc_icon("compass")?> Campanhas</a>
+      <a class="<?=$active==='home'?'selected':''?>" <?=$active==='home'?'aria-current="page"':''?> href="/"><?=lc_icon("play")?> Início</a>
+      <a class="<?=$active==='explore'?'selected':''?>" <?=$active==='explore'?'aria-current="page"':''?> href="/explorar"><?=lc_icon("compass")?> Campanhas</a>
       <?php if ($u && $u['status']==='approved'): ?>
-      <a class="<?=$active==='dashboard'?'selected':''?>" href="/dashboard"><?=lc_icon("layout-dashboard")?> Minha área</a>
-      <a class="<?=$active==='library'?'selected':''?>" href="/biblioteca"><?=lc_icon("library")?> Biblioteca</a>
-      <a class="<?=$active==='finance'?'selected':''?>" href="/financeiro"><?=lc_icon("wallet")?> Financeiro</a>
-      <a class="<?=$active==='social'?'selected':''?>" href="/redes"><?=lc_icon("share-2")?> Redes</a>
+      <a class="<?=$active==='dashboard'?'selected':''?>" <?=$active==='dashboard'?'aria-current="page"':''?> href="/dashboard"><?=lc_icon("layout-dashboard")?> Minha área</a>
+      <a class="<?=$active==='library'?'selected':''?>" <?=$active==='library'?'aria-current="page"':''?> href="/biblioteca"><?=lc_icon("library")?> Biblioteca</a>
+      <a class="<?=$active==='finance'?'selected':''?>" <?=$active==='finance'?'aria-current="page"':''?> href="/financeiro"><?=lc_icon("wallet")?> Financeiro</a>
+      <a class="<?=$active==='social'?'selected':''?>" <?=$active==='social'?'aria-current="page"':''?> href="/redes"><?=lc_icon("share-2")?> Redes</a>
       <?php endif; ?>
-      <?php if ($u && $u['role']==='admin'): ?><a class="<?=$active==='admin'?'selected':''?>" href="/admin"><?=lc_icon("shield-check")?> Administração</a><?php endif; ?>
+      <?php if ($u && $u['role']==='admin'): ?><a class="<?=$active==='admin'?'selected':''?>" <?=$active==='admin'?'aria-current="page"':''?> href="/admin"><?=lc_icon("shield-check")?> Administração</a><?php endif; ?>
     </nav><?php else: ?><div class="workspace-breadcrumb"><?=lc_icon("layers")?> <?=lc_e($areaTitle)?> <span class="workspace-breadcrumb-slash">/</span> <?=lc_e($title)?></div><?php endif; ?>
     <div class="header-right">
       <?php if($workspace): ?>
@@ -111,7 +124,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
       <?php if ($u): ?>
       <span class="user-short"><?=lc_e(explode(' ', $u['full_name'])[0])?></span>
       <span class="avatar" title="<?=lc_e($u['full_name'])?>"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></span>
-      <form method="post" action="/sair" class="inline-form"><?=lc_csrf()?><button class="text-button" type="submit"><?=lc_icon("log-out")?> <span>Sair</span></button></form>
+      <form method="post" action="/sair" class="inline-form"><?=lc_csrf()?><button class="text-button" type="submit" aria-label="Sair da conta"><?=lc_icon("log-out")?> <span>Sair</span></button></form>
       <?php else: ?>
       <a class="header-login" href="/entrar">Entrar</a><a class="btn btn-sm" href="/cadastrar">Ser clipador <?=lc_icon("arrow-right")?></a>
       <?php endif; ?>
@@ -128,8 +141,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
   <div class="ws-mobile-menu"><details><summary><?=lc_icon("menu")?> Menu do painel <?=lc_icon("chevron-right")?></summary><nav aria-label="Menu mobile do painel"><?php lc_workspace_nav($u,$path); ?></nav></details></div>
   <div class="workspace-body">
 <?php endif; ?>
-<main>
-  <?php if ($flash): ?><div class="toast <?=$flash['type']==='error'?'toast-error':''?>" role="status"><?=lc_e($flash['message'])?></div><?php endif; ?>
+<main id="conteudo" tabindex="-1">
+  <?php if ($flash): ?><div class="toast <?=$flash['type']==='error'?'toast-error':''?>" role="<?=$flash['type']==='error'?'alert':'status'?>"><?=lc_e($flash['message'])?></div><?php endif; ?>
   <?php $body(); ?>
 </main>
 <?php if($workspace): ?></div></div><?php endif; ?>
@@ -142,7 +155,7 @@ function lc_tile(array $c): void {
     $cover = (string)($c['cover_url'] ?? '');
 ?><a class="campaign-card" href="/campanhas/<?=lc_e($c['slug'])?>">
   <div class="campaign-cover">
-    <?php if(lc_valid_https($cover)):?><img src="<?=lc_e($cover)?>" alt="" loading="lazy"><?php else:?><div class="default-art"><span><?=lc_e(mb_strtoupper(mb_substr($c['title'],0,1)))?></span><i><?=lc_icon("play")?></i></div><?php endif;?>
+    <?php if(lc_valid_https($cover)):?><img src="<?=lc_e($cover)?>" alt="" loading="lazy" decoding="async"><?php else:?><div class="default-art"><span><?=lc_e(mb_strtoupper(mb_substr($c['title'],0,1)))?></span><i><?=lc_icon("play")?></i></div><?php endif;?>
     <div class="cover-overlay"></div><span class="cover-play"><?=lc_icon("play")?></span>
     <span class="cover-tag"><?=lc_e($c['status']==='active'?'EM ALTA':'CAMPANHA')?></span>
   </div>

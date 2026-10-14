@@ -12,7 +12,7 @@ function lc_public_routes(string $method,string $path): bool {
  <?php if($banner['media_type']==='image'&&$banner['media_url']):?>
   <div class="lp-hero-media" aria-hidden="true"><img src="<?=lc_e($banner['media_url'])?>" alt="" fetchpriority="high"></div>
  <?php elseif($banner['media_type']==='video'&&$banner['media_url']):?>
-  <div class="lp-hero-media" aria-hidden="true"><video autoplay muted playsinline loop preload="metadata" src="<?=lc_e($banner['media_url'])?>"></video></div>
+  <div class="lp-hero-media" aria-hidden="true"><video muted playsinline loop preload="none" src="<?=lc_e($banner['media_url'])?>" aria-hidden="true"></video></div>
  <?php endif;?>
  <div class="lp-hero-shade" aria-hidden="true"></div>
  <div class="lp-grid" aria-hidden="true"></div>
