@@ -1,0 +1,56 @@
+name: LeagueCut install 02h Fortaleza cron (user-only)
+on:
+  push:
+    branches: [ops/leaguecut-views-cron]
+    paths: ['.github/workflows/cron-views-install.yml']
+permissions: {contents: read}
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Prepare SSH
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Install safe idempotent cron for leaguecut only
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o BatchMode=yes \
+            -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = "leaguecut" ]
+          [ "$(date +%z)" = "+0000" ]
+          [ "$(systemctl is-active cron)" = "active" ]
+          [ -f /home/leaguecut/current/bin/sync-apify-views.php ]
+          [ -x /usr/bin/php ]
+          umask 077
+          mkdir -p /home/leaguecut/shared/logs
+          touch /home/leaguecut/shared/logs/views-daily.log
+          chmod 600 /home/leaguecut/shared/logs/views-daily.log
+          old="$(mktemp)"
+          clean="$(mktemp)"
+          trap 'rm -f "$old" "$clean"' EXIT
+          crontab -l > "$old" 2>/dev/null || true
+          grep -v '# LEAGUECUT_VIEWS_DAILY_02FORTALEZA$' "$old" > "$clean" || true
+          {
+             cat "$clean"
+             printf '%s\n' '0 5 * * * cd /home/leaguecut/current && /usr/bin/php bin/sync-apify-views.php >> /home/leaguecut/shared/logs/views-daily.log 2>&1 # LEAGUECUT_VIEWS_DAILY_02FORTALEZA'
+          } | crontab -
+          count="$(crontab -l | grep -c '# LEAGUECUT_VIEWS_DAILY_02FORTALEZA$' || true)"
+          [ "$count" = "1" ]
+          echo 'CRON_02_FORTALEZA_INSTALLED=YES'
+          echo 'CRON_UTC=05:00 DAILY'
+          echo 'CRON_SCOPE=leaguecut user only; pre-existing entries preserved'
+          REMOTE
