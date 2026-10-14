@@ -295,10 +295,17 @@ def main():
       "starts_at":"","ends_at":""
     },"/admin/campanhas")
     assert "Campanha Teste Real" in created
+    assert "lc-catalog-showcase" in created and "lc-catalog-shelves" in created, "Admin Netflix catalog"
+    assert 'href="/admin/campanhas/' in created and 'Editar campanha' in created
+    assert "Criar nova campanha" in created, "Admin creation form still usable"
     home=get(creator,"/")
     assert "Campanha Teste Real" not in home, "No campaign cards on marketing home"
     catalog=get(creator,"/explorar")
     assert "Campanha Teste Real" in catalog, "Campaign in public catalog"
+    assert 'lc-catalog-showcase' in catalog and 'lc-catalog-shelf' in catalog, "Cinema campaign catalog"
+    assert 'campaign-experience.css' in catalog
+    assert 'workspace-motion.css' not in catalog, "Landing/public pages must not receive panel animations"
+    assert 'workspace-motion.css' not in get(creator,"/"), "Marketing LP has no entry animation"
     assert "Campanha Teste Real" in get(creator,"/explorar?q=Real"), "Search works"
     assert "Campanha Teste Real" in get(creator,"/explorar?categoria=Entrevistas"), "Category filter works"
     assert "Nenhuma campanha encontrada" in get(creator,"/explorar?q=termo-inexistente-123"), "Search no results"
@@ -308,6 +315,9 @@ def main():
     account_page=get(creator,"/redes")
     assert "criador.validado" in account_page
     campaign=get(creator,"/campanhas/"+slug.group(1))
+    assert 'Ranking da campanha' in campaign and 'Arena de criadores' in campaign
+    assert "primeiro destaque" in campaign, "Empty ranking"
+    assert "100 por clipe aprovado" in campaign, "XP formula must be transparent"
     campaign_id=re.search(r'name="campaign_id" value="(\d+)"',campaign).group(1)
     account_id=re.search(r'<option value="(\d+)">Instagram',campaign).group(1)
     # The original file is mandatory, even if someone bypasses HTML validation.
@@ -441,6 +451,12 @@ def main():
     assert "Clipe de teste 04" not in get(admin,"/admin/clipes?status=pending"), "Pending filter"
     finance=get(creator,"/financeiro")
     assert "R$ 75,00" in finance, "Five clips (R$75); public views do not auto-credit"
+    rank_page=get(creator,"/campanhas/"+slug.group(1))
+    assert "Ranking da campanha" in rank_page and "lc-podium" in rank_page
+    assert "Criador T." in rank_page and "500 XP" in rank_page, "Five approved clips yield 500 XP"
+    assert "5 clipes aprovados" in rank_page
+    guest_campaign=get(make_client(),"/campanhas/"+slug.group(1))
+    assert "Clipador #" in guest_campaign and "Criador T." not in guest_campaign, "Anonymous rankings mask names"
     # Once a weekly payment is credited, review/delete must require an audited
     # financial reversal rather than silently corrupting the user's balance.
     refused=submit(admin,first_url,{"decision":"rejected"},"/admin/clipes")
