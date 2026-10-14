@@ -97,7 +97,7 @@ function lc_realtime_route(string $method,string $path): bool {
     $raw=(string)($_GET['since']??'0');
     $since=preg_match('/^[0-9]{1,19}$/D',$raw)?max(0,min(PHP_INT_MAX,(int)$raw)):0;
     $events=lc_realtime_events($user,$since);
-    $max=(int)(lc_one('SELECT COALESCE(MAX(id),0) AS cursor FROM realtime_events')['cursor']??0);
+    $max=(int)(lc_one('SELECT COALESCE(MAX(id),0) AS last_id FROM realtime_events')['last_id']??0);
     echo json_encode(['cursor'=>$max,'state'=>lc_realtime_state($user),'events'=>$events],
        JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);
     return true;
