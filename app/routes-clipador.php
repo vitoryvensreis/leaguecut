@@ -54,7 +54,7 @@ function lc_clipper_routes(string $method,string $path): bool {
   <div class="ws-section-title"><h2>Campanhas em destaque</h2><a href="/explorar">Ver catálogo <?=lc_icon('arrow-right')?></a></div>
   <?php if($campaigns):?><div class="catalog"><?php foreach($campaigns as $c)lc_tile($c);?></div>
   <?php else:?><div class="ws-empty-note">Ainda não há campanhas ativas. Você pode preparar seus perfis e acompanhar as novidades.</div><?php endif;?>
-  <p class="ws-trace"><?=lc_icon('clock-3')?> Visualizações e status são atualizados após conferência. Dados em tempo real serão incorporados no Bloco 5.</p>
+  <p class="ws-trace"><?=lc_icon('clock-3')?> Conexão: <strong data-realtime-connection>Conectando</strong> · Visualizações e créditos dependem de conferência.</p>
 </div>
 <?php },'dashboard');return true;
     }
