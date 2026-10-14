@@ -42,10 +42,19 @@ function lc_apify_post_views(array $row,string $username,string $shortcode): ?in
 }
 function lc_apify_observe(int $clipId,int $views): bool {
     if($clipId<1||$views<0||$views>2000000000)throw new InvalidArgumentException('Métricas inválidas.');
-    $existing=lc_one('SELECT views FROM clip_view_samples WHERE clip_id=? ORDER BY id DESC LIMIT 1',[$clipId]);
-    if($existing && (int)$existing['views'] >= $views)return false;
-    lc_query('INSERT INTO clip_view_samples(clip_id,views,source) VALUES(?,?,"apify")',[$clipId,$views]);
-    return true;
+    $date=(new DateTimeImmutable('now',new DateTimeZone('America/Fortaleza')))->format('Y-m-d');
+    $observed=gmdate('Y-m-d H:i:s');
+    $old=lc_one('SELECT views FROM clip_daily_views WHERE clip_id=? AND snapshot_date=?',[$clipId,$date]);
+    lc_query('INSERT INTO clip_daily_views(clip_id,snapshot_date,views,source,observed_at)
+       VALUES(?,? ,?,"apify",?) ON DUPLICATE KEY UPDATE views=VALUES(views),observed_at=VALUES(observed_at)',
+       [$clipId,$date,$views,$observed]);
+    // Preserve event history whenever the observed count changes, including
+    // an unexpected decrease (the admin will decide which number to confirm).
+    $latest=lc_one('SELECT views FROM clip_view_samples WHERE clip_id=? ORDER BY id DESC LIMIT 1',[$clipId]);
+    if(!$latest||(int)$latest['views']!==$views)
+        lc_query('INSERT INTO clip_view_samples(clip_id,views,source,observed_at)
+           VALUES(?,?,"apify",?)',[$clipId,$views,$observed]);
+    return !$old||(int)$old['views']!==$views;
 }
 /**
  * Free validation of the configured Apify API token. Does not launch Actors,
@@ -104,44 +113,56 @@ function lc_apify_parse_dataset_response(int $status,string|bool $body): array {
  * Details may cost more than basic data, so every request has a hard cost cap.
  */
 function lc_apify_official_input(string $postUrl): array {
-    $shortcode=lc_apify_shortcode($postUrl);
-    if(!$shortcode)throw new InvalidArgumentException('Link de publicação Instagram inválido.');
-    $path=(string)parse_url($postUrl,PHP_URL_PATH);
-    $type=preg_match('~^/(reel|reels)/~',$path)?'reel':'p';
+    return lc_apify_official_batch_input([$postUrl]);
+}
+function lc_apify_official_batch_input(array $urls): array {
+    if(!$urls || count($urls)>50)throw new InvalidArgumentException('O lote deve conter entre 1 e 50 links.');
+    $normalized=[];
+    foreach($urls as $url){
+        if(!is_string($url))throw new InvalidArgumentException('Link de publicação inválido.');
+        $shortcode=lc_apify_shortcode($url);
+        if(!$shortcode)throw new InvalidArgumentException('Link do Instagram inválido.');
+        $path=(string)parse_url($url,PHP_URL_PATH);
+        $type=preg_match('~^/(reel|reels)/~',$path)?'reel':'p';
+        $normalized[$shortcode]='https://www.instagram.com/'.$type.'/'.$shortcode.'/';
+    }
     return [
-      'username'=>['https://www.instagram.com/'.$type.'/'.$shortcode.'/'],
-      'resultsLimit'=>1,
-      'dataDetailLevel'=>'detailedData'
+       'username'=>array_values($normalized),
+       'resultsLimit'=>count($normalized),
+       'dataDetailLevel'=>'detailedData'
     ];
 }
 function lc_apify_fetch(string $postUrl,array $config): array {
-    $input=lc_apify_official_input($postUrl);
+    return lc_apify_fetch_batch([$postUrl],$config);
+}
+function lc_apify_fetch_batch(array $urls,array $config): array {
+    $input=lc_apify_official_batch_input($urls);
     if(($config['actor']??'')!=='apify~instagram-post-scraper')
-       throw new RuntimeException('Actor não autorizado para consulta direta.');
+       throw new RuntimeException('Actor não autorizado.');
+    $total=count($input['username']);
     $url='https://api.apify.com/v2/acts/'.$config['actor'].'/run-sync-get-dataset-items?'.
         http_build_query([
-          'timeout'=>110,
-          'maxItems'=>1,
-          'maxTotalChargeUsd'=>number_format((float)$config['max_run_usd'],3,'.','')
+            'timeout'=>110,
+            'maxItems'=>$total,
+            'maxTotalChargeUsd'=>number_format((float)$config['max_run_usd'],3,'.','')
         ]);
     $handle=curl_init($url);
-    if(!$handle)throw new RuntimeException('Não foi possível iniciar a conexão Apify.');
+    if(!$handle)throw new RuntimeException('Não foi possível abrir conexão Apify.');
     curl_setopt_array($handle,[
-      CURLOPT_POST=>true,
-      CURLOPT_POSTFIELDS=>json_encode($input,JSON_THROW_ON_ERROR),
-      CURLOPT_HTTPHEADER=>[
-         'Authorization: Bearer '.$config['token'],
-         'Content-Type: application/json','Accept: application/json'
-      ],
-      CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>12,CURLOPT_TIMEOUT=>135,
-      CURLOPT_FOLLOWLOCATION=>false,CURLOPT_MAXREDIRS=>0
+        CURLOPT_POST=>true,
+        CURLOPT_POSTFIELDS=>json_encode($input,JSON_THROW_ON_ERROR),
+        CURLOPT_HTTPHEADER=>[
+           'Authorization: Bearer '.$config['token'],
+           'Content-Type: application/json','Accept: application/json'
+        ],
+        CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>12,CURLOPT_TIMEOUT=>135,
+        CURLOPT_FOLLOWLOCATION=>false,CURLOPT_MAXREDIRS=>0
     ]);
     $body=curl_exec($handle);
     $status=(int)curl_getinfo($handle,CURLINFO_HTTP_CODE);
     curl_close($handle);
     return lc_apify_parse_dataset_response($status,$body);
 }
-/** Accept only exact post shortcode + claimed handle before recording a sample. */
 function lc_apify_import_clip(array $clip,array $rows): int {
     $shortcode=lc_apify_shortcode((string)$clip['published_url']);
     $username=strtolower(ltrim((string)$clip['username'],'@'));
@@ -153,73 +174,96 @@ function lc_apify_import_clip(array $clip,array $rows): int {
     }
     return 0;
 }
-/** Historical helper used by tests/legacy; new flow targets one clip URL. */
 function lc_apify_import_profile(string $username,array $rows): int {
     $clips=lc_all("SELECT c.id,c.published_url,s.username FROM clips c
-      JOIN social_accounts s ON s.id=c.social_account_id JOIN campaigns p ON p.id=c.campaign_id
+      JOIN social_accounts s ON s.id=c.social_account_id
       WHERE s.network='instagram' AND LOWER(s.username)=?
-      AND c.status='approved' AND c.drive_file_id IS NOT NULL
-      AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY)
-      AND p.status='active'",[strtolower($username)]);
-    $count=0;
-    foreach($clips as $clip)$count+=lc_apify_import_clip($clip,$rows);
+      AND c.status='approved' AND c.drive_file_id IS NOT NULL",[strtolower($username)]);
+    $count=0;foreach($clips as $clip)$count+=lc_apify_import_clip($clip,$rows);
     return $count;
 }
-/**
- * Only reviewed clips with a mandatory original may spend Apify budget.
- * Pending/rejected and legacy link-only clips are excluded by database query.
- */
-function lc_apify_eligible_clips(int $limit=150): array {
-    $limit=max(1,min(150,$limit));
-    return lc_all("SELECT c.id,c.published_url,s.username,c.submitted_at FROM clips c
-       JOIN social_accounts s ON s.id=c.social_account_id
-       JOIN campaigns p ON p.id=c.campaign_id
-       WHERE s.network='instagram' AND p.status='active'
-         AND c.status='approved' AND c.drive_file_id IS NOT NULL
-         AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
-       ORDER BY c.submitted_at DESC LIMIT ".$limit);
+/** All real approved Instagram clipes, across campaigns, regardless of age. */
+function lc_apify_eligible_clips(int $limit=5000): array {
+    $limit=max(1,min(10000,$limit));
+    return lc_all("SELECT c.id,c.published_url,s.username,c.submitted_at
+        FROM clips c JOIN social_accounts s ON s.id=c.social_account_id
+        WHERE s.network='instagram' AND c.status='approved'
+          AND c.drive_file_id IS NOT NULL
+        ORDER BY c.id DESC LIMIT ".$limit);
 }
 /**
- * Cost-bounded, idempotent Instagram link sync.
- * Observations DO NOT modify clips.verified_views or credit anyone.
+ * Daily batch scheduler: a successful response with real author+post+view
+ * produces one per-day MySQL snapshot. No payment is credited automatically.
  */
 function lc_apify_sync(): void {
     $config=lc_apify_config();
-    if($config['token']===''){echo "APIFY_DISABLED: configure private APIFY_API_TOKEN\n";return;}
+    if($config['token']===''){echo "APIFY_DISABLED: no private token\n";return;}
     $db=lc_db();
-    $lock=$db->query("SELECT GET_LOCK('leaguecut_apify_metrics_v1',0) AS acquired")->fetch(PDO::FETCH_ASSOC);
-    if((int)($lock['acquired']??0)!==1){echo "APIFY_ALREADY_RUNNING\n";return;}
+    $locked=$db->query("SELECT GET_LOCK('leaguecut_apify_metrics_v1',0) AS acquired")->fetch(PDO::FETCH_ASSOC);
+    if((int)($locked['acquired']??0)!==1){echo "APIFY_ALREADY_RUNNING\n";return;}
     try{
         $clips=lc_apify_eligible_clips();
+        $eligible=[];
+        $skip=0;
+        foreach($clips as $clip){
+            $sc=lc_apify_shortcode((string)$clip['published_url']);
+            if(!$sc){$skip++;continue;}
+            // Multiple users may submit the same public post. One charge per
+            // shortcode, matched separately to each registered user handle.
+            $eligible[$sc][]=$clip;
+        }
         $usage=lc_apify_usage();
         $runs=$usage['runs'];$reserved=$usage['max_reserved_usd'];
-        $seen=[];
-        foreach($clips as $clip){
-            if($runs >= $config['daily_runs'] ||
+        $ready=[];
+        foreach($eligible as $sc=>$group){
+            $recent=lc_one('SELECT shortcode FROM apify_post_checks
+              WHERE shortcode=? AND last_checked_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? HOUR)',[$sc,$config['min_hours']]);
+            if(!$recent)$ready[$sc]=$group;
+        }
+        $batchSize=max(1,min(20,$config['max_posts']));
+        // Process all eligible links in batches while daily budget permits.
+        $attempted=0;$updated=0;
+        foreach(array_chunk($ready,$batchSize,true) as $group){
+            if($runs>=$config['daily_runs'] ||
                $reserved+$config['max_run_usd']>$config['daily_usd']+0.000001)break;
-            $code=lc_apify_shortcode((string)$clip['published_url']);
-            if(!$code || isset($seen[$code]))continue;
-            $seen[$code]=true;
-            $key='post:'.$code; // index already enforces dedupe window per post.
-            $recent=lc_one('SELECT id FROM apify_profile_runs WHERE username=? AND attempted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? HOUR) ORDER BY id DESC LIMIT 1',[$key,$config['min_hours']]);
-            if($recent)continue;
-            lc_query('INSERT INTO apify_profile_runs(username,max_charge_usd,status) VALUES(?,?,"reserved")',[$key,$config['max_run_usd']]);
+            $input=[];$scCodes=[];
+            foreach($group as $sc=>$clipsForPost){
+                $input[]=(string)$clipsForPost[0]['published_url'];
+                $scCodes[]=$sc;
+            }
+            if(!$input)continue;
+            $key='batch:'.bin2hex(random_bytes(10));
+            lc_query('INSERT INTO apify_profile_runs(username,max_charge_usd,status)
+                       VALUES(?,?,"reserved")',[$key,$config['max_run_usd']]);
             $runId=(int)$db->lastInsertId();
+            $now=gmdate('Y-m-d H:i:s');
+            foreach($scCodes as $sc){
+                lc_query('INSERT INTO apify_post_checks(shortcode,last_checked_at,last_run_id)
+                    VALUES(?,?,?) ON DUPLICATE KEY UPDATE
+                    last_checked_at=VALUES(last_checked_at),last_run_id=VALUES(last_run_id)',
+                    [$sc,$now,$runId]);
+            }
             $runs++;$reserved+=$config['max_run_usd'];
+            $attempted+=count($input);
             try{
-                $rows=lc_apify_fetch((string)$clip['published_url'],$config);
-                $updated=lc_apify_import_clip($clip,$rows);
-                lc_query('UPDATE apify_profile_runs SET status="completed",matched_clips=?,result_count=? WHERE id=?',
-                  [$updated,count($rows),$runId]);
-                echo "APIFY_LINK_RESULT items=".count($rows)." updated=".$updated."\n";
+                $rows=lc_apify_fetch_batch($input,$config);
+                $result=0;
+                foreach($group as $clipsForPost){
+                    foreach($clipsForPost as $clip)$result+=lc_apify_import_clip($clip,$rows);
+                }
+                $updated+=$result;
+                lc_query('UPDATE apify_profile_runs SET status="completed",matched_clips=?,result_count=?
+                    WHERE id=?',[$result,count($rows),$runId]);
+                echo "APIFY_BATCH posts=".count($input)." returned=".count($rows)." snapshots=".$result."\n";
             }catch(Throwable $e){
-                // Strip details; URLs, API credentials and response bodies are private.
-                $message=$e->getMessage();
-                $category=preg_match('/HTTP ([0-9]+)/',$message,$m)?'HTTP '.$m[1]:'provider_error';
+                $error=$e->getMessage();
+                $category=preg_match('/HTTP ([0-9]+)/',$error,$m)?'HTTP '.$m[1]:'provider_error';
                 lc_query('UPDATE apify_profile_runs SET status="failed",error_message=? WHERE id=?',[$category,$runId]);
-                echo "APIFY_LINK_FAILED category=".$category."\n";
+                echo "APIFY_BATCH_FAILED category=".$category."\n";
             }
         }
-        echo "APIFY_DAILY_RESERVED_USD=".number_format($reserved,3,'.','')." runs=".$runs."\n";
+        echo "APIFY_DAILY_RESULT eligible=".count($eligible)." attempted=".$attempted.
+             " snapshots=".$updated." pending=".max(0,count($ready)-$attempted).
+             " budget_reserved_usd=".number_format($reserved,3,'.','')."\n";
     }finally{$db->query("SELECT RELEASE_LOCK('leaguecut_apify_metrics_v1')");}
 }
