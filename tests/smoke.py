@@ -275,7 +275,7 @@ def main():
     clips_page=get(creator,"/biblioteca")
     assert "Clipe de teste 04" in clips_page
     assert 'class="clip-preview-trigger"' in clips_page or 'clip-preview-trigger' in clips_page
-    assert "Armazenado" in clips_page
+    assert "Assistir" in clips_page
     assert 'src="/assets/clip-preview.js?v=8"' in clips_page
     assert 'data-preview-url="/clipes/' in clips_page
     assert "obrigatório" in get(creator,"/campanhas/"+slug.group(1))
