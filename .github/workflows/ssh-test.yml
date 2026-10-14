@@ -1,0 +1,48 @@
+name: Teste SSH LeagueCut
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/ssh-test.yml
+
+permissions:
+  contents: read
+
+jobs:
+  testar-ssh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Preparar autenticação SSH
+        shell: bash
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" > /dev/null
+
+      - name: Testar SSH sem modificar o servidor
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/id_ed25519" \
+            -p "$SSH_PORT" \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 \
+            "$SSH_USER@$SSH_HOST" \
+            'whoami && pwd && echo "CONEXAO SSH OK"'
