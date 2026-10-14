@@ -62,6 +62,7 @@ function lc_admin_routes(string $method,string $path): bool {
 <a class="pill" href="/admin/clipadores"><?=lc_icon('users-round')?> Aprovar clipadores <?=lc_icon('arrow-right')?></a>
 <a class="pill" href="/admin/administradores"><?=lc_icon('shield-check')?> Administradores <?=lc_icon('arrow-right')?></a>
 <a class="pill" href="/admin/campanhas"><?=lc_icon('clapperboard')?> Campanhas <?=lc_icon('arrow-right')?></a>
+<a class="pill" href="/admin/home"><?=lc_icon('layers')?> Banner da Home <?=lc_icon('arrow-right')?></a>
 <a class="pill" href="/admin/clipes"><?=lc_icon('chart-column')?> Conferir clipes e views <?=lc_icon('arrow-right')?></a>
 <a class="pill" href="/admin/financeiro"><?=lc_icon('wallet')?> Solicitações de saque <?=lc_icon('arrow-right')?></a>
 <a class="pill" href="/admin/bonus-mensal"><?=lc_icon('trophy')?> Fechamento mensal <?=lc_icon('arrow-right')?></a>
