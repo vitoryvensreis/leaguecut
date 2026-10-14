@@ -52,7 +52,7 @@ function lc_campaign_leaderboard(int $campaignId,?array $viewer): void {
       <h2 id="lc-leaderboard-title">Ranking da campanha</h2>
       <p>Dispute posições, suba de nível e acompanhe o desempenho dos vídeos aprovados.</p>
     </div>
-    <span class="lc-leaderboard-live"><?=lc_icon('chart-no-axes-column-increasing')?> Atualização diária</span>
+    <span class="lc-leaderboard-live"><?=lc_icon('chart-column')?> Atualização diária</span>
   </div>
   <div class="lc-rank-help">O placar usa <strong>views públicas observadas</strong> em cada clipe aprovado. XP é uma pontuação fictícia de gamificação: 100 por clipe aprovado + 1 a cada 100 views. Não representa ganhos, views auditadas nem define automaticamente o bônus de líder mensal.</div>
   <?php if(!$ranking):?>
@@ -120,7 +120,7 @@ function lc_campaign_catalog(array $campaigns,bool $admin=false): void {
     </div>
     <div class="lc-catalog-hero-buttons">
       <a class="btn" href="/campanhas/<?=lc_e($hero['slug'])?>"><?=lc_icon('play')?> Explorar e ver ranking</a>
-      <?php if($admin):?><a class="btn btn-ghost" href="/admin/campanhas/<?=(int)$hero['id']?>/editar"><?=lc_icon('pencil')?> Editar</a><?php endif;?>
+      <?php if($admin):?><a class="btn btn-ghost" href="/admin/campanhas/<?=(int)$hero['id']?>/editar"><?=lc_icon('settings-2')?> Editar</a><?php endif;?>
     </div>
   </div>
 </section>
@@ -133,7 +133,7 @@ function lc_campaign_catalog(array $campaigns,bool $admin=false): void {
     <?php foreach($items as $campaign):?>
     <article class="lc-catalog-item">
       <?php lc_tile($campaign); ?>
-      <?php if($admin):?><a href="/admin/campanhas/<?=(int)$campaign['id']?>/editar" class="lc-catalog-manage"><?=lc_icon('pencil')?> Editar campanha</a><?php endif;?>
+      <?php if($admin):?><a href="/admin/campanhas/<?=(int)$campaign['id']?>/editar" class="lc-catalog-manage"><?=lc_icon('settings-2')?> Editar campanha</a><?php endif;?>
     </article>
     <?php endforeach;?>
   </div>
