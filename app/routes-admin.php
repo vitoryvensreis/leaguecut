@@ -61,7 +61,7 @@ function lc_admin_routes(string $method,string $path): bool {
         lc_page('Administração',function()use($admin,$pending,$total,$campaigns,$clips,$withdrawals,$recent){?>
 <div class="container ws-dashboard">
   <section class="ws-hero" aria-labelledby="admin-overview-title">
-    <div><span class="eyebrow">Central de operações</span><h1 id="admin-overview-title">Tudo sob controle.</h1>
+    <div><span class="eyebrow">Central de operações · Painel administrativo</span><h1 id="admin-overview-title">Tudo sob controle.</h1>
       <p>Olá, <?=lc_e(explode(' ',$admin['full_name'])[0])?>. Acompanhe a operação da plataforma, o que precisa da sua atenção e as próximas ações.</p>
     </div>
     <div class="ws-hero-actions"><a href="/admin/clipadores?status=pending" class="btn">Ver aprovações <?=lc_icon('arrow-right')?></a><a href="/admin/campanhas" class="btn btn-ghost">Gerenciar campanhas</a></div>
