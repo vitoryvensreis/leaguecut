@@ -215,9 +215,13 @@ function lc_apify_sync(): void {
         $usage=lc_apify_usage();
         $runs=$usage['runs'];$reserved=$usage['max_reserved_usd'];
         $ready=[];
+        // Calendar-day idempotency in Fortaleza: avoids skipping the next day
+        // when GitHub queues one execution a few minutes later than another.
+        $midnight=(new DateTimeImmutable('today',new DateTimeZone('America/Fortaleza')))
+           ->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
         foreach($eligible as $sc=>$group){
             $recent=lc_one('SELECT shortcode FROM apify_post_checks
-              WHERE shortcode=? AND last_checked_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? HOUR)',[$sc,$config['min_hours']]);
+              WHERE shortcode=? AND last_checked_at>=?',[$sc,$midnight]);
             if(!$recent)$ready[$sc]=$group;
         }
         $batchSize=max(1,min(20,$config['max_posts']));
