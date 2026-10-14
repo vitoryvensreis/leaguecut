@@ -5,16 +5,23 @@ function lc_public_routes(string $method,string $path): bool {
 
     // Public marketing landing. Campaigns are deliberately NOT queried here.
     if ($method==='GET' && $path==='/') {
-        lc_page('Crie, publique e conquiste',function(){ ?>
+        $banner=lc_home_banner();
+        lc_page('Crie, publique e conquiste',function()use($banner){ ?>
 <div class="lp">
-<section class="lp-hero" aria-labelledby="lp-title">
+<section class="lp-hero <?=lc_e($banner['text_alignment']==='center'?'lp-centered':'')?> <?=lc_e($banner['media_type']!=='default'&&$banner['media_url']?'lp-has-media':'')?>" aria-labelledby="lp-title" style="--home-overlay:<?=max(0,min(85,(int)$banner['overlay_opacity']))/100?>">
+ <?php if($banner['media_type']==='image'&&$banner['media_url']):?>
+  <div class="lp-hero-media" aria-hidden="true"><img src="<?=lc_e($banner['media_url'])?>" alt="" fetchpriority="high"></div>
+ <?php elseif($banner['media_type']==='video'&&$banner['media_url']):?>
+  <div class="lp-hero-media" aria-hidden="true"><video autoplay muted playsinline loop preload="metadata" src="<?=lc_e($banner['media_url'])?>"></video></div>
+ <?php endif;?>
+ <div class="lp-hero-shade" aria-hidden="true"></div>
  <div class="lp-grid" aria-hidden="true"></div>
  <div class="lp-container lp-hero-layout">
   <div class="lp-hero-content">
-   <span class="lp-eyebrow"><?=lc_icon('sparkles')?> Criadores no centro de tudo</span>
-   <h1 id="lp-title">Seu talento.<br><span>Mais alcance.</span><br>Novas conquistas.</h1>
-   <p>O espaço de quem transforma vídeos em oportunidades. Participe de campanhas, publique seus conteúdos e acompanhe recompensas verificadas conforme as regras.</p>
-   <div class="lp-actions"><a class="btn lp-primary" href="/cadastrar">Quero ser clipador <?=lc_icon('arrow-right')?></a><a class="btn btn-ghost" href="/explorar">Conhecer campanhas <?=lc_icon('compass')?></a></div>
+   <span class="lp-eyebrow"><?=lc_icon('sparkles')?> <?=lc_e($banner['eyebrow'])?></span>
+   <h1 id="lp-title"><?=lc_e($banner['title_top'])?><br><span><?=lc_e($banner['title_accent'])?></span><br><?=lc_e($banner['title_bottom'])?></h1>
+   <p><?=lc_e($banner['subtitle'])?></p>
+   <div class="lp-actions"><a class="btn lp-primary" href="<?=lc_e($banner['cta_primary_url'])?>"><?=lc_e($banner['cta_primary_text'])?> <?=lc_icon('arrow-right')?></a><a class="btn btn-ghost" href="<?=lc_e($banner['cta_secondary_url'])?>"><?=lc_e($banner['cta_secondary_text'])?> <?=lc_icon('compass')?></a></div>
    <div class="lp-trust"><span><?=lc_icon('shield-check')?> Aprovação de perfis</span><span><?=lc_icon('chart-column')?> Metas transparentes</span><span><?=lc_icon('wallet')?> Ganhos acompanhados</span></div>
   </div>
   <div class="lp-hero-art" aria-hidden="true">
@@ -67,6 +74,7 @@ function lc_public_routes(string $method,string $path): bool {
 </div></section>
 <section class="lp-closer"><div class="lp-container"><div class="lp-closer-box"><span class="eyebrow">Você no próximo nível</span><h2>Tem uma boa ideia de vídeo?<br><span>Faça acontecer.</span></h2><p>Entre para o LeagueCut e descubra oportunidades para criar.</p><div class="lp-actions"><a class="btn lp-primary" href="/cadastrar">Quero participar <?=lc_icon('arrow-right')?></a><a class="btn btn-ghost" href="/entrar">Já tenho conta</a></div></div></div></section>
 </div>
+<script src="/assets/home-hero.js" defer></script>
 <?php },'home');return true;
     }
 

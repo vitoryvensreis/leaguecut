@@ -24,6 +24,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/app.css?v=2">
 <link rel="stylesheet" href="/assets/v2.css?v=1">
 <link rel="stylesheet" href="/assets/landing.css?v=1">
+<link rel="stylesheet" href="/assets/banner.css?v=1">
 <style>:root{--accent:<?=$primary?>}</style>
 </head>
 <body>

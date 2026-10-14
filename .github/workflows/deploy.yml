@@ -96,7 +96,8 @@ jobs:
           ln -sfn "$BASE/shared/.env" "$RELEASE/.env"
           composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress
           find app public bin -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l >/dev/null
-          php -r 'require "app/core.php"; lc_db()->query("SELECT COUNT(*) FROM users"); echo "DB OK\n";'
+          php bin/migrate.php
+          php -r 'require "app/core.php"; lc_db()->query("SELECT COUNT(*) FROM users"); lc_db()->query("SELECT COUNT(*) FROM homepage_banners"); echo "DB OK\n";'
 
           PREV="$(readlink -f "$BASE/current" || true)"
           if [ "$PREV" = "$RELEASE" ]; then
