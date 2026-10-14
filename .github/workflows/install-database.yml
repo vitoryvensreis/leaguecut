@@ -1,0 +1,116 @@
+name: Instalar banco LeagueCut (primeira configuracao)
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/install-database.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: leaguecut-initial-database
+  cancel-in-progress: false
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Preparar SSH seguro
+        shell: bash
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+          ssh-keygen -y -f "$HOME/.ssh/id_ed25519" > /dev/null
+      - name: Importar schema no banco isolado, somente se estiver vazio
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/id_ed25519" -p "$SSH_PORT" \
+            -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o ConnectTimeout=15 "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = 'leaguecut' ] || { echo 'ERROR: conta SSH inesperada'; exit 1; }
+          RELEASE=/home/leaguecut/releases/80269db66f617c896a5fd084aa873abc37f1ed28
+          SECRETS=/home/leaguecut/shared/.env
+          [ -f "$RELEASE/database/schema.sql" ] || { echo 'ERROR: schema nao encontrado'; exit 1; }
+          [ -r "$SECRETS" ] || { echo 'ERROR: .env nao existe ou nao e legivel pelo usuario leaguecut'; exit 1; }
+          cd "$RELEASE"
+          php <<'PHP'
+          <?php
+          declare(strict_types=1);
+          ini_set('display_errors','0');
+          require 'app/core.php';
+          $expected=['users','campaigns','social_accounts','clips','ledger_entries',
+                     'withdrawals','notification_outbox','login_attempts','platform_settings'];
+          $file='/home/leaguecut/shared/.env';
+          foreach (file($file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $line) {
+              $line=trim($line);
+              if ($line==='' || str_starts_with($line,'#') || !str_contains($line,'=')) continue;
+              [$key,$value]=explode('=',$line,2);
+              $key=trim($key);
+              if (!preg_match('/^[A-Z][A-Z0-9_]*$/',$key)) continue;
+              $value=trim($value);
+              if ((str_starts_with($value,'"') && str_ends_with($value,'"')) ||
+                  (str_starts_with($value,"'") && str_ends_with($value,"'"))) $value=substr($value,1,-1);
+              putenv($key.'='.$value);
+          }
+          try {
+              if (lc_env('DB_NAME') !== 'leaguecut') throw new RuntimeException('DB_NAME nao esta configurado como leaguecut');
+              if (lc_env('DB_USER') === '' || lc_env('DB_PASSWORD') === '') throw new RuntimeException('DB_USER/DB_PASSWORD ausentes no .env');
+              $db=lc_db();
+              $name=$db->query('SELECT DATABASE()')->fetchColumn();
+              if ($name!=='leaguecut') throw new RuntimeException('Conexao apontou para outro banco');
+              echo "Conexao MySQL: OK (leaguecut)\n";
+              $existing=$db->query('SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE=\'BASE TABLE\'')->fetchAll(PDO::FETCH_COLUMN);
+              if ($existing) {
+                  $missing=array_values(array_diff($expected,$existing));
+                  if ($missing) throw new RuntimeException('Banco ja contem tabelas, mas schema incompleto. Importacao interrompida para preservar dados.');
+                  foreach (['users'=>['id','email','status','pix_key_enc'],
+                            'campaigns'=>['id','slug','payment_per_video_cents'],
+                            'clips'=>['id','verified_views'],
+                            'withdrawals'=>['id','status'],
+                            'ledger_entries'=>['id','dedupe_key']] as $table=>$columns) {
+                      $stmt=$db->prepare('SELECT COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?');
+                      $stmt->execute([$table]);
+                      if(array_diff($columns,$stmt->fetchAll(PDO::FETCH_COLUMN))) throw new RuntimeException("Tabela $table ja existe com colunas incompletas. Nao foram feitas alteracoes.");
+                  }
+                  echo "Schema existente: ".count($existing)." tabelas (nenhuma alteracao realizada)\n";
+              } else {
+                  $sql=file_get_contents('database/schema.sql');
+                  if($sql===false)throw new RuntimeException('Falha ao ler SQL');
+                  $sql=preg_replace('/^\s*--[^\r\n]*(?:\r?\n|$)/m','',$sql);
+                  $statements=array_values(array_filter(array_map('trim',explode(';',$sql))));
+                  if(count($statements)!==10) throw new RuntimeException('Quantidade inesperada de comandos SQL: importacao abortada');
+                  foreach($statements as $statement) {
+                      if(!preg_match('/^(CREATE TABLE IF NOT EXISTS|INSERT INTO platform_settings\b)/i',$statement)) throw new RuntimeException('Comando SQL nao permitido na instalacao inicial');
+                      $db->exec($statement);
+                  }
+                  echo "Schema importado, statements: ".count($statements)."\n";
+              }
+              $tables=$db->query('SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_TYPE=\'BASE TABLE\'')->fetchAll(PDO::FETCH_COLUMN);
+              $missing=array_values(array_diff($expected,$tables));
+              if($missing)throw new RuntimeException('Faltam tabelas: '.implode(',',$missing));
+              foreach($expected as $table) {
+                  $db->query('SELECT 1 FROM '.$table.' LIMIT 1')->fetch();
+              }
+              $settings=$db->query("SELECT COUNT(*) FROM platform_settings WHERE setting_key IN ('brand_name','primary_color','logo_url')")->fetchColumn();
+              if((int)$settings!==3)throw new RuntimeException('Configuracoes padrao incompletas');
+              echo "Validacao: OK; 9 tabelas, configuracoes iniciais presentes\n";
+              echo "BANCO_LEAGUECUT_OK\n";
+          } catch(Throwable $e) {
+              fwrite(STDERR,'Instalacao interrompida: '.$e->getMessage()."\n");
+              exit(1);
+          }
+          PHP
+          REMOTE
