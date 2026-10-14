@@ -92,7 +92,7 @@ try {
     if(lc_env('DB_NAME')!=='leaguecut')throw new RuntimeException('O worker deve usar apenas o banco leaguecut.');
     lc_realtime_key();
     $loop=\React\EventLoop\Loop::get();
-    $socket=new \React\Socket\Socket('127.0.0.1:18765',[], $loop);
+    $socket=new \React\Socket\SocketServer('127.0.0.1:18765',[], $loop);
     $hub=new LeagueCutHub($loop);
     $http=new \Ratchet\Http\HttpServer(new \Ratchet\WebSocket\WsServer($hub));
     $server=new \Ratchet\Server\IoServer($http,$socket,$loop);
