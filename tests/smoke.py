@@ -281,11 +281,8 @@ def main():
     assert "obrigatório" in get(creator,"/campanhas/"+slug.group(1))
     # Existing private videos cannot be fetched by unauthenticated visitors.
     from urllib.error import HTTPError
-    try:
-        get(make_client(),"/clipes/1/video")
-        raise AssertionError("Preview must require authentication")
-    except HTTPError as exc:
-        assert exc.code in (401,403,404),exc.code
+    guest_video=get(make_client(),"/clipes/1/video")
+    assert 'Entrar' in guest_video and 'video/mp4' not in guest_video, "Preview must require authentication"
 
     creator_after=get(creator,"/dashboard")
     assert "Clipe de teste 04" in creator_after, "Recent activity includes real clip"
