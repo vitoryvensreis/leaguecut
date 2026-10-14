@@ -1,0 +1,42 @@
+/* Workspace-only enter motion: NEVER loaded on the public marketing LP.
+   Only opacity and vertical transform; no horizontal reflow or sideways animation. */
+@keyframes lc-panel-enter {
+  from {opacity:0;transform:translate3d(0,12px,0)}
+  to {opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes lc-nav-enter {
+  from {opacity:0;transform:translate3d(0,6px,0)}
+  to {opacity:1;transform:translate3d(0,0,0)}
+}
+@media(prefers-reduced-motion:no-preference){
+  .workspace-page .workspace-header .header-inner{animation:lc-nav-enter .38s ease-out both}
+  .workspace-page .ws-sidebar-top{animation:lc-nav-enter .4s ease-out .02s both}
+  .workspace-page .workspace-sidebar .ws-nav-link{animation:lc-nav-enter .34s ease-out both}
+  .workspace-page .workspace-sidebar .ws-nav-link:nth-child(1){animation-delay:.045s}
+  .workspace-page .workspace-sidebar .ws-nav-link:nth-child(2){animation-delay:.080s}
+  .workspace-page .workspace-sidebar .ws-nav-link:nth-child(3){animation-delay:.115s}
+  .workspace-page .workspace-sidebar .ws-nav-link:nth-child(4){animation-delay:.150s}
+  .workspace-page .workspace-sidebar .ws-nav-link:nth-child(5){animation-delay:.185s}
+  .workspace-page .workspace-body .page-heading,
+  .workspace-page .workspace-body .ws-hero,
+  .workspace-page .workspace-body .lc-admin-catalog-header,
+  .workspace-page .workspace-body .lc-catalog-showcase{animation:lc-panel-enter .44s cubic-bezier(.2,.7,.2,1) both}
+  .workspace-page .workspace-body :is(.panel,.ws-kpi,.metric,.ws-dual>section,.lc-catalog-shelf,.lc-admin-create-block){
+    animation:lc-panel-enter .46s cubic-bezier(.2,.7,.2,1) both;
+  }
+  .workspace-page .workspace-body :is(.panel,.ws-kpi,.metric,.ws-dual>section,.lc-catalog-shelf,.lc-admin-create-block):nth-child(2){animation-delay:.065s}
+  .workspace-page .workspace-body :is(.panel,.ws-kpi,.metric,.ws-dual>section,.lc-catalog-shelf,.lc-admin-create-block):nth-child(3){animation-delay:.13s}
+  .workspace-page .workspace-body :is(.panel,.ws-kpi,.metric,.ws-dual>section,.lc-catalog-shelf,.lc-admin-create-block):nth-child(4){animation-delay:.19s}
+  .workspace-page .ws-mobile-menu details[open] nav{animation:lc-nav-enter .24s ease-out both}
+  .workspace-page .rt-notifications[open] .rt-notification-panel{animation:lc-nav-enter .22s ease-out both}
+}
+@media(prefers-reduced-motion:reduce){
+  .workspace-page .workspace-body *, .workspace-page .workspace-header *,
+  .workspace-page .workspace-sidebar *{
+    animation:none!important;transition-duration:0.01ms!important;scroll-behavior:auto!important
+  }
+}
+/* Do not animate any LP entrance, including its nav. */
+body.public-page:has(.lp) .site-header,
+body.public-page:has(.lp) .main-nav,
+body.public-page:has(.lp) .lp>*{animation-name:none}
