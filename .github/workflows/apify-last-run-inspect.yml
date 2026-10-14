@@ -1,0 +1,81 @@
+name: LeagueCut Apify inspect existing dataset (no Actor execution)
+on:
+  push:
+    branches: [ops/apify-single-validation-20261014]
+    paths: [.github/workflows/apify-last-run-inspect.yml]
+permissions: {contents: read}
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: SSH setup
+        env:
+          KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_ed25519
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/id_ed25519 ~/.ssh/known_hosts
+      - name: Inspect last successful Actor dataset via GET only
+        env:
+          HOST: ${{ secrets.SSH_HOST }}
+          USER: ${{ secrets.SSH_USER }}
+          PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          ssh -o StrictHostKeyChecking=yes -o IdentitiesOnly=yes -o BatchMode=yes -i ~/.ssh/id_ed25519 -p "$PORT" "$USER@$HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          [ "$(id -un)" = "leaguecut" ]
+          cd /home/leaguecut/current
+          php -r '
+            require "app/core.php";require "app/apify.php";
+            $token=lc_env("APIFY_API_TOKEN");if($token==="")exit(1);
+            function safe_get(string $url,string $token): array {
+               $ch=curl_init($url);curl_setopt_array($ch,[
+                   CURLOPT_HTTPHEADER=>["Authorization: Bearer ".$token,"Accept: application/json"],
+                   CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>5,CURLOPT_TIMEOUT=>20,
+                   CURLOPT_FOLLOWLOCATION=>false
+               ]);
+               $body=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
+               if($status!==200||!is_string($body))return [$status,null];
+               return [$status,json_decode($body,true)];
+            }
+            [$code,$run]=safe_get("https://api.apify.com/v2/acts/danek~instagram-posts-scraper-ppr/runs/last?status=SUCCEEDED",$token);
+            echo "LAST_RUN_HTTP=".$code."\n";
+            $meta=$run["data"]??[];
+            if(!$meta || empty($meta["defaultDatasetId"])){echo "LAST_RUN_NO_DATASET\n";exit(0);}
+            echo "LAST_RUN_STATUS=".($meta["status"]??"missing")."\n";
+            echo "LAST_RUN_STARTED=".($meta["startedAt"]??"missing")."\n";
+            $datasetId=$meta["defaultDatasetId"];
+            if(!preg_match("/^[A-Za-z0-9]{10,30}$/",$datasetId))exit(1);
+            [$http,$rows]=safe_get("https://api.apify.com/v2/datasets/".$datasetId."/items?limit=5&clean=true",$token);
+            echo "DATASET_HTTP=".$http."\n";
+            if(!is_array($rows)||!array_is_list($rows)){echo "DATASET_NOT_ARRAY\n";exit(0);}
+            echo "DATASET_POSTS=".count($rows)."\n";
+            if(!$rows)exit(0);
+            $keys=array_keys($rows[0]);
+            sort($keys,SORT_STRING);
+            echo "DATASET_FIELDS=".implode(",",$keys)."\n";
+            $viewKeys=array_values(array_filter($keys,fn($k)=>stripos($k,"view")!==false || stripos($k,"play")!==false));
+            echo "VIDEO_METRIC_FIELDS=".($viewKeys?implode(",",$viewKeys):"none")."\n";
+            $clips=lc_all("SELECT c.published_url,s.username FROM clips c JOIN social_accounts s ON c.social_account_id=s.id
+               JOIN campaigns p ON c.campaign_id=p.id WHERE s.network=? AND p.status=? AND c.status IN (?,?)",["instagram","active","pending","approved"]);
+            $identityMatches=0;$viewMatches=0;
+            foreach($clips as $clip){
+              $sc=lc_apify_shortcode($clip["published_url"]);if(!$sc)continue;
+              foreach($rows as $row){
+                if(!is_array($row))continue;
+                if(lc_apify_data_shortcode($row)===$sc && lc_apify_data_author($row)===strtolower(ltrim($clip["username"],"@"))){
+                   $identityMatches++;
+                   if(lc_apify_post_views($row,$clip["username"],$sc)!==null)$viewMatches++;
+                   break;
+                }
+              }
+            }
+            echo "CLIPS_EXACT_IDENTITY_MATCHED=".$identityMatches."\n";
+            echo "CLIPS_WITH_REAL_VIEW_COUNT=".$viewMatches."\n";
+          '
+          REMOTE
