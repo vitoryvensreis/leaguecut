@@ -76,12 +76,12 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         $clips=lc_all('SELECT c.*,p.title AS campaign_title,s.network,s.username FROM clips c JOIN campaigns p ON p.id=c.campaign_id JOIN social_accounts s ON s.id=c.social_account_id WHERE c.user_id=? ORDER BY c.submitted_at DESC LIMIT 150',[$u['id']]);
         lc_page('Minha biblioteca',function()use($clips){?>
 <div class="container"><?php lc_heading('Seu conteúdo','Minha biblioteca','Suas publicações, vídeos armazenados e resultados verificados.'); ?>
-<div class="panel"><div class="panel-head"><h2>Clipes enviados</h2><a href="/" class="btn btn-sm">Nova publicação +</a></div>
+<div class="panel"><div class="panel-head"><h2>Clipes enviados</h2><a href="/" class="btn btn-sm">Nova publicação <?=lc_icon('plus')?></a></div>
 <?php if(!$clips):lc_empty('Sua biblioteca está vazia','Escolha uma campanha e envie a primeira publicação.');
 else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th><th>Rede</th><th>Views conferidas</th><th>Status</th><th>Drive</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr><td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=date('d/m/Y',strtotime($c['submitted_at']))?></small></td>
 <td><?=lc_e($c['campaign_title'])?></td><td><?=lc_e(ucfirst($c['network']))?> @<?=lc_e($c['username'])?></td><td><?=number_format((int)$c['verified_views'],0,',','.')?></td>
-<td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e($c['status'])?></span></td><td><?= $c['drive_file_id']?'Armazenado ✓':'Não enviado' ?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
+<td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e($c['status'])?></span></td><td><?= $c['drive_file_id']?'Armazenado':'Não enviado' ?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'library');return true;
     }
     if($method==='GET' && $path==='/financeiro'){
@@ -91,7 +91,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
         lc_page('Financeiro',function()use($u,$balance,$entries,$withdrawals){?>
 <div class="container"><?php lc_heading('Suas recompensas','Financeiro','Veja seus créditos confirmados, saldo disponível e pedidos de saque.'); ?>
 <div class="stats-grid"><div class="metric"><small>Ganhos creditados</small><strong><?=lc_money($balance['earned'])?></strong></div><div class="metric"><small>Saldo disponível</small><strong><?=lc_money($balance['available'])?></strong></div>
-<div class="metric"><small>Reservado / já sacado</small><strong><?=lc_money($balance['reserved'])?></strong></div><div class="metric"><small>Chave Pix</small><strong style="font-size:1rem">Cadastrada 🔒</strong></div></div>
+<div class="metric"><small>Reservado / já sacado</small><strong><?=lc_money($balance['reserved'])?></strong></div><div class="metric"><small>Chave Pix</small><strong style="font-size:1rem">Cadastrada <?=lc_icon('lock-keyhole')?></strong></div></div>
 <div class="panel"><h2>Solicitar saque</h2><p>O saldo só considera recompensas liberadas. A transferência Pix é conferida e realizada manualmente até a homologação do provedor de pagamentos.</p>
 <form method="post" action="/financeiro/saques"><?=lc_csrf()?><div class="form-inline"><?php lc_field('Valor (R$)','amount','text','',true,'Ex.: 35,00'); ?><button class="btn" type="submit">Solicitar saque →</button></div></form></div>
 <div class="panel"><h2>Extrato de créditos</h2><?php if(!$entries):lc_empty('Nenhum crédito liberado','A aprovação e as metas semanais determinam quando os créditos entram no saldo.');else:?>

@@ -6,11 +6,11 @@ function lc_public_routes(string $method,string $path): bool {
         $campaigns = lc_all("SELECT * FROM campaigns WHERE status='active' ORDER BY created_at DESC LIMIT 60");
         $featured = $campaigns[0] ?? null;
         lc_page('Explore campanhas',function()use($campaigns,$featured){ ?>
-<section class="hero"><div class="hero-deco">▶</div><div class="hero-inner">
+<section class="hero"><div class="hero-deco"><?=lc_icon("play")?></div><div class="hero-inner">
 <span class="eyebrow">LeagueCut Originals • Comunidade criativa</span>
 <h1>Seus vídeos.<br>Novas oportunidades.</h1>
 <p>Escolha campanhas, crie conteúdos para as redes e receba pelas entregas e metas verificadas. Tudo em um só lugar.</p>
-<div class="btn-row"><a class="btn" href="<?= $featured? '/campanhas/'.lc_e($featured['slug']) : '/cadastrar' ?>"><?= $featured?'Explorar destaque':'Quero participar' ?> →</a><a class="btn btn-ghost" href="/cadastrar">Seja um clipador</a></div>
+<div class="btn-row"><a class="btn" href="<?= $featured? '/campanhas/'.lc_e($featured['slug']) : '/cadastrar' ?>"><?= $featured?'Explorar destaque':'Quero participar' ?> <?=lc_icon('arrow-right')?></a><a class="btn btn-ghost" href="/cadastrar">Seja um clipador</a></div>
 </div></section>
 <div class="container">
 <section class="section"><div class="section-head"><h2>Em alta agora</h2><span class="tag"><?=count($campaigns)?> campanhas disponíveis</span></div>

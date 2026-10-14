@@ -62,6 +62,9 @@ def main():
     creator=make_client()
     admin=make_client()
     assert "Seus vídeos." in get(creator,"/")
+    assert 'assets/v2.css' in get(creator,"/")
+    assert 'assets/icons.svg' in get(creator,"/")
+    assert 'lc-icon' in get(creator,"/")
     assert "Junte-se aos criadores." in get(creator,"/cadastrar")
     creator_page=register(creator,"creator@leaguecut.test","Criador Teste")
     assert "analisando" in creator_page.lower(), "Creator pending page"

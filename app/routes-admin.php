@@ -58,14 +58,14 @@ function lc_admin_routes(string $method,string $path): bool {
 <div class="container"><?php lc_heading('Central de operações','Painel administrativo','Gerencie pessoas, campanhas, conferências e pagamentos.'); ?>
 <div class="stats-grid"><div class="metric"><small>Cadastros pendentes</small><strong><?=$pending?></strong></div><div class="metric"><small>Clipadores</small><strong><?=$total?></strong></div>
 <div class="metric"><small>Campanhas ativas</small><strong><?=$campaigns?></strong></div><div class="metric"><small>Clipes aguardando</small><strong><?=$clips?></strong></div></div>
-<div class="panel"><h2>Gestão do LeagueCut</h2><div class="pills">
-<a class="pill" href="/admin/clipadores">👥 Aprovar clipadores →</a>
-<a class="pill" href="/admin/administradores">🔐 Administradores →</a>
-<a class="pill" href="/admin/campanhas">🎬 Campanhas →</a>
-<a class="pill" href="/admin/clipes">📊 Conferir clipes e views →</a>
-<a class="pill" href="/admin/financeiro">💸 Solicitações de saque →</a>
-<a class="pill" href="/admin/bonus-mensal">🏆 Fechamento mensal →</a>
-<a class="pill" href="/admin/configuracoes">🎨 Personalização →</a>
+<div class="panel"><h2>Gestão do LeagueCut</h2><div class="pills admin-quick-actions">
+<a class="pill" href="/admin/clipadores"><?=lc_icon('users-round')?> Aprovar clipadores <?=lc_icon('arrow-right')?></a>
+<a class="pill" href="/admin/administradores"><?=lc_icon('shield-check')?> Administradores <?=lc_icon('arrow-right')?></a>
+<a class="pill" href="/admin/campanhas"><?=lc_icon('clapperboard')?> Campanhas <?=lc_icon('arrow-right')?></a>
+<a class="pill" href="/admin/clipes"><?=lc_icon('chart-column')?> Conferir clipes e views <?=lc_icon('arrow-right')?></a>
+<a class="pill" href="/admin/financeiro"><?=lc_icon('wallet')?> Solicitações de saque <?=lc_icon('arrow-right')?></a>
+<a class="pill" href="/admin/bonus-mensal"><?=lc_icon('trophy')?> Fechamento mensal <?=lc_icon('arrow-right')?></a>
+<a class="pill" href="/admin/configuracoes"><?=lc_icon('palette')?> Personalização <?=lc_icon('arrow-right')?></a>
 </div></div></div>
 <?php },'admin');return true;
     }
@@ -89,7 +89,7 @@ function lc_admin_routes(string $method,string $path): bool {
 <?php foreach($users as $u):?><tr>
 <td><?=lc_e($u['full_name'])?><small><?=lc_e($u['email'])?></small><?php if($u['portfolio_url']):?><a href="<?=lc_e($u['portfolio_url'])?>" target="_blank" rel="noopener noreferrer">Portfólio ↗</a><?php endif;?></td>
 <td>@<?=lc_e($u['instagram'])?></td><td><?=lc_e($u['whatsapp'])?></td><td><span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e($u['status'])?></span></td>
-<td><?php if($u['status']==='pending'):?><form method="post" action="/admin/clipadores/<?=(int)$u['id']?>/aprovar"><?=lc_csrf()?><button class="btn btn-sm" type="submit">Aprovar ✓</button></form><?php else:?>—<?php endif;?></td>
+<td><?php if($u['status']==='pending'):?><form method="post" action="/admin/clipadores/<?=(int)$u['id']?>/aprovar"><?=lc_csrf()?><button class="btn btn-sm" type="submit">Aprovar <?=lc_icon('check')?></button></form><?php else:?>—<?php endif;?></td>
 </tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'admin');return true;
     }
@@ -132,7 +132,7 @@ function lc_admin_routes(string $method,string $path): bool {
 <?php if(!$clips):lc_empty('Tudo em dia','Nenhum vídeo recebido até agora.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Criador / campanha</th><th>Atual</th><th>Views verificadas</th><th>Revisão</th></tr></thead><tbody>
 <?php foreach($clips as $c):?><tr>
-<td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=lc_e(ucfirst($c['network']))?> <?=date('d/m/Y',strtotime($c['submitted_at']))?> · <?= $c['drive_file_id']?'Drive ✓':'sem arquivo'?></small></td>
+<td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=lc_e(ucfirst($c['network']))?> <?=date('d/m/Y',strtotime($c['submitted_at']))?> · <?= $c['drive_file_id']?'Drive':'sem arquivo'?></small></td>
 <td><?=lc_e($c['full_name'])?><small><?=lc_e($c['campaign_title'])?></small></td>
 <td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e($c['status'])?></span></td>
 <td colspan="2"><form class="mini-form" method="post" action="/admin/clipes/<?=(int)$c['id']?>/revisar"><?=lc_csrf()?>
