@@ -25,3 +25,10 @@
 .btn-delete-clip{color:#ff9da8;background:#2a131b;border:1px solid #7a303c}
 .btn-delete-clip:hover,.btn-delete-clip:focus-visible{background:#61232f;color:white}
 @media(max-width:850px){.clip-admin-actions{min-width:150px}}
+
+/* Creator editable submissions — visible before approval only. */
+.clipper-edit-buttons{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin-top:3px}
+.clipper-edit-buttons form{margin:0;display:inline-flex}
+.clipper-edit-buttons .btn{border-radius:2px;min-height:36px}
+.clip-edit-locked{color:#929daa;display:inline-flex;gap:7px;align-items:center;font-size:.79rem;font-weight:700;min-width:150px}
+.clip-edit-locked .lc-icon{width:15px;height:15px}
