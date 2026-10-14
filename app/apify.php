@@ -32,7 +32,7 @@ function lc_apify_data_author(array $row): ?string {
 }
 function lc_apify_post_views(array $row,string $username,string $shortcode): ?int {
     if(lc_apify_data_shortcode($row)!==$shortcode || lc_apify_data_author($row)!==strtolower(ltrim($username,'@')))return null;
-    foreach(['videoPlayCount','videoViewCount','playCount','viewCount','video_view_count','video_play_count','videoViews','views','play_count','video_views','video_views_count','video_plays'] as $field){
+    foreach(['videoViewCount','videoPlayCount','videoViews','viewCount','playCount','video_view_count','video_play_count','videoViews','views','play_count','video_views','video_views_count','video_plays'] as $field){
         $v=$row[$field]??null;
         if(is_int($v)||is_string($v)&&ctype_digit($v)){
             if((string)$v!=='' && (float)$v <= 2000000000)return (int)$v;
@@ -77,8 +77,8 @@ function lc_apify_usage(): array {
 function lc_apify_config(): array {
     return [
       'token'=>lc_env('APIFY_API_TOKEN'),
-      'actor'=>'danek~instagram-posts-scraper-ppr',
-      'max_posts'=>max(5,min(50,(int)lc_env('APIFY_MAX_POSTS','20'))),
+      'actor'=>'apify~instagram-post-scraper',
+      'max_posts'=>max(1,min(50,(int)lc_env('APIFY_MAX_POSTS','20'))),
       'max_run_usd'=>max(0.01,min(0.5,(float)lc_env('APIFY_MAX_RUN_CHARGE_USD','0.05'))),
       'daily_usd'=>max(0.01,min(5.0,(float)lc_env('APIFY_DAILY_BUDGET_USD','0.15'))),
       'daily_runs'=>max(1,min(12,(int)lc_env('APIFY_MAX_RUNS_PER_DAY','3'))),
@@ -98,77 +98,119 @@ function lc_apify_parse_dataset_response(int $status,string|bool $body): array {
         throw new RuntimeException('Apify retornou formato inesperado.');
     return $rows;
 }
-/** Intended for the CLI job only: GET public Instagram posts for one profile. */
-function lc_apify_fetch(string $username,array $config): array {
-    if(!preg_match('/^[a-zA-Z0-9._]{2,100}$/D',$username))throw new InvalidArgumentException('Perfil Instagram inválido.');
-    $url='https://api.apify.com/v2/acts/'.rawurlencode($config['actor']).'/run-sync-get-dataset-items?'.
-         http_build_query(['timeout'=>110,'maxItems'=>$config['max_posts'],
-                          'maxTotalChargeUsd'=>number_format($config['max_run_usd'],3,'.','')]);
-    // Apify documents actor endpoints with actorId using ~ notation.
+/**
+ * Official Apify Instagram Post Scraper accepts exact Instagram post URLs as
+ * username[] and returns detailed views ONLY with dataDetailLevel=detailedData.
+ * Details may cost more than basic data, so every request has a hard cost cap.
+ */
+function lc_apify_official_input(string $postUrl): array {
+    $shortcode=lc_apify_shortcode($postUrl);
+    if(!$shortcode)throw new InvalidArgumentException('Link de publicação Instagram inválido.');
+    $path=(string)parse_url($postUrl,PHP_URL_PATH);
+    $type=preg_match('~^/(reel|reels)/~',$path)?'reel':'p';
+    return [
+      'username'=>['https://www.instagram.com/'.$type.'/'.$shortcode.'/'],
+      'resultsLimit'=>1,
+      'dataDetailLevel'=>'detailedData'
+    ];
+}
+function lc_apify_fetch(string $postUrl,array $config): array {
+    $input=lc_apify_official_input($postUrl);
+    if(($config['actor']??'')!=='apify~instagram-post-scraper')
+       throw new RuntimeException('Actor não autorizado para consulta direta.');
+    $url='https://api.apify.com/v2/acts/'.$config['actor'].'/run-sync-get-dataset-items?'.
+        http_build_query([
+          'timeout'=>110,
+          'maxItems'=>1,
+          'maxTotalChargeUsd'=>number_format((float)$config['max_run_usd'],3,'.','')
+        ]);
     $handle=curl_init($url);
-    if(!$handle)throw new RuntimeException('Cliente HTTP não iniciou.');
+    if(!$handle)throw new RuntimeException('Não foi possível iniciar a conexão Apify.');
     curl_setopt_array($handle,[
-        CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>json_encode(['username'=>$username,'max_posts'=>$config['max_posts']],JSON_THROW_ON_ERROR),
-        CURLOPT_HTTPHEADER=>['Authorization: Bearer '.$config['token'],'Content-Type: application/json','Accept: application/json'],
-        CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>12,CURLOPT_TIMEOUT=>135,
-        CURLOPT_FOLLOWLOCATION=>false,
-        CURLOPT_MAXREDIRS=>0
+      CURLOPT_POST=>true,
+      CURLOPT_POSTFIELDS=>json_encode($input,JSON_THROW_ON_ERROR),
+      CURLOPT_HTTPHEADER=>[
+         'Authorization: Bearer '.$config['token'],
+         'Content-Type: application/json','Accept: application/json'
+      ],
+      CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>12,CURLOPT_TIMEOUT=>135,
+      CURLOPT_FOLLOWLOCATION=>false,CURLOPT_MAXREDIRS=>0
     ]);
-    $body=curl_exec($handle);$status=(int)curl_getinfo($handle,CURLINFO_HTTP_CODE);
+    $body=curl_exec($handle);
+    $status=(int)curl_getinfo($handle,CURLINFO_HTTP_CODE);
     curl_close($handle);
     return lc_apify_parse_dataset_response($status,$body);
 }
+/** Accept only exact post shortcode + claimed handle before recording a sample. */
+function lc_apify_import_clip(array $clip,array $rows): int {
+    $shortcode=lc_apify_shortcode((string)$clip['published_url']);
+    $username=strtolower(ltrim((string)$clip['username'],'@'));
+    if(!$shortcode || !preg_match('/^[a-z0-9._]{2,100}$/D',$username))return 0;
+    foreach($rows as $row){
+        if(!is_array($row))continue;
+        $views=lc_apify_post_views($row,$username,$shortcode);
+        if($views!==null)return lc_apify_observe((int)$clip['id'],$views)?1:0;
+    }
+    return 0;
+}
+/** Historical helper used by tests/legacy; new flow targets one clip URL. */
 function lc_apify_import_profile(string $username,array $rows): int {
-    $clips=lc_all("SELECT c.id,c.published_url FROM clips c JOIN social_accounts s ON s.id=c.social_account_id
-      JOIN campaigns p ON p.id=c.campaign_id WHERE s.network='instagram' AND LOWER(s.username)=?
+    $clips=lc_all("SELECT c.id,c.published_url,s.username FROM clips c
+      JOIN social_accounts s ON s.id=c.social_account_id JOIN campaigns p ON p.id=c.campaign_id
+      WHERE s.network='instagram' AND LOWER(s.username)=?
       AND c.status IN ('pending','approved') AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY)
       AND p.status='active'",[strtolower($username)]);
-    $matched=0;
-    foreach($clips as $clip){
-        $code=lc_apify_shortcode($clip['published_url']);
-        if(!$code)continue;
-        foreach($rows as $row){
-            if(!is_array($row))continue;
-            $views=lc_apify_post_views($row,$username,$code);
-            if($views===null)continue;
-            if(lc_apify_observe((int)$clip['id'],$views))$matched++;
-            break;
-        }
-    }
-    return $matched;
+    $count=0;
+    foreach($clips as $clip)$count+=lc_apify_import_clip($clip,$rows);
+    return $count;
 }
+/**
+ * Cost-bounded, idempotent Instagram link sync.
+ * Observations DO NOT modify clips.verified_views or credit anyone.
+ */
 function lc_apify_sync(): void {
     $config=lc_apify_config();
-    if($config['token']===''){echo "APIFY_DISABLED: configure APIFY_API_TOKEN in private .env\n";return;}
+    if($config['token']===''){echo "APIFY_DISABLED: configure private APIFY_API_TOKEN\n";return;}
     $db=lc_db();
     $lock=$db->query("SELECT GET_LOCK('leaguecut_apify_metrics_v1',0) AS acquired")->fetch(PDO::FETCH_ASSOC);
     if((int)($lock['acquired']??0)!==1){echo "APIFY_ALREADY_RUNNING\n";return;}
-    try {
-        $profiles=lc_all("SELECT LOWER(s.username) AS username,MAX(c.submitted_at) AS last_submit
-           FROM clips c JOIN social_accounts s ON s.id=c.social_account_id
-           JOIN campaigns p ON p.id=c.campaign_id
-           WHERE s.network='instagram' AND p.status='active' AND c.status IN ('pending','approved')
-           AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY)
-           GROUP BY LOWER(s.username) ORDER BY last_submit DESC LIMIT 80");
+    try{
+        $clips=lc_all("SELECT c.id,c.published_url,s.username,c.submitted_at FROM clips c
+            JOIN social_accounts s ON s.id=c.social_account_id
+            JOIN campaigns p ON p.id=c.campaign_id
+            WHERE s.network='instagram' AND p.status='active'
+              AND c.status IN ('pending','approved')
+              AND c.submitted_at>=DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY)
+            ORDER BY c.submitted_at DESC LIMIT 150");
         $usage=lc_apify_usage();
-        $runs=$usage['runs'];$spent=$usage['max_reserved_usd'];
-        foreach($profiles as $profile) {
-            if($runs >= $config['daily_runs'] || $spent+$config['max_run_usd']>$config['daily_usd']+0.00001)break;
-            $username=$profile['username'];
-            $recent=lc_one('SELECT id FROM apify_profile_runs WHERE username=? AND attempted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? HOUR) ORDER BY id DESC LIMIT 1',[$username,$config['min_hours']]);
+        $runs=$usage['runs'];$reserved=$usage['max_reserved_usd'];
+        $seen=[];
+        foreach($clips as $clip){
+            if($runs >= $config['daily_runs'] ||
+               $reserved+$config['max_run_usd']>$config['daily_usd']+0.000001)break;
+            $code=lc_apify_shortcode((string)$clip['published_url']);
+            if(!$code || isset($seen[$code]))continue;
+            $seen[$code]=true;
+            $key='post:'.$code; // index already enforces dedupe window per post.
+            $recent=lc_one('SELECT id FROM apify_profile_runs WHERE username=? AND attempted_at>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL ? HOUR) ORDER BY id DESC LIMIT 1',[$key,$config['min_hours']]);
             if($recent)continue;
-            lc_query('INSERT INTO apify_profile_runs(username,max_charge_usd,status) VALUES(?,?,"reserved")',[$username,$config['max_run_usd']]);
-            $runId=(int)$db->lastInsertId();$runs++;$spent+=$config['max_run_usd'];
+            lc_query('INSERT INTO apify_profile_runs(username,max_charge_usd,status) VALUES(?,?,"reserved")',[$key,$config['max_run_usd']]);
+            $runId=(int)$db->lastInsertId();
+            $runs++;$reserved+=$config['max_run_usd'];
             try{
-                $items=lc_apify_fetch($username,$config);
-                $matched=lc_apify_import_profile($username,$items);
-                lc_query('UPDATE apify_profile_runs SET status="completed",matched_clips=?,result_count=? WHERE id=?',[$matched,count($items),$runId]);
-                echo "APIFY_SYNC profile=$username items=".count($items)." updated=$matched\n";
+                $rows=lc_apify_fetch((string)$clip['published_url'],$config);
+                $updated=lc_apify_import_clip($clip,$rows);
+                lc_query('UPDATE apify_profile_runs SET status="completed",matched_clips=?,result_count=? WHERE id=?',
+                  [$updated,count($rows),$runId]);
+                echo "APIFY_LINK_RESULT items=".count($rows)." updated=".$updated."\n";
             }catch(Throwable $e){
-                lc_query('UPDATE apify_profile_runs SET status="failed",error_message=? WHERE id=?',[mb_substr($e->getMessage(),0,190),$runId]);
-                echo "APIFY_FAILED profile=$username; waiting until next allowed run\n";
+                // Strip details; URLs, API credentials and response bodies are private.
+                $message=$e->getMessage();
+                $category=preg_match('/HTTP ([0-9]+)/',$message,$m)?'HTTP '.$m[1]:'provider_error';
+                lc_query('UPDATE apify_profile_runs SET status="failed",error_message=? WHERE id=?',[$category,$runId]);
+                echo "APIFY_LINK_FAILED category=".$category."\n";
             }
         }
-        echo "APIFY_DAILY_RESERVED_USD=".number_format($spent,3,'.','')." runs=$runs\n";
+        echo "APIFY_DAILY_RESERVED_USD=".number_format($reserved,3,'.','')." runs=".$runs."\n";
     }finally{$db->query("SELECT RELEASE_LOCK('leaguecut_apify_metrics_v1')");}
 }
