@@ -1,0 +1,17 @@
+{
+  "name": "leaguecut/platform",
+  "description": "Marketplace de campanhas de clipadores",
+  "type": "project",
+  "require": {
+    "php": "^8.2",
+    "ext-pdo": "*",
+    "ext-openssl": "*",
+    "ext-json": "*",
+    "phpmailer/phpmailer": "^6.9",
+    "google/apiclient": "^2.18"
+  },
+  "config": {
+    "sort-packages": true,
+    "optimize-autoloader": true
+  }
+}

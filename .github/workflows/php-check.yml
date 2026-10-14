@@ -1,0 +1,30 @@
+name: Verificar PHP LeagueCut
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'public/**'
+      - 'bin/**'
+      - 'database/**'
+      - 'composer.json'
+      - '.github/workflows/php-check.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  php-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Preparar PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          tools: composer
+      - name: Validar sintaxe PHP
+        run: |
+          find app public bin -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+      - name: Validar Composer
+        run: composer validate --no-check-publish

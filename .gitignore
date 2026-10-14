@@ -1,0 +1,9 @@
+/.env
+/vendor/
+/node_modules/
+/storage/
+/*.zip
+/.idea/
+/.vscode/
+/.phpunit.cache
+.DS_Store
