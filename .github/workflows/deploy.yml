@@ -1,25 +1,40 @@
-name: Publicar LeagueCut (controlado)
+name: Publicar LeagueCut (apos testes)
 on:
+  workflow_run:
+    workflows:
+      - Teste integrado LeagueCut
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       confirm:
-        description: 'Digite PUBLICAR para liberar este deploy'
+        description: 'Digite PUBLICAR para fazer o deploy manual'
         required: true
         type: string
-  push:
-    branches: [main]
+
 permissions:
   contents: read
+
 concurrency:
   group: leaguecut-production
   cancel-in-progress: false
+
 jobs:
   deploy:
-    if: ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm == 'PUBLICAR') || (github.event_name == 'push' && vars.LEAGUECUT_AUTO_DEPLOY == 'true') }}
+    if: >-
+      ${{ (github.event_name == 'workflow_dispatch' && inputs.confirm == 'PUBLICAR') ||
+          (github.event_name == 'workflow_run' &&
+           github.event.workflow_run.conclusion == 'success' &&
+           github.event.workflow_run.event == 'push' &&
+           github.event.workflow_run.head_branch == 'main' &&
+           github.event.workflow_run.head_repository.full_name == github.repository) }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    env:
+      DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+
     steps:
-      - name: Preparar SSH de deploy
+      - name: Preparar chave SSH
         shell: bash
         env:
           PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
@@ -33,7 +48,7 @@ jobs:
           chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
           ssh-keygen -y -f "$HOME/.ssh/id_ed25519" > /dev/null
 
-      - name: Publicar release sem afetar outros sites
+      - name: Publicar somente o LeagueCut com rollback
         shell: bash
         env:
           SSH_HOST: ${{ secrets.SSH_HOST }}
@@ -44,46 +59,71 @@ jobs:
           ssh -i "$HOME/.ssh/id_ed25519" -p "$SSH_PORT" \
             -o IdentitiesOnly=yes -o BatchMode=yes \
             -o StrictHostKeyChecking=yes -o ConnectTimeout=15 \
-            "$SSH_USER@$SSH_HOST" bash -s -- "$GITHUB_SHA" <<'REMOTE'
+            "$SSH_USER@$SSH_HOST" bash -s -- "$DEPLOY_SHA" <<'REMOTE'
           set -euo pipefail
           REV="$1"
           BASE="/home/leaguecut"
           RELEASE="$BASE/releases/$REV"
 
-          if [ "$(whoami)" != "leaguecut" ]; then
-            echo "ERR: Deploy deve ser executado por leaguecut"; exit 1
+          [ "$(id -un)" = leaguecut ] || { echo "ERR: usuario inesperado"; exit 1; }
+          [ -r "$BASE/shared/.env" ] || { echo "ERR: arquivo .env privado ausente"; exit 1; }
+          [ -L "$BASE/current" ] || { echo "ERR: current nao e um symlink; abortando"; exit 1; }
+
+          CURRENT_MAIN="$(git ls-remote https://github.com/vitoryvensreis/leaguecut.git refs/heads/main | cut -f1)"
+          if [ "$CURRENT_MAIN" != "$REV" ]; then
+            echo "Novo commit ja existe na main; ignorando versao antiga $REV"
+            exit 0
           fi
-          if [ ! -f "$BASE/shared/.env" ]; then
-            echo "ERR: Falta $BASE/shared/.env. Nenhuma versao foi publicada."; exit 1
-          fi
-          if [ -e "$BASE/current" ] && [ ! -L "$BASE/current" ]; then
-            echo "ERR: current existe e nao e um link simbolico. Abortando."; exit 1
-          fi
+
           mkdir -p "$BASE/releases" "$BASE/shared/storage"
           if [ ! -d "$RELEASE/.git" ]; then
-            git clone --quiet --depth 1 --branch main \
-              https://github.com/vitoryvensreis/leaguecut.git "$RELEASE"
+            [ ! -e "$RELEASE" ] || { echo "ERR: release parcialmente existente; abortando"; exit 1; }
+            TEMP="$(mktemp -d "$BASE/releases/.deploy.XXXXXX")"
+            trap 'rm -rf -- "$TEMP"' EXIT
+            git clone -q --depth 1 --branch main \
+              https://github.com/vitoryvensreis/leaguecut.git "$TEMP/project"
+            cd "$TEMP/project"
+            git fetch -q --depth 1 origin "$REV"
+            git checkout -q --detach "$REV"
+            mv "$TEMP/project" "$RELEASE"
           fi
-          cd "$RELEASE"
-          git fetch --quiet --depth 1 origin "$REV"
-          git checkout --quiet --detach "$REV"
-          ln -sfn "$BASE/shared/.env" "$RELEASE/.env"
-          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader
 
-          php -r 'require "app/core.php"; lc_db()->query("SELECT COUNT(*) FROM users"); echo "Banco OK\n";'
+          cd "$RELEASE"
+          [ "$(git rev-parse HEAD)" = "$REV" ] || { echo "ERR: revisao incorreta"; exit 1; }
+          if [ -e "$RELEASE/.env" ] && [ ! -L "$RELEASE/.env" ]; then
+            echo "ERR: .env nao pode ser arquivo local da release"; exit 1
+          fi
+          ln -sfn "$BASE/shared/.env" "$RELEASE/.env"
+          composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress
+          find app public bin -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l >/dev/null
+          php -r 'require "app/core.php"; lc_db()->query("SELECT COUNT(*) FROM users"); echo "DB OK\n";'
+
           PREV="$(readlink -f "$BASE/current" || true)"
-          rm -f "$BASE/current.next"
+          if [ "$PREV" = "$RELEASE" ]; then
+            echo "Essa versao ja esta publicada: $REV"
+            exit 0
+          fi
+
           ln -s "$RELEASE" "$BASE/current.next"
           mv -Tf "$BASE/current.next" "$BASE/current"
-          if ! curl --fail --silent --show-error --max-time 20 https://leaguecut.com/health | grep -Fxq 'LeagueCut OK'; then
-            echo "ERR: Health check falhou. Revertendo ponteiro de deploy."
+          OK=0
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --silent --show-error --max-time 12 \
+                 https://leaguecut.com/health | grep -Fxq 'LeagueCut OK' &&
+               curl --fail --silent --show-error --max-time 12 \
+                 https://leaguecut.com/cadastrar >/dev/null; then
+              OK=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$OK" -ne 1 ]; then
+            echo "ERR: validacao publica falhou; voltando versao anterior"
             if [ -n "$PREV" ] && [ -d "$PREV" ]; then
               ln -s "$PREV" "$BASE/current.rollback"
               mv -Tf "$BASE/current.rollback" "$BASE/current"
-            else
-              rm -f "$BASE/current"
             fi
             exit 1
           fi
-          echo "LeagueCut publicado: $REV"
+          echo "LEAGUECUT_PUBLICADO=$REV"
           REMOTE
