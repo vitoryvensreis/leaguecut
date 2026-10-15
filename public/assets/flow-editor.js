@@ -91,7 +91,7 @@ if(editor){
         n.y=Math.max(0,Math.min(4700,Math.round(drag.ny+dy)));
         card.style.left=n.x+'px';card.style.top=n.y+'px';drawEdges();
       });
-      head.addEventListener('pointerup',()=>{if(drag?.moved)changed();drag=null;render();});
+      head.addEventListener('pointerup',()=>{const wasMoved=!!drag?.moved;if(wasMoved)changed();drag=null;if(wasMoved)render();});
       head.addEventListener('pointercancel',()=>{drag=null;render();});
       nodesEl.append(card);
     }
