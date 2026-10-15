@@ -75,7 +75,7 @@ function lc_admin_routes(string $method,string $path): bool {
         lc_page('Administração',function()use($admin,$pending,$total,$campaigns,$clips,$withdrawals,$recent,$viewsAll,$lastObservation,$rankUsers,$rankCampaigns){?>
 <div class="container ws-dashboard">
   <section class="ws-hero" aria-labelledby="admin-overview-title">
-    <div><span class="eyebrow">League Cut · placar de resultados</span><h1 id="admin-overview-title">O jogo está acontecendo.</h1>
+    <div><span class="eyebrow">Painel administrativo · League Cut · placar de resultados</span><h1 id="admin-overview-title">O jogo está acontecendo.</h1>
       <p>Visualizações reais observadas, melhores clipadores e campanhas em destaque. Métricas coletadas pela Apify.</p>
     </div>
     <div class="ws-hero-actions"><a href="/admin/clipadores?status=pending" class="btn">Ver aprovações <?=lc_icon('arrow-right')?></a><a href="/admin/campanhas" class="btn btn-ghost">Gerenciar campanhas</a></div>
