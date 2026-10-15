@@ -5,7 +5,7 @@ const make=(tag,classes,text)=>{const el=document.createElement(tag);if(classes)
 const csrf=()=>document.querySelector('meta[name="lc-csrf"]')?.content||'';
 const parse=(id)=>JSON.parse(document.getElementById(id).textContent);
 const opt=(select,options,value)=>{Object.entries(options).forEach(([k,label])=>{const o=make('option','',label);o.value=k;o.selected=k===value;select.append(o);});};
-if(editor){
+if(editor && !editor.hasAttribute('data-flow-v2')){
  let graph=parse('lc-flow-initial');const catalog=parse('lc-flow-catalog');
  const canvas=document.getElementById('lc-flow-canvas'), nodesEl=document.getElementById('lc-flow-nodes'),
  svg=document.getElementById('lc-flow-edges'), scroll=document.getElementById('lc-flow-scroller');

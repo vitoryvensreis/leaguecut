@@ -32,6 +32,57 @@ $invalid=$graph;
 $invalid['edges'][]=['from'=>'end','to'=>'cond','port'=>'next'];
 try{lc_flow_validate($invalid);throw new RuntimeException('Cycle accepted');}
 catch(InvalidArgumentException $e){check_graph(true,'end connection rejected');}
+// A trigger may fan out to many actions/conditions at once.
+$fan=lc_flow_default();
+$fan['viewport']=['x'=>-170,'y'=>82,'zoom'=>0.73];
+$fan['nodes'][]=['id'=>'acao2','type'=>'email','x'=>400,'y'=>360,
+   'data'=>['recipient'=>'user','message'=>'Email automático']];
+$fan['nodes'][]=['id'=>'acao3','type'=>'in_app','x'=>770,'y'=>380,
+   'data'=>['recipient'=>'user','message'=>'Notificação']];
+$fan['nodes'][]=['id'=>'condfan','type'=>'condition','x'=>430,'y'=>550,
+   'data'=>['field'=>'status','value'=>'approved']];
+$fan['nodes'][]=['id'=>'isolado','type'=>'whatsapp','x'=>1200,'y'=>1100,
+   'data'=>['recipient'=>'user','message'=>'NUNCA DISPARAR']];
+$fan['edges']=[
+  ['from'=>'gatilho','to'=>'acao1','port'=>'next'],
+  ['from'=>'gatilho','to'=>'acao2','port'=>'next'],
+  ['from'=>'gatilho','to'=>'condfan','port'=>'next'],
+  ['from'=>'condfan','to'=>'acao2','port'=>'true'],
+  ['from'=>'condfan','to'=>'acao3','port'=>'true'],
+  ['from'=>'condfan','to'=>'acao1','port'=>'false'],
+  ['from'=>'acao1','to'=>'fim','port'=>'next'],
+  ['from'=>'acao2','to'=>'fim','port'=>'next'],
+  ['from'=>'acao3','to'=>'fim','port'=>'next']
+];
+$fan=lc_flow_validate($fan);
+check_graph(count($fan['edges'])===9,'multiple outgoing edges');
+check_graph($fan['viewport']['zoom']===0.73 && $fan['viewport']['x']===-170.0,'viewport saved');
+$yesActions=lc_flow_actions($fan,['status'=>'approved']);
+$noActions=lc_flow_actions($fan,['status'=>'pending']);
+check_graph(count($yesActions)===3,'parallel actions plus true fanout and dedup on convergence');
+check_graph(count($noActions)===2,'false branch preserves parallel actions');
+check_graph(!in_array('isolado',array_column($yesActions,'node_id'),true),'disconnected card not executed');
+$unlinked=$fan;
+$unlinked['edges']=[];
+check_graph(count(lc_flow_actions(lc_flow_validate($unlinked),[]))===0,'disconnected action means zero delivery');
+$duplicate=$fan;
+$duplicate['edges'][]=$fan['edges'][0];
+try{lc_flow_validate($duplicate);throw new RuntimeException('Duplicate connection accepted');}
+catch(InvalidArgumentException $e){check_graph(true,'duplicate rejected');}
+$cycle=$fan;
+$cycle['edges'][]=['from'=>'acao1','to'=>'condfan','port'=>'next'];
+try{lc_flow_validate($cycle);throw new RuntimeException('Cycle accepted');}
+catch(InvalidArgumentException $e){check_graph(true,'cycle rejected');}
+$disconnectedCycle=$fan;
+$disconnectedCycle['nodes'][]=['id'=>'island_cond','type'=>'condition','x'=>1350,'y'=>1500,
+  'data'=>['field'=>'always','value'=>'']];
+$disconnectedCycle['edges'][]=['from'=>'isolado','to'=>'island_cond','port'=>'next'];
+$disconnectedCycle['edges'][]=['from'=>'island_cond','to'=>'isolado','port'=>'true'];
+try{lc_flow_validate($disconnectedCycle);throw new RuntimeException('Disconnected cycle accepted');}
+catch(InvalidArgumentException $e){check_graph(true,'even disconnected cycles rejected');}
+$fanIdByRole=array_column($fan['nodes'],null,'id');
+check_graph(isset($fanIdByRole['isolado']),'unlinked block persists');
+
 $pdo=lc_db();
 $pdo->beginTransaction();
 try{
