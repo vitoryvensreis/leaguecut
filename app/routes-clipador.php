@@ -139,6 +139,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
             lc_query("INSERT INTO clips(user_id,campaign_id,social_account_id,title,published_url,drive_file_id,original_filename)
                   VALUES(?,?,?,?,?,?,?)",[$u['id'],$campaignId,$accountId,$title,$url,$fileId,$filename]);
             $clipId=(int)lc_db()->lastInsertId();
+            lc_hybrid_submission($clipId,(string)$account['network'],$url);
             lc_realtime_emit('admin',null,'clip.submitted','clip',$clipId);
             lc_realtime_emit('user',(int)$u['id'],'clip.submitted','clip',$clipId);
             lc_db()->commit();

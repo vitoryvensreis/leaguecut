@@ -7,6 +7,7 @@ require __DIR__ . '/brand.php';
 require __DIR__ . '/routes-home-admin.php';
 require __DIR__ . '/drive.php';
 require __DIR__ . '/apify.php';
+require __DIR__ . '/hybrid-persistence.php';
 require __DIR__ . '/routes-clip-video.php';
 require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/creator-platform.php';
