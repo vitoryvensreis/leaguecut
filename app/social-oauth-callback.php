@@ -14,6 +14,8 @@ function lc_meta_oauth_error_suffix(string $body): string {
     if(strlen($body)>8192)return '';
     $parsed=json_decode($body,true);
     $error=is_array($parsed)?($parsed['error']??null):null;
+    // Instagram OAuth may return {error_type, code, error_message} at the top level.
+    if(!is_array($error) && is_array($parsed) && isset($parsed['error_type']))$error=$parsed;
     if(!is_array($error))return '';
     $parts=[];
     foreach(['code'=>'code','error_subcode'=>'subcode'] as $key=>$label){
