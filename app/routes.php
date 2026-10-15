@@ -49,6 +49,7 @@ if(lc_creator_admin_routes($method,$path))return;
 if(lc_admin_routes($method,$path))return;
 if(lc_creator_routes($method,$path))return;
 if(lc_clipper_routes($method,$path))return;
+if(lc_legal_routes($method,$path))return;
 if(lc_public_routes($method,$path))return;
 http_response_code(404);
 lc_page('Página não encontrada', function(){?><div class="container container-sm"><?php lc_empty('Esta página não existe','Confira o endereço ou descubra campanhas disponíveis.');?><p><a class="btn" href="/explorar">Explorar campanhas</a></p></div><?php });
