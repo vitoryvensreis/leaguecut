@@ -81,3 +81,13 @@ function lc_social_oauth_refresh_instagram(array $row): bool {
       [lc_encrypt($long['access_token']),$newExpiry,(int)$row['id'],'instagram',$row['access_token_enc']]);
     return $updated->rowCount()===1;
 }
+
+/** UI state must follow encrypted token validity, not only the legacy oauth_verified flag. */
+function lc_social_oauth_connection_label(array $row, ?int $now=null): string {
+    return match(lc_social_oauth_status($row,$now)) {
+        'connected' => 'Conectada',
+        'expired' => 'Expirada — reconectar',
+        'unknown' => 'Verificação pendente',
+        default => 'Informada manualmente'
+    };
+}
