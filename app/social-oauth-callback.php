@@ -2,8 +2,15 @@
 declare(strict_types=1);
 require_once __DIR__.'/social-oauth.php';
 
+function lc_oauth_safe_error_reason(Throwable $error): string {
+    $message=$error->getMessage();
+    if(preg_match('/^oauth_http_(instagram_code|instagram_long)_(network|[1-5][0-9]{2})$/D',$message))
+        return $message;
+    return 'unspecified';
+}
+
 /** Only fixed official HTTPS hosts. Never log or expose tokens and codes. */
-function lc_social_oauth_http(string $url, ?array $form=null, ?string $token=null): array {
+function lc_social_oauth_http(string $url, ?array $form=null, ?string $token=null, string $operation=''): array {
     $host=strtolower((string)parse_url($url,PHP_URL_HOST));
     if (!in_array($host,['open.tiktokapis.com','api.instagram.com','graph.instagram.com'],true)
       || parse_url($url,PHP_URL_SCHEME)!=='https') throw new RuntimeException('Provedor recusado.');
@@ -17,7 +24,10 @@ function lc_social_oauth_http(string $url, ?array $form=null, ?string $token=nul
       CURLOPT_PROTOCOLS=>CURLPROTO_HTTPS,CURLOPT_HTTPHEADER=>$headers]);
     if($form!==null){curl_setopt($h,CURLOPT_POST,true);curl_setopt($h,CURLOPT_POSTFIELDS,http_build_query($form,'','&',PHP_QUERY_RFC3986));}
     $body=curl_exec($h);$status=(int)curl_getinfo($h,CURLINFO_HTTP_CODE);curl_close($h);
-    if($status!==200||!is_string($body)||strlen($body)>262144)throw new RuntimeException('Falha na autenticação oficial.');
+    if($status!==200||!is_string($body)||strlen($body)>262144){
+        $safeOperation=in_array($operation,['instagram_code','instagram_long'],true)?$operation:'provider';
+        throw new RuntimeException('oauth_http_'.$safeOperation.'_'.($status>=100&&$status<=599?$status:'network'));
+    }
     $data=json_decode($body,true);
     if(!is_array($data))throw new RuntimeException('Resposta inválida do provedor.');
     return $data;
@@ -50,14 +60,14 @@ function lc_social_oauth_exchange(string $network,string $code): array {
     }elseif($network==='instagram'){
         $data=lc_social_oauth_http('https://api.instagram.com/oauth/access_token',[
           'client_id'=>$cfg['client'],'client_secret'=>$cfg['secret'],'grant_type'=>'authorization_code',
-          'redirect_uri'=>LcSocialOAuth::redirectUri($network),'code'=>$code]);
+          'redirect_uri'=>LcSocialOAuth::redirectUri($network),'code'=>$code],null,'instagram_code');
         $access=$data['access_token']??null;$remote=$data['user_id']??null;
         if(!is_string($access)||strlen($access)<10)throw new RuntimeException('Token Instagram ausente.');
         // Instagram Login issues a short-lived token first; exchange server-side.
         // Never persist the short-lived token as a verified connection.
         $long=lc_social_oauth_http('https://graph.instagram.com/access_token?'.http_build_query([
           'grant_type'=>'ig_exchange_token','client_secret'=>$cfg['secret'],'access_token'=>$access
-        ],'','&',PHP_QUERY_RFC3986));
+        ],'','&',PHP_QUERY_RFC3986),null,null,'instagram_long');
         return lc_instagram_exchange_result($data,$long);
     }else throw new InvalidArgumentException('Rede inválida.');
     if(!is_string($access)||strlen($access)<10||!is_scalar($remote)||trim((string)$remote)==='')
@@ -145,7 +155,7 @@ function lc_social_oauth_route(string $method,string $path): bool {
             lc_flash('Conta social conectada e verificada.');
         }catch(Throwable $e){
             // Only stage and exception type: never log authorization codes, tokens or profile identifiers.
-            error_log('LeagueCut OAuth failure provider='.$network.' stage='.$stage.' type='.get_class($e));
+            error_log('LeagueCut OAuth failure provider='.$network.' stage='.$stage.' type='.get_class($e).' reason='.lc_oauth_safe_error_reason($e));
             lc_flash('Não foi possível verificar esta conta. Confirme o @, permissões e tente novamente.','error');
         }
         lc_redirect('/redes');
