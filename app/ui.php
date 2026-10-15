@@ -211,7 +211,7 @@ function lc_auth_dialogs(string $path,?array $flash): void {
   <div class="lc-auth-dialog-inner">
     <button class="lc-auth-close" type="button" aria-label="Fechar janela" data-auth-close>×</button>
     <span class="eyebrow"><?=$isSignup?'Junte-se ao League Cut':'Bem-vindo de volta'?></span>
-    <h2 id="lc-auth-title-<?=$kind?>"><?=$isSignup?'Comece a criar e conquistar.':'Entre na sua arena.'?></h2>
+    <h2 id="lc-auth-title-<?=$kind?>"><?=$isSignup?'Junte-se aos criadores.':'Entre na sua arena.'?></h2>
     <p class="lc-auth-desc"><?=$isSignup?'Crie sua conta para participar de campanhas. Seu cadastro será analisado pela equipe.':'Acompanhe seus clipes, campanhas e recompensas em um só lugar.'?></p>
     <?php if($direct && $flash):?><p class="lc-auth-message <?=$flash['type']==='error'?'is-error':''?>" role="alert"><?=lc_e($flash['message'])?></p><?php endif;?>
     <form method="post" action="/<?=$route?>" class="lc-auth-form"><?=lc_csrf()?>
