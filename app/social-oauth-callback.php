@@ -22,6 +22,15 @@ function lc_social_oauth_http(string $url, ?array $form=null, ?string $token=nul
     if(!is_array($data))throw new RuntimeException('Resposta inválida do provedor.');
     return $data;
 }
+function lc_instagram_long_lived_token(array $response): array {
+    $token=$response['access_token']??null;
+    $ttl=$response['expires_in']??null;
+    if(!is_string($token)||strlen($token)<10||(!is_int($ttl)&&!is_string($ttl))
+       ||!ctype_digit((string)$ttl)||filter_var((string)$ttl,FILTER_VALIDATE_INT,
+           ['options'=>['min_range'=>3600,'max_range'=>31536000]])===false)
+       throw new RuntimeException('Instagram long-lived token indisponível.');
+    return ['access_token'=>$token,'expires_in'=>(int)$ttl];
+}
 function lc_social_oauth_exchange(string $network,string $code): array {
     if($code===''||strlen($code)>2048)throw new InvalidArgumentException('Código inválido.');
     $cfg=LcSocialOAuth::config($network);
@@ -41,10 +50,9 @@ function lc_social_oauth_exchange(string $network,string $code): array {
         $long=lc_social_oauth_http('https://graph.instagram.com/access_token?'.http_build_query([
           'grant_type'=>'ig_exchange_token','client_secret'=>$cfg['secret'],'access_token'=>$access
         ],'','&',PHP_QUERY_RFC3986));
-        if(!is_string($long['access_token']??null)||(int)($long['expires_in']??0)<3600)
-            throw new RuntimeException('Instagram long-lived token indisponível.');
+        $long=lc_instagram_long_lived_token($long);
         $data['access_token']=$long['access_token'];
-        $data['expires_in']=(int)$long['expires_in'];
+        $data['expires_in']=$long['expires_in'];
     }else throw new InvalidArgumentException('Rede inválida.');
     if(!is_string($access)||strlen($access)<10||!is_scalar($remote)||trim((string)$remote)==='')
        throw new RuntimeException('Identidade ou token ausente.');
