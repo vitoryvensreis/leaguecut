@@ -109,6 +109,7 @@ jobs:
           php tests/automation_visual.php
           php tests/wpp_status.php
           node --check public/assets/flow-editor.js
+          node --check public/assets/flow-canvas-v2.js
           python3 tests/ux_smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           php tests/apify_actor_sample.php
           php tests/apify_eligibility.php
