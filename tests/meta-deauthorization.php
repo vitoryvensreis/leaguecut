@@ -11,4 +11,5 @@ foreach([$signed.'x','invalid',$signed.'.more','',$signed] as $i=>$invalid) {
  $key=$i===4?'wrong-secret':$secret;
  if(lc_meta_verify_signed_request($invalid,$key)!==null)throw new RuntimeException('Invalid signed request accepted');
 }
-echo "Meta signed_request validation OK\n";
+if(lc_meta_verify_signed_request($signed,$secret)['user_id']!=='123456')throw new RuntimeException('User ID mismatch');
+echo "Meta signed_request validation OK\\n";
