@@ -90,7 +90,13 @@ function lc_instagram_exchange_result(array $initial,array $long): array {
       'refresh_token'=>null,'expires_in'=>$verified['expires_in'],
       'scopes'=>is_string($initial['scope']??null)?$initial['scope']:''];
 }
+/** Instagram sometimes appends the literal #_ fragment marker to OAuth codes. */
+function lc_instagram_oauth_clean_code(string $code): string {
+    // Remove only the documented trailing fragment marker, never arbitrary code bytes.
+    return str_ends_with($code,'#_') ? substr($code,0,-2) : $code;
+}
 function lc_social_oauth_exchange(string $network,string $code,?string $redirectUri=null): array {
+    if($network==='instagram')$code=lc_instagram_oauth_clean_code($code);
     if($code===''||strlen($code)>2048)throw new InvalidArgumentException('Código inválido.');
     $cfg=LcSocialOAuth::config($network);
     if($network==='tiktok'){
