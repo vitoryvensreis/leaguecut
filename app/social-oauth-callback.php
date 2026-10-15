@@ -35,6 +35,16 @@ function lc_social_oauth_exchange(string $network,string $code): array {
           'client_id'=>$cfg['client'],'client_secret'=>$cfg['secret'],'grant_type'=>'authorization_code',
           'redirect_uri'=>LcSocialOAuth::redirectUri($network),'code'=>$code]);
         $access=$data['access_token']??null;$remote=$data['user_id']??null;
+        if(!is_string($access)||strlen($access)<10)throw new RuntimeException('Token Instagram ausente.');
+        // Instagram Login issues a short-lived token first; exchange server-side.
+        // Never persist the short-lived token as a verified connection.
+        $long=lc_social_oauth_http('https://graph.instagram.com/access_token?'.http_build_query([
+          'grant_type'=>'ig_exchange_token','client_secret'=>$cfg['secret'],'access_token'=>$access
+        ],'','&',PHP_QUERY_RFC3986));
+        if(!is_string($long['access_token']??null)||(int)($long['expires_in']??0)<3600)
+            throw new RuntimeException('Instagram long-lived token indisponível.');
+        $data['access_token']=$long['access_token'];
+        $data['expires_in']=(int)$long['expires_in'];
     }else throw new InvalidArgumentException('Rede inválida.');
     if(!is_string($access)||strlen($access)<10||!is_scalar($remote)||trim((string)$remote)==='')
        throw new RuntimeException('Identidade ou token ausente.');
