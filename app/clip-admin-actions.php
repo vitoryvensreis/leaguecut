@@ -44,6 +44,12 @@ function lc_admin_change_clip(int $clipId,string $decision,int $adminId): string
             [$decision,$decision,$adminId,$clipId]);
         lc_realtime_emit('user',(int)$clip['user_id'],'clip.reviewed','clip',$clipId);
         lc_realtime_emit('admin',null,'clip.reviewed','clip',$clipId);
+        $campaign=lc_one('SELECT title FROM campaigns WHERE id=?',[(int)$clip['campaign_id']]);
+        lc_automation_emit('clip.'.$decision,'clip.'.$decision.':'.$clipId.':'.bin2hex(random_bytes(8)),(int)$clip['user_id'],[
+            'titulo'=>$clip['title'],'campanha'=>$campaign['title']??'',
+            'campaign_id'=>(string)$clip['campaign_id'],'status'=>$decision,
+            'role'=>'clipador','link'=>'/biblioteca'
+        ]);
         if($decision==='approved'){
             lc_settle_week((int)$clip['campaign_id'],(int)$clip['user_id'],(string)$clip['submitted_at']);
             lc_credit_views($clipId);
