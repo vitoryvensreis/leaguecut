@@ -15,6 +15,7 @@ require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/creator-platform.php';
 require __DIR__ . '/creator-billing.php';
 require __DIR__ . '/routes-public.php';
+require __DIR__ . '/routes-legal.php';
 require __DIR__ . '/routes-clipador.php';
 require __DIR__ . '/clip-admin-actions.php';
 require __DIR__ . '/clip-creator-actions.php';
