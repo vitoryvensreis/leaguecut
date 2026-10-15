@@ -3,6 +3,9 @@ declare(strict_types=1);
 /** OAuth preparation: state is single-use, user-bound and expires after ten minutes. */
 /** Per-provider rollout lock: global permission alone must never enable both networks. */
 function lc_social_oauth_provider_enabled(string $provider): bool {
+    // Instagram official OAuth is suspended until the Meta app is approved.
+    // Apify supplies Instagram views; stale .env flags cannot re-enable login.
+    if($provider==='instagram')return false;
     $flag=match($provider) {
         'instagram'=>'HYBRID_INSTAGRAM_OAUTH_ENABLED',
         'tiktok'=>'HYBRID_TIKTOK_OAUTH_ENABLED',
