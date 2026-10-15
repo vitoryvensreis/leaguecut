@@ -79,6 +79,10 @@ function lc_clipper_update_clip(int $clipId,int $userId,array $post,array $files
                 // Never display metrics associated with a different Instagram post.
                 lc_query('DELETE FROM clip_daily_views WHERE clip_id=?',[$clipId]);
                 lc_query('DELETE FROM clip_view_samples WHERE clip_id=?',[$clipId]);
+                // Old hybrid evidence belongs to the previous publication, never to the new link.
+                lc_query('DELETE FROM clip_verification_observations WHERE clip_id=?',[$clipId]);
+                lc_query('DELETE FROM clip_verification_state WHERE clip_id=?',[$clipId]);
+                lc_hybrid_submission($clipId,(string)$account['network'],$url);
             }
             lc_realtime_emit('admin',null,'clip.updated','clip',$clipId);
             lc_realtime_emit('user',$userId,'clip.updated','clip',$clipId);

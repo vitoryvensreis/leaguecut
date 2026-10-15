@@ -171,6 +171,38 @@ try{
                WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=".$db->quote($table))->fetchAll(PDO::FETCH_COLUMN);
        if(array_diff($columns,$actual))throw new RuntimeException('Estrutura do pacote incompleta: '.$table);
     }
+    // Additive hybrid/Meta migrations; require a consistent dump first.
+    $hybridTables=['clip_verification_state','clip_verification_observations',
+                   'social_oauth_connections','meta_deauthorization_inbox'];
+    $missingHybrid=[];
+    foreach($hybridTables as $table){
+        if(!lc_one("SELECT 1 AS found FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?",[$table]))$missingHybrid[]=$table;
+    }
+    if($missingHybrid)lc_migration_backup();
+    foreach([
+        ['20261014_hybrid_verification.sql',[
+            'clip_verification_state','clip_verification_observations','social_oauth_connections']],
+        ['20261015_meta_deauthorization_inbox.sql',['meta_deauthorization_inbox']]
+    ] as [$filename,$tables]){
+        $sql=file_get_contents(dirname(__DIR__).'/database/migrations/'.$filename);
+        if(!is_string($sql))throw new RuntimeException('Migração não encontrada: '.$filename);
+        $sql=(string)preg_replace('/^\\s*--[^\\n]*\\n/m','',$sql);
+        $statements=array_values(array_filter(array_map('trim',explode(';',$sql))));
+        if(count($statements)!==count($tables))throw new RuntimeException('Migração inesperada: '.$filename);
+        foreach($statements as $i=>$statement){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($tables[$i],'/').'\\s*\\(/i',$statement))
+                throw new RuntimeException('SQL não autorizado: '.$filename);
+            $db->exec($statement);
+        }
+    }
+    foreach($hybridTables as $table){
+        if(!lc_one("SELECT 1 AS found FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?",[$table]))
+            throw new RuntimeException('Tabela híbrida ausente: '.$table);
+    }
+    echo "MIGRACAO_HIBRIDA_OK\\n";
+
     echo "MIGRACAO_CRIADOR_ASSINATURAS_OK\n";
 
 

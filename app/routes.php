@@ -7,12 +7,16 @@ require __DIR__ . '/brand.php';
 require __DIR__ . '/routes-home-admin.php';
 require __DIR__ . '/drive.php';
 require __DIR__ . '/apify.php';
+require __DIR__ . '/hybrid-persistence.php';
+require __DIR__ . '/social-oauth-callback.php';
+require __DIR__ . '/social-oauth-lifecycle.php';
 require __DIR__ . '/routes-clip-video.php';
 require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/creator-platform.php';
 require __DIR__ . '/creator-billing.php';
 require __DIR__ . '/routes-public.php';
 require __DIR__ . '/routes-legal.php';
+require __DIR__ . '/meta-deauthorization.php';
 require __DIR__ . '/routes-clipador.php';
 require __DIR__ . '/clip-admin-actions.php';
 require __DIR__ . '/clip-creator-actions.php';
@@ -24,7 +28,7 @@ $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
 $path = $path==='/'?'/':rtrim($path,'/');
 if (!in_array($method,['GET','POST'],true)) {http_response_code(405);header('Allow: GET, POST');exit('Método não permitido.');}
-if ($method==='POST') lc_check_csrf();
+if ($method==='POST' && $path!=='/redes/oauth/instagram/desautorizacao') lc_check_csrf();
 if($method==='GET' && preg_match('~^/media/brand/([a-f0-9]{36})$~D',$path,$brandMatch)) {
     lc_brand_logo_response($brandMatch[1]);
 }
@@ -36,6 +40,8 @@ if ($path==='/health' && $method==='GET') {
     lc_db()->query('SELECT 1');
     echo 'LeagueCut OK';return;
 }
+if(lc_meta_deauthorization_route($method,$path))return;
+if(lc_social_oauth_route($method,$path))return;
 if(lc_clip_video_route($method,$path))return;
 if(lc_realtime_route($method,$path))return;
 if(lc_integrations_routes($method,$path))return;

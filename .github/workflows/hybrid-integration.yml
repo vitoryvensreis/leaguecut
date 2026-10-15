@@ -1,0 +1,47 @@
+name: Hybrid integration checks
+on:
+  pull_request:
+    paths:
+      - 'app/hybrid-*.php'
+      - 'app/*oauth*.php'
+      - 'app/*official-metrics.php'
+      - 'app/routes.php'
+      - 'app/routes-clipador.php'
+      - 'bin/hybrid-*.php'
+      - 'tests/hybrid-*.php'
+      - 'tests/social-oauth*.php'
+      - 'tests/*official-metrics.php'
+      - 'database/migrations/*hybrid*.sql'
+      - '.github/workflows/hybrid-integration.yml'
+  workflow_dispatch:
+jobs:
+  php-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: PHP 8.4 environment
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: curl, openssl, pdo_mysql, mbstring
+          coverage: none
+      - name: Lint PHP integration files
+        run: |
+          set -euo pipefail
+          for file in app/hybrid-verification.php app/hybrid-persistence.php app/social-oauth.php app/social-oauth-callback.php app/social-oauth-lifecycle.php app/official-metrics.php app/tiktok-official-metrics.php app/instagram-official-metrics.php bin/hybrid-youtube-sync.php bin/hybrid-tiktok-sync.php bin/hybrid-instagram-sync.php bin/migrate.php app/routes.php app/routes-legal.php app/meta-deauthorization.php app/ui.php app/routes-clipador.php app/clip-creator-actions.php bin/hybrid-backfill.php bin/hybrid-release-preflight.php; do
+            php -l "$file"
+          done
+      - name: Execute isolated policy and adapter tests
+        run: |
+          set -euo pipefail
+          for test in tests/hybrid-verification.php tests/hybrid-persistence.php tests/hybrid-network-guard.php tests/social-oauth.php tests/social-oauth-identity.php tests/social-oauth-lifecycle.php tests/social-oauth-expiry.php tests/instagram-long-token.php tests/instagram-callback-long-token.php tests/meta-deauthorization.php tests/instagram-refresh.php tests/social-oauth-connection-status.php tests/official-metrics.php tests/tiktok-official-metrics.php tests/instagram-official-metrics.php; do
+            php "$test"
+          done
+      - name: Ensure sync disabled by default
+        run: |
+          set -euo pipefail
+          for file in bin/hybrid-youtube-sync.php bin/hybrid-tiktok-sync.php bin/hybrid-instagram-sync.php; do
+            output="$(php "$file" 2>&1)" && { echo "Unexpected enabled sync: $file"; exit 1; } || code=$?
+            test "$code" = 2 || { echo "Unexpected status $code for $file"; echo "$output"; exit 1; }
+          done
