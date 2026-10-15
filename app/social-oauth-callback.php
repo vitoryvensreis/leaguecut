@@ -51,7 +51,8 @@ function lc_social_oauth_exchange(string $network,string $code): array {
           'grant_type'=>'ig_exchange_token','client_secret'=>$cfg['secret'],'access_token'=>$access
         ],'','&',PHP_QUERY_RFC3986));
         $long=lc_instagram_long_lived_token($long);
-        $data['access_token']=$long['access_token'];
+        $access=$long['access_token']; // Always verify and store the long-lived token.
+        $data['access_token']=$access;
         $data['expires_in']=$long['expires_in'];
     }else throw new InvalidArgumentException('Rede inválida.');
     if(!is_string($access)||strlen($access)<10||!is_scalar($remote)||trim((string)$remote)==='')
