@@ -29,13 +29,13 @@ jobs:
       - name: Lint PHP integration files
         run: |
           set -euo pipefail
-          for file in app/hybrid-verification.php app/hybrid-persistence.php app/social-oauth.php app/social-oauth-callback.php app/social-oauth-lifecycle.php app/official-metrics.php app/tiktok-official-metrics.php app/instagram-official-metrics.php bin/hybrid-youtube-sync.php bin/hybrid-tiktok-sync.php bin/hybrid-instagram-sync.php app/routes.php app/routes-clipador.php app/clip-creator-actions.php bin/hybrid-backfill.php bin/hybrid-release-preflight.php; do
+          for file in app/hybrid-verification.php app/hybrid-persistence.php app/social-oauth.php app/social-oauth-callback.php app/social-oauth-lifecycle.php app/official-metrics.php app/tiktok-official-metrics.php app/instagram-official-metrics.php bin/hybrid-youtube-sync.php bin/hybrid-tiktok-sync.php bin/hybrid-instagram-sync.php app/routes.php app/routes-legal.php app/meta-deauthorization.php app/ui.php app/routes-clipador.php app/clip-creator-actions.php bin/hybrid-backfill.php bin/hybrid-release-preflight.php; do
             php -l "$file"
           done
       - name: Execute isolated policy and adapter tests
         run: |
           set -euo pipefail
-          for test in tests/hybrid-verification.php tests/hybrid-persistence.php tests/hybrid-network-guard.php tests/social-oauth.php tests/social-oauth-identity.php tests/social-oauth-lifecycle.php tests/social-oauth-expiry.php tests/instagram-long-token.php tests/instagram-callback-long-token.php tests/instagram-refresh.php tests/social-oauth-connection-status.php tests/official-metrics.php tests/tiktok-official-metrics.php tests/instagram-official-metrics.php; do
+          for test in tests/hybrid-verification.php tests/hybrid-persistence.php tests/hybrid-network-guard.php tests/social-oauth.php tests/social-oauth-identity.php tests/social-oauth-lifecycle.php tests/social-oauth-expiry.php tests/instagram-long-token.php tests/instagram-callback-long-token.php tests/meta-deauthorization.php tests/instagram-refresh.php tests/social-oauth-connection-status.php tests/official-metrics.php tests/tiktok-official-metrics.php tests/instagram-official-metrics.php; do
             php "$test"
           done
       - name: Ensure sync disabled by default
