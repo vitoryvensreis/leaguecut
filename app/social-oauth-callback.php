@@ -66,7 +66,9 @@ function lc_social_oauth_verified_profile(array $account,string $network,array $
     return true;
 }
 function lc_social_oauth_save(array $account,string $network,array $token): void {
-    $expiry=$token['expires_in']>0?gmdate('Y-m-d H:i:s',time()+$token['expires_in']):null;
+    // An unknown expiry cannot establish a valid connected state. Require reauthorization or provider-specific token exchange.
+    if((int)($token['expires_in']??0)<60)throw new RuntimeException('Token sem prazo de validade confirmado.');
+    $expiry=gmdate('Y-m-d H:i:s',time()+(int)$token['expires_in']);
     lc_query('INSERT INTO social_oauth_connections
        (social_account_id,provider,provider_user_id,access_token_enc,refresh_token_enc,scopes,expires_at,revoked_at)
        VALUES(?,?,?,?,?,?,?,NULL)
