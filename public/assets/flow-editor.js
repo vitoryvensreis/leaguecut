@@ -150,9 +150,7 @@ if(editor){
  function render(){renderNodes();renderInspector();}
  const form=document.getElementById('lc-flow-form');
  document.getElementById('lc-flow-save').addEventListener('click',()=>{
-   const name=window.prompt('Nome da automação:',editor.querySelector('h1')?.textContent||'Novo fluxo');
-   if(!name)return;
-   const clean=name.trim();if(clean.length<3||clean.length>140){alert('Nome deve ter de 3 a 140 caracteres.');return;}
+   const clean=document.getElementById('lc-flow-title').value.trim();if(clean.length<3||clean.length>140){alert('Nome deve ter de 3 a 140 caracteres.');return;}
    if(!graph.nodes.some(n=>n.type==='trigger')||!graph.nodes.some(n=>['whatsapp','email','in_app'].includes(n.type))){alert('É necessário um gatilho e ao menos uma ação.');return;}
    document.getElementById('lc-flow-form-name').value=clean;
    document.getElementById('lc-flow-form-json').value=JSON.stringify(graph);
@@ -160,6 +158,8 @@ if(editor){
  });
  document.getElementById('lc-flow-add-condition').addEventListener('click',()=>addNode('condition'));
  document.getElementById('lc-flow-add-action').addEventListener('click',()=>addNode('whatsapp'));
+ document.getElementById('lc-flow-add-end').addEventListener('click',()=>addNode('end'));
+ document.getElementById('lc-flow-title').addEventListener('input',changed);
  document.getElementById('lc-flow-fit').addEventListener('click',()=>{
     scroll.scrollTo({left:Math.max(0,Math.min(...graph.nodes.map(n=>n.x))-45),top:Math.max(0,Math.min(...graph.nodes.map(n=>n.y))-65),behavior:'smooth'});
  });
