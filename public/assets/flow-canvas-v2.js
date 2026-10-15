@@ -8,6 +8,8 @@ const catalog=JSON.parse(document.getElementById('lc-flow-catalog').textContent)
 const scroller=document.getElementById('lc-flow-scroller');
 const canvas=document.getElementById('lc-flow-canvas');
 const wires=document.getElementById('lc-flow-edges');
+wires.setAttribute('width','10000');
+wires.setAttribute('height','10000');
 const nodesLayer=document.getElementById('lc-flow-nodes');
 const inspector=document.getElementById('lc-flow-inspector-body');
 const inspectorTitle=document.getElementById('lc-flow-inspector-title');
