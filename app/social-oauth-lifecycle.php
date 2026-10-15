@@ -54,3 +54,30 @@ function lc_social_oauth_disconnect(int $socialId,int $userId,string $network): 
       lc_db()->commit();
     }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
 }
+
+/** Conservative eligibility: valid token, older than 24h, with <=30 days left. */
+function lc_instagram_refresh_due(array $row, ?int $now=null): bool {
+    if(($row['provider']??'')!=='instagram'||!empty($row['revoked_at'])||empty($row['access_token_enc']))return false;
+    $now??=time();
+    $created=strtotime((string)($row['connected_at']??'').' UTC');
+    $expiry=strtotime((string)($row['expires_at']??'').' UTC');
+    return $created!==false && $expiry!==false
+       && $created<=$now-86400 && $expiry>$now+3600 && $expiry<=$now+30*86400;
+}
+function lc_social_oauth_refresh_instagram(array $row): bool {
+    if(!lc_instagram_refresh_due($row))return false;
+    $existing=lc_decrypt((string)$row['access_token_enc']);
+    if(strlen($existing)<10)return false;
+    // Instagram Login refreshes long-lived access tokens using the same token.
+    // Credentials stay on backend; no user-controlled URL or automatic retry.
+    $endpoint='https://graph.instagram.com/refresh_access_token?'.http_build_query([
+      'grant_type'=>'ig_refresh_token','access_token'=>$existing
+    ],'','&',PHP_QUERY_RFC3986);
+    $data=lc_social_oauth_http($endpoint);
+    $long=lc_instagram_long_lived_token($data);
+    $newExpiry=gmdate('Y-m-d H:i:s',time()+$long['expires_in']);
+    $updated=lc_query('UPDATE social_oauth_connections SET access_token_enc=?,expires_at=?
+      WHERE id=? AND provider=? AND revoked_at IS NULL AND access_token_enc=?',
+      [lc_encrypt($long['access_token']),$newExpiry,(int)$row['id'],'instagram',$row['access_token_enc']]);
+    return $updated->rowCount()===1;
+}
