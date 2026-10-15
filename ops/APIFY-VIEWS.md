@@ -8,12 +8,13 @@
 - `clip_view_samples` registra visualizações **observadas**, não verifica propriedade da conta e não libera saldo/pagamentos. Admin aprova métricas financeiras separadamente.
 - O histórico `apify_profile_runs` mantém reservas por publicação, inclusive falhas, prevenindo repetição no mesmo dia. O nome da coluna `username` é mantido para compatibilidade com a migração existente e armazena `post:SHORTCODE` para as novas execuções.
 - O job usa `maxItems=1` e `maxTotalChargeUsd` por execução, teto diário agregado e máximo de execuções/dia; padrão: US$ 0,05, US$ 0,15/dia, 3 execuções/dia, 24h entre consultas ao mesmo post.
-- **Segurança:** `APIFY_SYNC_ENABLED=0` por padrão. Não ative cron até uma execução real confirmar valores. Apify API Token permanece no `.env` privado. Uso de scraping não equivale a dados autorizados da Meta Graph API.
+- **Agendamento ativo:** GitHub Actions executa `bin/sync-apify-views.php` diariamente às **02:00 de Fortaleza** (`05:00 UTC`), desde que exista `APIFY_API_TOKEN` no `.env` privado. A antiga flag `APIFY_SYNC_ENABLED` é ignorada. A execução depende da pontualidade do GitHub Actions e pode atrasar.
+- **Segurança:** limites de custo e de chamadas continuam obrigatórios; o token não deve aparecer em logs. Uso de scraping não equivale a dados autorizados da Meta Graph API.
 
-## Após teste
-1. Verifique em **ADM → Integrações** se as métricas apareceram e se o histórico registra uma execução.
-2. Caso haja um vídeo válido e todos os limites confirmados, ajuste `APIFY_SYNC_ENABLED=1` no `.env` para habilitar os próximos ciclos agendados, ou mantenha desativado.
-3. Views coletadas não são tempo real; o coletor consulta sob orçamento e cache e o Instagram pode ocultar métricas.
+## Operação diária
+1. Confirme que `APIFY_API_TOKEN` existe em `/home/leaguecut/shared/.env`; sem ele, o workflow informa falha e não dispara Actor cobrado.
+2. Confirme o job diário em **GitHub Actions → LeagueCut views daily 02h Fortaleza - limited Apify** e as métricas em **ADM → Integrações**.
+3. Views não são tempo real. A consulta usa orçamento e cache; o Instagram pode ocultar métricas. Para suspender cobranças, desative o workflow agendado no GitHub ou remova o token do `.env`.
 
 ## Seleção automática de clipes (teste real)
 O scraper só consulta clipes **aprovados**, com vídeo original presente no Google Drive e pertencentes a campanhas ativas. Pendentes e rejeitados não consomem chamadas. Os valores encontrados são apenas *views observadas* e não geram créditos sem revisão.
