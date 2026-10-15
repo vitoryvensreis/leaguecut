@@ -28,11 +28,22 @@ function lc_meta_deauthorization_route(string $method,string $path):bool {
     if(!is_string($signed)||($payload=lc_meta_verify_signed_request($signed,$secret))===null){
         http_response_code(403);echo '{"error":"invalid_signature"}';return true;
     }
-    // A Meta deauthorization user_id may be app-scoped and is not necessarily
-    // the same identifier as an Instagram Login user_id. Never guess ownership.
-    // Fail closed rather than pretend revocation succeeded if account matching
-    // is unavailable or the OAuth migration was not deployed.
-    http_response_code(503);
-    echo '{"error":"deauthorization_requires_identity_mapping"}';
+    // Never equate Meta app-scoped identity with Instagram Login user ID.
+    // Persist the signed request for manual reconciliation after a verified mapping exists.
+    $userId=$payload['user_id']??null;
+    if(!is_scalar($userId)||!preg_match('/^[0-9]{1,40}$/',(string)$userId)){
+        http_response_code(422);echo '{"error":"invalid_user_id"}';return true;
+    }
+    $eventHash=hash_hmac('sha256',$signed,$secret);
+    $userHash=hash_hmac('sha256',(string)$userId,$secret);
+    try {
+        lc_query("INSERT IGNORE INTO meta_deauthorization_inbox
+          (event_hash,app_scoped_user_hash) VALUES (?,?)",[$eventHash,$userHash]);
+    }catch(Throwable $e){
+        error_log('LeagueCut signed Meta callback persistence unavailable');
+        http_response_code(503);echo '{"error":"temporarily_unavailable"}';return true;
+    }
+    http_response_code(202);
+    echo '{"status":"received_pending_identity_reconciliation"}';
     return true;
 }
