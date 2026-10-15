@@ -4,9 +4,23 @@ require_once __DIR__.'/social-oauth.php';
 
 function lc_oauth_safe_error_reason(Throwable $error): string {
     $message=$error->getMessage();
-    if(preg_match('/^oauth_http_(instagram_code|instagram_long)_(network|[1-5][0-9]{2})$/D',$message))
+    if(preg_match('/^oauth_http_(instagram_code|instagram_long)_(network|[1-5][0-9]{2})(?:_code[0-9]{1,8})?(?:_subcode[0-9]{1,8})?$/D',$message))
         return $message;
     return 'unspecified';
+}
+
+/** Only numeric fields from the official Meta error object can be logged. */
+function lc_meta_oauth_error_suffix(string $body): string {
+    if(strlen($body)>8192)return '';
+    $parsed=json_decode($body,true);
+    $error=is_array($parsed)?($parsed['error']??null):null;
+    if(!is_array($error))return '';
+    $parts=[];
+    foreach(['code'=>'code','error_subcode'=>'subcode'] as $key=>$label){
+        $value=$error[$key]??null;
+        if((is_int($value)||is_string($value)) && preg_match('/^[0-9]{1,8}$/D',(string)$value))$parts[]=$label.(string)$value;
+    }
+    return $parts?'_'.implode('_',$parts):'';
 }
 
 /** Only fixed official HTTPS hosts. Never log or expose tokens and codes. */
@@ -26,7 +40,8 @@ function lc_social_oauth_http(string $url, ?array $form=null, ?string $token=nul
     $body=curl_exec($h);$status=(int)curl_getinfo($h,CURLINFO_HTTP_CODE);curl_close($h);
     if($status!==200||!is_string($body)||strlen($body)>262144){
         $safeOperation=in_array($operation,['instagram_code','instagram_long'],true)?$operation:'provider';
-        throw new RuntimeException('oauth_http_'.$safeOperation.'_'.($status>=100&&$status<=599?$status:'network'));
+        $suffix=$safeOperation==='instagram_code' && is_string($body)?lc_meta_oauth_error_suffix($body):'';
+        throw new RuntimeException('oauth_http_'.$safeOperation.'_'.($status>=100&&$status<=599?$status:'network').$suffix);
     }
     $data=json_decode($body,true);
     if(!is_array($data))throw new RuntimeException('Resposta inválida do provedor.');
