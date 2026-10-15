@@ -24,7 +24,7 @@ function lc_meta_deauthorization_route(string $method,string $path):bool {
     header('Cache-Control: no-store');
     if($method!=='POST'){http_response_code(405);header('Allow: POST');echo '{"error":"method_not_allowed"}';return true;}
     $signed=$_POST['signed_request']??null;
-    $secret=lc_env('INSTAGRAM_APP_SECRET');
+    $secret=lc_env('META_APP_SECRET');
     if(!is_string($signed)||($payload=lc_meta_verify_signed_request($signed,$secret))===null){
         http_response_code(403);echo '{"error":"invalid_signature"}';return true;
     }
