@@ -1,6 +1,17 @@
 <?php
 declare(strict_types=1);
 /** OAuth preparation: state is single-use, user-bound and expires after ten minutes. */
+/** Per-provider rollout lock: global permission alone must never enable both networks. */
+function lc_social_oauth_provider_enabled(string $provider): bool {
+    $flag=match($provider) {
+        'instagram'=>'HYBRID_INSTAGRAM_OAUTH_ENABLED',
+        'tiktok'=>'HYBRID_TIKTOK_OAUTH_ENABLED',
+        default=>null
+    };
+    return $flag!==null && lc_env('HYBRID_SOCIAL_OAUTH_ENABLED','0')==='1'
+        && lc_env($flag,'0')==='1';
+}
+
 final class LcSocialOAuth
 {
     public static function config(string $provider): array
