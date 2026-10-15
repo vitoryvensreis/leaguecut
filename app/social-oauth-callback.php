@@ -4,7 +4,7 @@ require_once __DIR__.'/social-oauth.php';
 
 function lc_oauth_safe_error_reason(Throwable $error): string {
     $message=$error->getMessage();
-    if(preg_match('/^oauth_http_(instagram_code|instagram_long)_(network|[1-5][0-9]{2})(?:_code[0-9]{1,8})?(?:_subcode[0-9]{1,8})?$/D',$message))
+    if(preg_match('/^oauth_http_(instagram_code|instagram_long)_(network|[1-5][0-9]{2})(?:_code[0-9]{1,8})?(?:_subcode[0-9]{1,8})?(?:_category(?:redirect_mismatch|code_expired|code_reused|invalid_code|client_credentials|unknown))?$/D',$message))
         return $message;
     return 'unspecified';
 }
@@ -25,6 +25,29 @@ function lc_meta_oauth_error_suffix(string $body): string {
     return $parts?'_'.implode('_',$parts):'';
 }
 
+/** Classify only known, provider-authored error messages; never persist raw messages. */
+function lc_instagram_oauth_error_category(string $body): string {
+    if(strlen($body)>8192)return 'unknown';
+    $data=json_decode($body,true);
+    if(!is_array($data))return 'unknown';
+    $error=is_array($data['error']??null)?$data['error']:$data;
+    $message=$error['error_message']??$error['message']??null;
+    if(!is_string($message)||strlen($message)>2048)return 'unknown';
+    $lower=strtolower($message);
+    if(str_contains($lower,'redirect_uri') || str_contains($lower,'redirect uri') ||
+       str_contains($lower,'redirect url'))return 'redirect_mismatch';
+    if((str_contains($lower,'authorization code')||str_contains($lower,'authorization_code')||
+        str_contains($lower,'auth code')||str_contains($lower,'code')) &&
+       (str_contains($lower,'expired')||str_contains($lower,'expire')))return 'code_expired';
+    if(str_contains($lower,'already used')||str_contains($lower,'already been used')||
+       str_contains($lower,'previously used'))return 'code_reused';
+    if((str_contains($lower,'code')||str_contains($lower,'authorization')) &&
+       (str_contains($lower,'invalid')||str_contains($lower,'not valid')))return 'invalid_code';
+    if(str_contains($lower,'client_secret')||str_contains($lower,'client secret')||
+       str_contains($lower,'invalid client')||str_contains($lower,'client_id'))return 'client_credentials';
+    return 'unknown';
+}
+
 /** Only fixed official HTTPS hosts. Never log or expose tokens and codes. */
 function lc_social_oauth_http(string $url, ?array $form=null, ?string $token=null, string $operation=''): array {
     $host=strtolower((string)parse_url($url,PHP_URL_HOST));
@@ -43,6 +66,7 @@ function lc_social_oauth_http(string $url, ?array $form=null, ?string $token=nul
     if($status!==200||!is_string($body)||strlen($body)>262144){
         $safeOperation=in_array($operation,['instagram_code','instagram_long'],true)?$operation:'provider';
         $suffix=$safeOperation==='instagram_code' && is_string($body)?lc_meta_oauth_error_suffix($body):'';
+        if($safeOperation==='instagram_code' && is_string($body))$suffix.='_category'.lc_instagram_oauth_error_category($body);
         throw new RuntimeException('oauth_http_'.$safeOperation.'_'.($status>=100&&$status<=599?$status:'network').$suffix);
     }
     $data=json_decode($body,true);
