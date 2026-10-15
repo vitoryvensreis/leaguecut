@@ -1,4 +1,5 @@
 -- Assertions fail with duplicate key violations or missing tables/FKs.
+CREATE TEMPORARY TABLE ci_assert_financial (ok TINYINT NOT NULL, CONSTRAINT chk_financial CHECK (ok=1));
 START TRANSACTION;
 INSERT INTO users (id,full_name,email,password_hash,whatsapp,instagram,pix_key_enc)
 VALUES (900001,'Test Clipador','hybrid_ci@example.invalid','ci-hash','85999999999','hybrid_ci','ci-encrypted-placeholder');
@@ -16,14 +17,5 @@ VALUES (900001,'instagram','ci-remote','ci-encrypted-placeholder','instagram_bus
 -- No ledger entries are created by verification writes.
 SET @ledger_count := (SELECT COUNT(*) FROM ledger_entries WHERE clip_id=900001);
 SET @verified_views := (SELECT verified_views FROM clips WHERE id=900001);
-DELIMITER //
-CREATE PROCEDURE assert_hybrid_finance()
-BEGIN
- IF @ledger_count <> 0 OR @verified_views <> 0 THEN
-  SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Hybrid verification changed financial counts';
- END IF;
-END//
-DELIMITER ;
-CALL assert_hybrid_finance();
-DROP PROCEDURE assert_hybrid_finance;
+INSERT INTO ci_assert_financial(ok) VALUES (IF(@ledger_count=0 AND @verified_views=0,1,0));
 ROLLBACK;
