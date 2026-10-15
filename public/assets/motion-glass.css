@@ -25,7 +25,7 @@
 .lc-motion-ready .lc-reveal:not(.lc-inview){opacity:0;transform:translateY(16px)}
 .lc-motion-ready .lc-reveal.lc-inview{opacity:1;transform:translateY(0);transition:opacity .65s cubic-bezier(.16,1,.3,1),transform .65s cubic-bezier(.16,1,.3,1)}
 @keyframes lc-hero-in{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
-@keyframes lc-hero-side{from{opacity:0;transform:translateX(23px)}to{opacity:1;transform:translateX(0)}}
+@keyframes lc-hero-side{from{transform:translateX(23px)}to{transform:translateX(0)}}
 /* Automation builder */
 .lc-automations{max-width:1460px}
 .lc-automations-heading{display:flex;justify-content:space-between;align-items:center;gap:25px;margin:16px 0 28px}
