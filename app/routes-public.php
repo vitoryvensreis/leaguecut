@@ -113,18 +113,7 @@ function lc_public_routes(string $method,string $path): bool {
     if ($method==='GET' && $path==='/cadastrar') {
         if ($current=lc_user()) lc_redirect($current['role']==='criador'?'/criador':'/dashboard');
         lc_page('Crie sua conta',function(){ ?>
-<div class="auth-layout"><div class="auth-box"><span class="eyebrow">Comece por aqui</span><h1>Junte-se aos criadores.</h1><p>Preencha o cadastro para entrar na fila de aprovação.</p>
-<div class="panel"><form action="/cadastrar" method="post"><?=lc_csrf()?><div class="form-grid">
-<?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
-<?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?>
-<?php lc_field('Senha (mínimo 10 caracteres)','password','password','',true,'Crie uma senha forte','minlength="10" autocomplete="new-password"'); ?>
-<?php lc_field('Instagram (seu @)','instagram','text','',true,'@seuperfil'); ?>
-<?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'85999999999'); ?>
-<?php lc_field('Portfólio (link HTTPS, opcional)','portfolio_url','url','',false,'https://...'); ?>
-<?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?>
-<label class="field full"><span><input type="checkbox" name="consent_whatsapp" value="1" style="width:auto"> Aceito receber avisos operacionais sobre meu cadastro por WhatsApp.</span></label>
-</div><div class="form-actions"><button class="btn" type="submit">Enviar cadastro →</button><a href="/entrar">Já tenho conta</a></div>
-<p class="form-note">Seu cadastro fica pendente até aprovação manual. A chave Pix é armazenada criptografada.</p></form></div></div></div>
+<div class="lc-auth-deeplink"><span class="eyebrow">Bem-vindo ao League Cut</span><h1>Sua criatividade merece destaque.</h1><p>O formulário de cadastro está aberto em uma janela. Se você o fechou, pode <a href="/cadastrar">abrir novamente</a>.</p></div>
 <?php });return true;
     }
     if ($method==='POST' && $path==='/cadastrar') {
@@ -144,11 +133,7 @@ function lc_public_routes(string $method,string $path): bool {
     if ($method==='GET' && $path==='/entrar') {
         if($current=lc_user())lc_redirect($current['role']==='criador'?'/criador':'/dashboard');
         lc_page('Entrar',function(){ ?>
-<div class="auth-layout"><div class="auth-box"><span class="eyebrow">Bem-vindo de volta</span><h1>Sua próxima campanha começa aqui.</h1><p>Entre para acompanhar suas entregas e recompensas.</p>
-<div class="panel"><form method="post" action="/entrar"><?=lc_csrf()?><div class="form-grid">
-<div class="full"><?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?></div>
-<div class="full"><?php lc_field('Senha','password','password','',true,'Sua senha','autocomplete="current-password"'); ?></div>
-</div><div class="form-actions"><button class="btn" type="submit">Entrar →</button><a href="/cadastrar">Criar conta</a></div></form></div></div></div>
+<div class="lc-auth-deeplink"><span class="eyebrow">Bem-vindo de volta</span><h1>Seu próximo clipe começa aqui.</h1><p>O login está aberto em uma janela. Se você o fechou, pode <a href="/entrar">abrir novamente</a>.</p></div>
 <?php });return true;
     }
     if ($method==='POST' && $path==='/entrar') {
