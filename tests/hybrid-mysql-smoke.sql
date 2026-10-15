@@ -16,5 +16,14 @@ VALUES (900001,'instagram','ci-remote','ci-encrypted-placeholder','instagram_bus
 -- No ledger entries are created by verification writes.
 SET @ledger_count := (SELECT COUNT(*) FROM ledger_entries WHERE clip_id=900001);
 SET @verified_views := (SELECT verified_views FROM clips WHERE id=900001);
-SELECT IF(@ledger_count=0 AND @verified_views=0,1,1/0) AS financial_isolation;
+DELIMITER //
+CREATE PROCEDURE assert_hybrid_finance()
+BEGIN
+ IF @ledger_count <> 0 OR @verified_views <> 0 THEN
+  SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Hybrid verification changed financial counts';
+ END IF;
+END//
+DELIMITER ;
+CALL assert_hybrid_finance();
+DROP PROCEDURE assert_hybrid_finance;
 ROLLBACK;
