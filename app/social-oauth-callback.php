@@ -79,6 +79,7 @@ function lc_social_oauth_save(array $account,string $network,array $token): void
 }
 function lc_social_oauth_route(string $method,string $path): bool {
     if(!preg_match('~^/redes/oauth/(instagram|tiktok)/(iniciar|callback)$~D',$path,$m))return false;
+    if(lc_env('HYBRID_SOCIAL_OAUTH_ENABLED','0')!=='1'){http_response_code(404);exit('Integração indisponível.');}
     $network=$m[1];$action=$m[2];$user=lc_login_required();
     if($user['role']!=='clipador'){http_response_code(403);exit('Acesso restrito.');}
     if($action==='iniciar'&&$method==='POST'){

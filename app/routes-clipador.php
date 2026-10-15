@@ -80,9 +80,10 @@ function lc_clipper_routes(string $method,string $path): bool {
     }
     if($method==='GET' && $path==='/redes'){
         $u=lc_login_required();$accounts=lc_all('SELECT * FROM social_accounts WHERE user_id=? ORDER BY id DESC',[$u['id']]);
-        lc_page('Minhas redes',function()use($accounts){?>
+        $oauthEnabled=lc_env('HYBRID_SOCIAL_OAUTH_ENABLED','0')==='1';
+        lc_page('Minhas redes',function()use($accounts,$oauthEnabled){?>
 <div class="container container-md"><?php lc_heading('Perfis de publicação','Minhas redes','Adicione seus perfis de Instagram e TikTok. Você pode cadastrar quantos quiser.'); ?>
-<div class="alert">Por enquanto, os perfis são declarados manualmente. A propriedade da conta e as métricas ainda não são verificadas por OAuth.</div>
+<div class="alert"><?= $oauthEnabled ? "Os perfis são informados manualmente até que a autorização oficial seja concluída e conferida." : "A conexão oficial está em preparação. Perfis adicionados manualmente não comprovam propriedade nem validam métricas." ?></div>
 <div class="panel"><h2>Adicionar perfil</h2><form method="post" action="/redes"><?=lc_csrf()?><div class="form-inline">
 <label class="field"><span>Rede</span><select name="network"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select></label>
 <?php lc_field('Usuário (sem @)','username','text','',true,'seuperfil'); ?>
@@ -90,8 +91,14 @@ function lc_clipper_routes(string $method,string $path): bool {
 <div class="panel"><h2>Perfis cadastrados</h2>
 <?php if(!$accounts):lc_empty('Nenhuma rede cadastrada','Cadastre uma conta para começar a enviar publicações.');
 else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th>Integração</th></tr></thead><tbody><?php foreach($accounts as $a):?><tr>
-<td><?=lc_e(ucfirst($a['network']))?></td><td><a href="<?=lc_e($a['profile_url'])?>" target="_blank" rel="noopener noreferrer">@<?=lc_e($a['username'])?> ↗</a></td><td><span class="tag"><?= $a['oauth_verified']?'Verificada':'Informada manualmente' ?></span></td>
-</tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
+<td><?=lc_e(ucfirst($a['network']))?></td><td><a href="<?=lc_e($a['profile_url'])?>" target="_blank" rel="noopener noreferrer">@<?=lc_e($a['username'])?> ↗</a></td><td><span class="tag"><?= $a['oauth_verified']?'Verificada':'Informada manualmente' ?></span>
+<?php if($oauthEnabled && !$a['oauth_verified'] && in_array($a['network'],['instagram','tiktok'],true) && LcSocialOAuth::config((string)$a['network'])['client']!=='' && LcSocialOAuth::config((string)$a['network'])['secret']!==''): ?>
+<form method="post" action="/redes/oauth/<?=lc_e($a['network'])?>/iniciar">
+<?=lc_csrf()?><input type="hidden" name="account_id" value="<?=(int)$a['id']?>">
+<button class="btn btn-ghost" type="submit">Conectar <?=lc_e(ucfirst($a['network']))?></button>
+</form>
+<?php endif; ?>
+</td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'social');return true;
     }
     if($method==='POST' && $path==='/redes'){
