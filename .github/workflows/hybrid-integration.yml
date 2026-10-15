@@ -35,7 +35,7 @@ jobs:
       - name: Execute isolated policy and adapter tests
         run: |
           set -euo pipefail
-          for test in tests/hybrid-verification.php tests/hybrid-persistence.php tests/social-oauth.php tests/social-oauth-identity.php tests/social-oauth-lifecycle.php tests/social-oauth-expiry.php tests/instagram-long-token.php tests/instagram-refresh.php tests/social-oauth-connection-status.php tests/official-metrics.php tests/tiktok-official-metrics.php tests/instagram-official-metrics.php; do
+          for test in tests/hybrid-verification.php tests/hybrid-persistence.php tests/hybrid-network-guard.php tests/social-oauth.php tests/social-oauth-identity.php tests/social-oauth-lifecycle.php tests/social-oauth-expiry.php tests/instagram-long-token.php tests/instagram-refresh.php tests/social-oauth-connection-status.php tests/official-metrics.php tests/tiktok-official-metrics.php tests/instagram-official-metrics.php; do
             php "$test"
           done
       - name: Ensure sync disabled by default
