@@ -35,8 +35,8 @@ function lc_social_oauth_refresh_tiktok(array $row): bool {
 function lc_social_oauth_disconnect(int $socialId,int $userId,string $network): void {
     $row=lc_one('SELECT o.* FROM social_oauth_connections o
       JOIN social_accounts s ON s.id=o.social_account_id
-      WHERE o.social_account_id=? AND s.user_id=? AND s.network=? AND o.provider=?',
-      [$socialId,$userId,$network,$network]);
+      WHERE o.social_account_id=? AND s.user_id=? AND s.network=? AND o.provider COLLATE utf8mb4_general_ci = CAST(s.network AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci',
+      [$socialId,$userId,$network]);
     if(!$row)return;
     $token=lc_decrypt((string)$row['access_token_enc']);
     if($network==='tiktok'&&$token!==''){
