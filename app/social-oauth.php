@@ -20,7 +20,7 @@ final class LcSocialOAuth
             'tiktok' => ['client'=>lc_env('TIKTOK_CLIENT_KEY'),'secret'=>lc_env('TIKTOK_CLIENT_SECRET'),
                 'scope'=>'user.info.basic,user.info.profile,video.list','authorize'=>'https://www.tiktok.com/v2/auth/authorize/'],
             'instagram' => ['client'=>lc_env('INSTAGRAM_APP_ID'),'secret'=>lc_env('INSTAGRAM_APP_SECRET'),
-                'scope'=>'instagram_business_basic','authorize'=>'https://www.instagram.com/oauth/authorize'],
+                'scope'=>'instagram_business_basic,instagram_business_manage_insights','authorize'=>'https://www.instagram.com/oauth/authorize'],
             default => throw new InvalidArgumentException('Rede não suportada.')
         };
     }
@@ -42,6 +42,7 @@ final class LcSocialOAuth
             'social_account_id'=>$socialAccountId,'redirect_uri'=>$redirectUri,'expires_at'=>time()+600];
         $params=['response_type'=>'code','redirect_uri'=>$redirectUri,'state'=>$state,
             'scope'=>$config['scope']];
+        if($provider==='instagram')$params['force_reauth']='true';
         if($provider==='tiktok')$params['client_key']=$config['client'];
         else $params['client_id']=$config['client'];
         return $config['authorize'].'?'.http_build_query($params,'','&',PHP_QUERY_RFC3986);
