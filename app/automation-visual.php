@@ -74,7 +74,8 @@ function lc_automation_visual_routes(string $method,string $path): bool {
             <header class="lc-flow-top lc-flow-editor-top">
               <div><a class="lc-flow-back" href="/admin/automacoes">← Voltar aos fluxos</a>
               <span class="eyebrow">AUTOMAÇÃO · EDITOR VISUAL</span>
-              <h1><?=lc_e($rule['name']??'Novo fluxo')?></h1></div>
+              <label class="lc-flow-name-label" for="lc-flow-title">Nome do fluxo</label>
+              <input id="lc-flow-title" class="lc-flow-name-input" type="text" maxlength="140" minlength="3" value="<?=lc_e($rule['name']??'Nova automação')?>" aria-label="Nome do fluxo"></div>
               <div class="lc-flow-toolbar">
                 <?php if($rule):?><form method="post" action="/admin/automacoes/<?=(int)$editId?>/alternar"><?=lc_csrf()?>
                   <button type="submit" class="btn btn-ghost"><?=$rule['enabled']?'Pausar automação':'Ativar automação'?></button>
@@ -96,6 +97,7 @@ function lc_automation_visual_routes(string $method,string $path): bool {
                   <div class="lc-flow-canvas-buttons">
                     <button type="button" class="btn btn-ghost btn-sm" id="lc-flow-add-condition">+ Condição</button>
                     <button type="button" class="btn btn-ghost btn-sm" id="lc-flow-add-action">+ Ação</button>
+                    <button type="button" class="btn btn-ghost btn-sm" id="lc-flow-add-end">+ Fim</button>
                     <button type="button" class="btn btn-ghost btn-sm" id="lc-flow-fit">Enquadrar</button>
                   </div>
                 </div>
