@@ -255,6 +255,13 @@ try{
         $db->exec("ALTER TABLE $table ADD COLUMN $column $definition");
     }
     if($indexUpgrade){
+        // MySQL uses the old unique index for fk_automation_event. Create a
+        // dedicated FK index BEFORE dropping it, preserving all existing rows.
+        $eventIndex=lc_one("SELECT 1 AS found FROM information_schema.STATISTICS
+          WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='automation_deliveries'
+            AND INDEX_NAME='idx_automation_event_fk' LIMIT 1");
+        if(!$eventIndex)
+            $db->exec('ALTER TABLE automation_deliveries ADD INDEX idx_automation_event_fk (event_id)');
         if($index) $db->exec('ALTER TABLE automation_deliveries DROP INDEX uq_automation_delivery');
         $db->exec('ALTER TABLE automation_deliveries ADD UNIQUE KEY uq_automation_delivery (event_id,rule_id,recipient_user_id,node_id)');
     }
