@@ -1,0 +1,4 @@
+# Hybrid clip edit verification reset
+When a clipador edits a not-yet-approved clip and changes published_url or social_account_id, app/clip-creator-actions.php now removes old clip_verification_observations and clip_verification_state and creates a pending/manual_review state based on the new link. All writes occur in the existing MySQL transaction and roll back together on error. Unchanged URL/account preserves the existing evidence. Previously existing policies block editing approved clips or clips with financial history.
+
+No financial ledger is changed by this reset. No production database operations were performed. Requires the hybrid migration from PR #20 before deploying related PHP.
