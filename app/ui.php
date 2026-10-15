@@ -30,6 +30,7 @@ function lc_workspace_links(array $u): array {
           ['Pacotes para criadores','/admin/pacotes','layers'],
           ['Assinaturas','/admin/assinaturas','circle-dollar-sign'],
           ['Automações','/admin/automacoes','activity'],
+          ['Conexão WhatsApp','/admin/whatsapp','share-2'],
           ['Banner da Home','/admin/home','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['Integrações','/admin/integracoes','settings-2'],
@@ -107,6 +108,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <link rel="stylesheet" href="/assets/ux-upgrade.css?v=2">
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
+<?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><link rel="stylesheet" href="/assets/flow-editor.css?v=1"><?php endif; ?>
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
@@ -169,6 +171,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <script src="/assets/ux-upgrade.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>
+<?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><script src="/assets/flow-editor.js?v=1" defer></script><?php endif; ?>
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
 </body></html><?php
