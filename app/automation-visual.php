@@ -9,7 +9,7 @@ function lc_automation_visual_routes(string $method,string $path): bool {
         $name=lc_post('name',140);
         $raw=(string)($_POST['graph_json']??'');
         try{
-            if(mb_strlen($name)<3 || strlen($raw)>40000)
+            if(mb_strlen($name)<3 || strlen($raw)>150000)
                 throw new InvalidArgumentException('Informe um nome e um fluxo válido.');
             $graph=lc_flow_validate(json_decode($raw,true,32,JSON_THROW_ON_ERROR));
             $trigger='user.approved';$firstAction=null;
@@ -18,6 +18,11 @@ function lc_automation_visual_routes(string $method,string $path): bool {
                 if(in_array($n['type'],['whatsapp','email','in_app'],true)&&$firstAction===null)
                     $firstAction=$n;
             }
+            // A draft can contain only free/unconnected blocks. It must never
+            // enqueue anything until an action is reachable from the trigger.
+            $firstAction??=['type'=>'in_app','data'=>[
+               'recipient'=>'user','message'=>'Fluxo ainda sem ações conectadas.'
+            ]];
             $json=json_encode($graph,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);
             if($id>0){
                 if(!lc_one('SELECT id FROM automation_rules WHERE id=?',[$id]))
@@ -87,13 +92,13 @@ function lc_automation_visual_routes(string $method,string $path): bool {
             <div class="lc-flow-summary">
               <span><b id="lc-flow-node-count">0</b> blocos</span>
               <span><b id="lc-flow-edge-count">0</b> conexões</span>
-              <span>Gatilho → Condição → Ação</span>
+              <span>Saídas múltiplas · Cards livres não executam</span>
               <span><?=count($recent)?> execuções recentes</span>
             </div>
             <div class="lc-flow-layout">
               <section class="lc-flow-canvas-shell">
                 <div class="lc-flow-canvas-top">
-                  <div><h2>Canvas livre da automação</h2><p>Arraste blocos, conecte as saídas e selecione um bloco para editar.</p></div>
+                  <div><h2>Canvas livre da automação</h2><p>Arraste cards, mova o fundo do canvas e conecte uma saída a quantos destinos precisar.</p></div>
                   <div class="lc-flow-canvas-buttons">
                     <button type="button" class="btn btn-ghost btn-sm" id="lc-flow-add-condition">+ Condição</button>
                     <button type="button" class="btn btn-ghost btn-sm" id="lc-flow-add-action">+ Ação</button>
@@ -101,13 +106,13 @@ function lc_automation_visual_routes(string $method,string $path): bool {
                     <button type="button" class="btn btn-ghost btn-sm" id="lc-flow-fit">Enquadrar</button>
                   </div>
                 </div>
-                <div class="lc-flow-scroller" id="lc-flow-scroller" tabindex="0" aria-label="Canvas de automações; use os botões conectar para criar saídas">
+                <div class="lc-flow-scroller" id="lc-flow-scroller" tabindex="0" aria-label="Canvas de automações: arraste cards e conexões; arraste o fundo para navegar; use a roda do mouse para zoom">
                   <div id="lc-flow-canvas" class="lc-flow-canvas">
                     <svg id="lc-flow-edges" aria-hidden="true" width="5000" height="5000"></svg>
                     <div id="lc-flow-nodes"></div>
                   </div>
                 </div>
-                <p class="lc-flow-hint" id="lc-flow-connect-hint" role="status">Clique no conector de um bloco e depois no destino para ligar. Condições possuem saídas Sim e Não.</p>
+                <p class="lc-flow-hint" id="lc-flow-connect-hint" role="status">Arraste da saída para conectar a vários cards. Solte sobre o vazio para criar um novo card conectado.</p>
               </section>
               <aside class="lc-flow-side">
                 <section class="lc-flow-inspector">
