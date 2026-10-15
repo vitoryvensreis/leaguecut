@@ -90,7 +90,7 @@ function lc_instagram_exchange_result(array $initial,array $long): array {
       'refresh_token'=>null,'expires_in'=>$verified['expires_in'],
       'scopes'=>is_string($initial['scope']??null)?$initial['scope']:''];
 }
-function lc_social_oauth_exchange(string $network,string $code): array {
+function lc_social_oauth_exchange(string $network,string $code,?string $redirectUri=null): array {
     if($code===''||strlen($code)>2048)throw new InvalidArgumentException('Código inválido.');
     $cfg=LcSocialOAuth::config($network);
     if($network==='tiktok'){
@@ -101,7 +101,7 @@ function lc_social_oauth_exchange(string $network,string $code): array {
     }elseif($network==='instagram'){
         $data=lc_social_oauth_http('https://api.instagram.com/oauth/access_token',[
           'client_id'=>$cfg['client'],'client_secret'=>$cfg['secret'],'grant_type'=>'authorization_code',
-          'redirect_uri'=>LcSocialOAuth::redirectUri($network),'code'=>$code],null,'instagram_code');
+          'redirect_uri'=>$redirectUri??LcSocialOAuth::redirectUri($network),'code'=>$code],null,'instagram_code');
         $access=$data['access_token']??null;$remote=$data['user_id']??null;
         if(!is_string($access)||strlen($access)<10)throw new RuntimeException('Token Instagram ausente.');
         // Instagram Login issues a short-lived token first; exchange server-side.
@@ -176,14 +176,15 @@ function lc_social_oauth_route(string $method,string $path): bool {
     if($action==='callback'&&$method==='GET'){
         $stage='state';
         try{
-            $accountId=LcSocialOAuth::consume($network,(int)$user['id'],(string)($_GET['state']??''));
+            $redirectUri=null;
+            $accountId=LcSocialOAuth::consume($network,(int)$user['id'],(string)($_GET['state']??''),$redirectUri);
             if(isset($_GET['error']))throw new RuntimeException('Consentimento recusado.');
             $stage='account';
             $account=lc_one('SELECT * FROM social_accounts WHERE id=? AND user_id=? AND network=?',
               [$accountId,(int)$user['id'],$network]);
             if(!$account)throw new RuntimeException('Conta não encontrada.');
             $stage='exchange';
-            $token=lc_social_oauth_exchange($network,(string)($_GET['code']??''));
+            $token=lc_social_oauth_exchange($network,(string)($_GET['code']??''),$redirectUri);
             $stage='identity';
             $identity=lc_social_oauth_identity($network,$token['access_token']);
             $stage='match';
