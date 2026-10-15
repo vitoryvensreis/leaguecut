@@ -1,0 +1,48 @@
+name: Meta deauthorization checks
+on:
+  pull_request:
+    paths:
+      - 'app/meta-deauthorization.php'
+      - 'app/routes.php'
+      - 'tests/meta-deauthorization.php'
+      - 'database/migrations/20261015_meta_deauthorization_inbox.sql'
+      - '.github/workflows/meta-deauthorization.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  meta-callback:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: test-password
+          MYSQL_DATABASE: leaguecut_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -uroot -ptest-password"
+          --health-interval=10s --health-timeout=5s --health-retries=15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+      - name: Focused PHP syntax and signed callback tests
+        run: |
+          set -euo pipefail
+          php -l app/meta-deauthorization.php
+          php -l app/routes.php
+          php -l tests/meta-deauthorization.php
+          php tests/meta-deauthorization.php
+      - name: Disposable MySQL inbox migration and deduplication
+        env:
+          MYSQL_PWD: test-password
+        run: |
+          set -euo pipefail
+          mysql -h 127.0.0.1 -uroot leaguecut_test < database/migrations/20261015_meta_deauthorization_inbox.sql
+          mysql -h 127.0.0.1 -uroot leaguecut_test < database/migrations/20261015_meta_deauthorization_inbox.sql
+          mysql -h 127.0.0.1 -uroot leaguecut_test -e "INSERT IGNORE INTO meta_deauthorization_inbox(event_hash,app_scoped_user_hash) VALUES(REPEAT('a',64),REPEAT('b',64)),(REPEAT('a',64),REPEAT('b',64));"
+          COUNT=$(mysql -N -h 127.0.0.1 -uroot leaguecut_test -e "SELECT COUNT(*) FROM meta_deauthorization_inbox")
+          test "$COUNT" = 1
