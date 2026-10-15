@@ -123,22 +123,29 @@ function lc_social_oauth_route(string $method,string $path): bool {
         catch(Throwable $e){lc_flash('Autorização indisponível. Confira a configuração da integração.','error');lc_redirect('/redes');}
     }
     if($action==='callback'&&$method==='GET'){
+        $stage='state';
         try{
             $accountId=LcSocialOAuth::consume($network,(int)$user['id'],(string)($_GET['state']??''));
             if(isset($_GET['error']))throw new RuntimeException('Consentimento recusado.');
+            $stage='account';
             $account=lc_one('SELECT * FROM social_accounts WHERE id=? AND user_id=? AND network=?',
               [$accountId,(int)$user['id'],$network]);
             if(!$account)throw new RuntimeException('Conta não encontrada.');
+            $stage='exchange';
             $token=lc_social_oauth_exchange($network,(string)($_GET['code']??''));
+            $stage='identity';
             $identity=lc_social_oauth_identity($network,$token['access_token']);
+            $stage='match';
             if(!lc_social_oauth_verified_profile($account,$network,$token,$identity))
                 throw new RuntimeException('Identidade divergente ou escopo insuficiente.');
+            $stage='save';
             lc_db()->beginTransaction();
             try{lc_social_oauth_save($account,$network,$token);lc_db()->commit();}
             catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
             lc_flash('Conta social conectada e verificada.');
         }catch(Throwable $e){
-            error_log('LeagueCut OAuth failed for network '.$network);
+            // Only stage and exception type: never log authorization codes, tokens or profile identifiers.
+            error_log('LeagueCut OAuth failure provider='.$network.' stage='.$stage.' type='.get_class($e));
             lc_flash('Não foi possível verificar esta conta. Confirme o @, permissões e tente novamente.','error');
         }
         lc_redirect('/redes');
