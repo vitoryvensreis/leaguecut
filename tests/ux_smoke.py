@@ -72,7 +72,13 @@ def main():
                 ["workspace.css","realtime.css"],"/")
     assert "Pular para o conteúdo" in home
     catalog=verify(guest,"/explorar",["landing.css","polish.css"],["workspace.css","banner.css"],"/explorar")
-    verify(guest,"/cadastrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
+    signup=verify(guest,"/cadastrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
+    signin=verify(guest,"/entrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
+    assert 'id="lc-auth-signup"' in signup and 'action="/cadastrar"' in signup, "Signup must load directly in modal"
+    assert 'id="lc-auth-login"' in signin and 'action="/entrar"' in signin, "Login must load directly in modal"
+    assert "assets/ux-upgrade.css" in signup and "assets/ux-upgrade.js" in signup
+    assert '<a href="/planos">Planos para criadores</a>' in home, "Creator sales link belongs in footer"
+    assert 'href="/planos"' not in home.split('</header>',1)[0], "Creator plans should not be in header"
     assert 'name="q"' in catalog, "Catalog search form"
     assert 'name="categoria"' in catalog, "Catalog category filter"
     assert 'lc-catalog-showcase' in catalog and 'lc-catalog-shelf' in catalog, "Catalog showcase and shelves"
@@ -87,6 +93,8 @@ def main():
     login(admin,"admin@leaguecut.test")
     dashboard=verify(admin,"/admin",["workspace.css","realtime.css","polish.css"],["landing.css","banner.css"])
     assert "Precisa da sua atenção" in dashboard
+    assert "Top clipadores" in dashboard and "Top campanhas" in dashboard, "Rankings must appear on admin homepage"
+    assert "Views observadas" in dashboard, "View count KPI missing"
     assert 'workspace-motion.css' in dashboard, "Admin panels animate"
     with admin.open(BASE+"/assets/workspace-motion.css",timeout=10) as asset:
         anim=asset.read().decode("utf-8")
