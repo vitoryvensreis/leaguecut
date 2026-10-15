@@ -79,7 +79,7 @@ function lc_clipper_routes(string $method,string $path): bool {
 <?php },'dashboard');return true;
     }
     if($method==='GET' && $path==='/redes'){
-        $u=lc_login_required();$accounts=lc_all('SELECT a.*,o.access_token_enc,o.expires_at,o.revoked_at FROM social_accounts a LEFT JOIN social_oauth_connections o ON o.social_account_id=a.id AND o.provider=a.network WHERE a.user_id=? ORDER BY a.id DESC',[$u['id']]);
+        $u=lc_login_required();$accounts=lc_all('SELECT a.*,o.access_token_enc,o.expires_at,o.revoked_at FROM social_accounts a LEFT JOIN social_oauth_connections o ON o.social_account_id=a.id AND o.provider COLLATE utf8mb4_general_ci = CAST(a.network AS CHAR CHARACTER SET utf8mb4) COLLATE utf8mb4_general_ci WHERE a.user_id=? ORDER BY a.id DESC',[$u['id']]);
         $oauthEnabled=lc_env('HYBRID_SOCIAL_OAUTH_ENABLED','0')==='1';
         lc_page('Minhas redes',function()use($accounts,$oauthEnabled){?>
 <div class="container container-md"><?php lc_heading('Perfis de publicação','Minhas redes','Adicione seus perfis de Instagram e TikTok. Você pode cadastrar quantos quiser.'); ?>
