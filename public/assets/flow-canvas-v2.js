@@ -68,11 +68,10 @@ function wire(from,to,port){
 function updateCounts(){
  document.getElementById('lc-flow-node-count').textContent=graph.nodes.length;
  document.getElementById('lc-flow-edge-count').textContent=graph.edges.length;
- const disconnected=graph.nodes.filter(n=>n.type!=='trigger'&&!reachable('gatilho',n.id));
+ const first=graph.nodes.find(t=>t.type==='trigger');
  // Only for visual state; real execution validates reachability on the server.
  for(const card of nodesLayer.querySelectorAll('[data-node-id]')){
    const n=node(card.dataset.nodeId);
-   const first=graph.nodes.find(t=>t.type==='trigger');
    card.classList.toggle('lc-v2-unconnected',!!n&&n.type!=='trigger'&&!reachable(first?.id,n.id));
  }
 }
