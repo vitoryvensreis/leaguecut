@@ -2,6 +2,8 @@
 declare(strict_types=1);
 require __DIR__ . '/finance.php';
 require __DIR__ . '/realtime.php';
+require __DIR__ . '/automation-engine.php';
+require __DIR__ . '/automation-console.php';
 require __DIR__ . '/home.php';
 require __DIR__ . '/brand.php';
 require __DIR__ . '/routes-home-admin.php';
@@ -48,6 +50,7 @@ if(lc_integrations_routes($method,$path))return;
 if(lc_home_admin_routes($method,$path))return;
 if(lc_creator_billing_routes($method,$path))return;
 if(lc_creator_admin_routes($method,$path))return;
+if(lc_automation_routes($method,$path))return;
 if(lc_admin_routes($method,$path))return;
 if(lc_creator_routes($method,$path))return;
 if(lc_clipper_routes($method,$path))return;

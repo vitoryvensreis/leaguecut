@@ -29,6 +29,7 @@ function lc_workspace_links(array $u): array {
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
           ['Pacotes para criadores','/admin/pacotes','layers'],
           ['Assinaturas','/admin/assinaturas','circle-dollar-sign'],
+          ['Automações','/admin/automacoes','activity'],
           ['Banner da Home','/admin/home','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['Integrações','/admin/integracoes','settings-2'],
@@ -105,6 +106,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/polish.css?v=10">
 <link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <link rel="stylesheet" href="/assets/ux-upgrade.css?v=2">
+<link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
@@ -166,6 +168,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span><nav aria-label="Informações legais" style="display:flex;gap:14px;flex-wrap:wrap"><a href="/planos">Planos para criadores</a><a href="/politica-de-privacidade">Privacidade</a><a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a></nav></footer>
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <script src="/assets/ux-upgrade.js?v=1" defer></script>
+<script src="/assets/motion-glass.js?v=1" defer></script>
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
 </body></html><?php

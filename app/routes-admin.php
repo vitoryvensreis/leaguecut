@@ -177,8 +177,13 @@ function lc_admin_routes(string $method,string $path): bool {
             lc_query("UPDATE users SET status='approved',approved_at=NOW(),approved_by=? WHERE id=?",[$admin['id'],$u['id']]);
             lc_realtime_emit('user',(int)$u['id'],'creator.approved','user',(int)$u['id']);
             lc_realtime_emit('admin',null,'creator.reviewed','user',(int)$u['id']);
-            lc_outbox((int)$u['id'],'email','creator_approved',['name'=>$u['full_name'],'email'=>$u['email']]);
-            if((int)$u['consent_whatsapp']===1)lc_outbox((int)$u['id'],'whatsapp','creator_approved',['name'=>$u['full_name'],'phone'=>$u['whatsapp']]);
+            lc_automation_emit('user.approved','user.approved:'.$u['id'],(int)$u['id'],[
+                'nome'=>$u['full_name'],'role'=>'clipador','status'=>'approved','link'=>'/dashboard']);
+            // Keep the legacy notification if no administrator has configured a flow.
+            if(!lc_automation_has_trigger('user.approved')){
+                lc_outbox((int)$u['id'],'email','creator_approved',['name'=>$u['full_name'],'email'=>$u['email']]);
+                if((int)$u['consent_whatsapp']===1)lc_outbox((int)$u['id'],'whatsapp','creator_approved',['name'=>$u['full_name'],'phone'=>$u['whatsapp']]);
+            }
             lc_db()->commit();
         }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
         lc_flash('Clipador aprovado. Notificações enfileiradas; o envio depende da configuração dos canais.');lc_redirect('/admin/clipadores');
@@ -304,6 +309,7 @@ function lc_admin_routes(string $method,string $path): bool {
                   WHERE id=?",[$decision,$decision==='paid'?$reference:null,(int)$m[1]]);
             lc_realtime_emit('user',(int)$row['user_id'],'withdrawal.updated','withdrawal',(int)$row['id']);
             lc_realtime_emit('admin',null,'withdrawal.updated','withdrawal',(int)$row['id']);
+            lc_automation_emit('withdrawal.'.$decision,'withdrawal.'.$decision.':'.$row['id'],(int)$row['user_id'],['status'=>$decision,'link'=>'/financeiro']);
             lc_db()->commit();
         }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
         lc_flash('Solicitação atualizada.');lc_redirect('/admin/financeiro');

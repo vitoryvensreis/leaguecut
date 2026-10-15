@@ -147,5 +147,18 @@ jobs:
           else
             echo 'APIFY_VPS_CRON_UNAVAILABLE: GitHub Actions schedule remains active'
           fi
+          # Register exactly one LeagueCut worker cron; no new listening port or service.
+          if command -v crontab >/dev/null 2>&1; then
+            CURRENT_CRON="$(crontab -l 2>/dev/null || true)"
+            if ! printf '%s\n' "$CURRENT_CRON" | grep -Fq '# LEAGUECUT_AUTOMATIONS_MANAGED'; then
+              {
+                printf '%s\n' "$CURRENT_CRON"
+                printf '%s\n' '# LEAGUECUT_AUTOMATIONS_MANAGED'
+                printf '%s\n' '* * * * * cd /home/leaguecut/current && /usr/bin/flock -n /tmp/leaguecut-automations.lock /usr/bin/php bin/automation-worker.php >> /home/leaguecut/logs/automations.log 2>&1'
+              } | crontab -
+            fi
+            crontab -l | grep -Fq '# LEAGUECUT_AUTOMATIONS_MANAGED' || { echo 'ERR: automations worker cron was not installed'; exit 1; }
+            echo 'LEAGUECUT_AUTOMATIONS_CRON_INSTALLED'
+          fi
           echo "LEAGUECUT_PUBLICADO=$REV"
           REMOTE
