@@ -7,9 +7,9 @@ if(lc_social_oauth_provider_enabled('instagram')||lc_social_oauth_provider_enabl
 putenv('HYBRID_SOCIAL_OAUTH_ENABLED=1');
 if(lc_social_oauth_provider_enabled('instagram')||lc_social_oauth_provider_enabled('tiktok'))throw new RuntimeException('Global flag bypass');
 putenv('HYBRID_INSTAGRAM_OAUTH_ENABLED=1');
-if(!lc_social_oauth_provider_enabled('instagram')||lc_social_oauth_provider_enabled('tiktok'))throw new RuntimeException('Instagram not isolated');
+if(lc_social_oauth_provider_enabled('instagram')||lc_social_oauth_provider_enabled('tiktok'))throw new RuntimeException('Instagram Meta OAuth must remain disabled');
 putenv('HYBRID_TIKTOK_OAUTH_ENABLED=1');
-if(!lc_social_oauth_provider_enabled('tiktok')||lc_social_oauth_provider_enabled('youtube'))throw new RuntimeException('Provider authorization invalid');
+if(!lc_social_oauth_provider_enabled('tiktok')||lc_social_oauth_provider_enabled('instagram')||lc_social_oauth_provider_enabled('youtube'))throw new RuntimeException('Provider authorization invalid');
 putenv('HYBRID_SOCIAL_OAUTH_ENABLED=0');
 if(lc_social_oauth_provider_enabled('instagram'))throw new RuntimeException('Global off bypass');
 echo "Per-provider OAuth gates OK\n";
