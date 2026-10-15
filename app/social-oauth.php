@@ -36,16 +36,17 @@ final class LcSocialOAuth
         if($userId<1||$socialAccountId<1)throw new InvalidArgumentException('Conta inválida.');
         $config=self::config($provider);
         if($config['client']===''||$config['secret']==='')throw new RuntimeException('Credenciais OAuth não configuradas.');
+        $redirectUri=self::redirectUri($provider);
         $state=bin2hex(random_bytes(32));
         $_SESSION['lc_social_oauth']=['state'=>$state,'provider'=>$provider,'user_id'=>$userId,
-            'social_account_id'=>$socialAccountId,'expires_at'=>time()+600];
-        $params=['response_type'=>'code','redirect_uri'=>self::redirectUri($provider),'state'=>$state,
+            'social_account_id'=>$socialAccountId,'redirect_uri'=>$redirectUri,'expires_at'=>time()+600];
+        $params=['response_type'=>'code','redirect_uri'=>$redirectUri,'state'=>$state,
             'scope'=>$config['scope']];
         if($provider==='tiktok')$params['client_key']=$config['client'];
         else $params['client_id']=$config['client'];
         return $config['authorize'].'?'.http_build_query($params,'','&',PHP_QUERY_RFC3986);
     }
-    public static function consume(string $provider,int $userId,string $state): int
+    public static function consume(string $provider,int $userId,string $state,?string &$redirectUri=null): int
     {
         $pending=$_SESSION['lc_social_oauth']??null;
         unset($_SESSION['lc_social_oauth']); // invalid even if callback fails
@@ -55,6 +56,10 @@ final class LcSocialOAuth
             (int)($pending['user_id']??0)!==$userId||
             (int)($pending['expires_at']??0)<time())
             throw new RuntimeException('Autorização inválida ou expirada.');
+        $saved=$pending['redirect_uri']??null;
+        if(!is_string($saved)||$saved!==self::redirectUri($provider))
+            throw new RuntimeException('OAuth redirect URI altered during authorization.');
+        $redirectUri=$saved;
         return (int)$pending['social_account_id'];
     }
 }
