@@ -7,7 +7,7 @@ final class LcSocialOAuth
     {
         return match($provider) {
             'tiktok' => ['client'=>lc_env('TIKTOK_CLIENT_KEY'),'secret'=>lc_env('TIKTOK_CLIENT_SECRET'),
-                'scope'=>'user.info.basic,video.list','authorize'=>'https://www.tiktok.com/v2/auth/authorize/'],
+                'scope'=>'user.info.basic,user.info.profile,video.list','authorize'=>'https://www.tiktok.com/v2/auth/authorize/'],
             'instagram' => ['client'=>lc_env('INSTAGRAM_APP_ID'),'secret'=>lc_env('INSTAGRAM_APP_SECRET'),
                 'scope'=>'instagram_business_basic','authorize'=>'https://www.instagram.com/oauth/authorize'],
             default => throw new InvalidArgumentException('Rede não suportada.')
