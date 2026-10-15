@@ -34,18 +34,39 @@ function lc_wpp_admin_request(string $endpoint,string $method='GET',?array $payl
     if(strlen($raw)>3000000)throw new RuntimeException('Resposta de sessão maior que o permitido.');
     return ['body'=>$raw,'json'=>json_decode($raw,true),'type'=>$type];
 }
+/**
+ * WPPConnect Server v2.10.27 check-connection-session returns
+ * {"status":true,"message":"Connected"} when authenticated.
+ * The old code cast true to "1", incorrectly showing "Not connected · 1".
+ * Interpret the boolean first; HTTP 200 alone never means connected.
+ */
+function lc_wpp_parse_connection(array $data): array {
+    $raw=$data['status']??null;
+    $message=strtoupper(trim((string)($data['message']??'')));
+    $statesConnected=['CONNECTED','ISLOGGED','OPEN','INCHAT'];
+    $statesOffline=['CLOSED','DISCONNECTED','QRCODE','INITIALIZING','UNKNOWN','NOT CONNECTED','LOGOUT','ERROR'];
+    $text=is_string($raw)?strtoupper(trim($raw)):'';
+    // An explicit false from the official endpoint takes precedence over other fields.
+    if($raw===false || $raw===0 || in_array($text,$statesOffline,true) ||
+        $text==='FALSE' || $text==='0'){
+        return ['connected'=>false,'status'=>'DISCONNECTED'];
+    }
+    $connected=$raw===true || $raw===1 || $text==='TRUE' || $text==='1'
+        || in_array($text,$statesConnected,true);
+    if($raw===null){
+        $connected=($data['connected']??null)===true
+            || ($data['isConnected']??null)===true
+            || in_array($message,$statesConnected,true);
+    }
+    if($connected)return ['connected'=>true,'status'=>'CONNECTED'];
+    return ['connected'=>false,'status'=>in_array($text,['STARTING','PAIRING','CONNECTING'],true)
+        ? 'CONNECTING' : 'DISCONNECTED'];
+}
 function lc_wpp_admin_status(): array {
     $result=lc_wpp_admin_request('check-connection-session');
     $data=$result['json'];
-    if(!is_array($data))return ['connected'=>false,'status'=>'UNKNOWN'];
-    $status=strtoupper((string)($data['status']??$data['state']??$data['message']??'UNKNOWN'));
-    // CLOSED and INITIALIZING are not connected, even with HTTP 200.
-    $connected=in_array($status,['CONNECTED','ISLOGGED','OPEN','INCHAT'],true)
-      || ($data['connected']??false)===true
-      || ($data['isConnected']??false)===true;
-    if(in_array($status,['CLOSED','DISCONNECTED','QRCODE','INITIALIZING','UNKNOWN','NOT CONNECTED'],true))
-        $connected=false;
-    return ['connected'=>$connected,'status'=>mb_substr($status,0,50)];
+    return is_array($data) ? lc_wpp_parse_connection($data)
+        : ['connected'=>false,'status'=>'UNKNOWN'];
 }
 function lc_wpp_admin_qr(): ?string {
     $response=lc_wpp_admin_request('qrcode-session');
