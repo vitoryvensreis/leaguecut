@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS automation_events (
   context_json JSON NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_automation_event_key (event_key),
-  INDEX idx_automation_event_created (created_at)
+  INDEX idx_automation_event_created (created_at),
+  CONSTRAINT fk_automation_subject_user FOREIGN KEY (subject_user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE IF NOT EXISTS automation_deliveries (
