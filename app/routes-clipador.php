@@ -83,7 +83,7 @@ function lc_clipper_routes(string $method,string $path): bool {
         $oauthEnabled=lc_env('HYBRID_SOCIAL_OAUTH_ENABLED','0')==='1';
         lc_page('Minhas redes',function()use($accounts,$oauthEnabled){?>
 <div class="container container-md"><?php lc_heading('Perfis de publicação','Minhas redes','Adicione seus perfis de Instagram e TikTok. Você pode cadastrar quantos quiser.'); ?>
-<div class="alert"><?= $oauthEnabled ? "Os perfis são informados manualmente até que a autorização oficial seja concluída e conferida." : "A conexão oficial está em preparação. Perfis adicionados manualmente não comprovam propriedade nem validam métricas." ?></div>
+<div class="alert">Instagram: informe seu perfil normalmente, sem conectar à Meta. As visualizações públicas dos clipes elegíveis são consultadas pela Apify diariamente às <strong>02:00 (Fortaleza)</strong>, respeitando o orçamento configurado. O cadastro do @ não comprova titularidade.</div>
 <div class="panel"><h2>Adicionar perfil</h2><form method="post" action="/redes"><?=lc_csrf()?><div class="form-inline">
 <label class="field"><span>Rede</span><select name="network"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select></label>
 <?php lc_field('Usuário (sem @)','username','text','',true,'seuperfil'); ?>
@@ -91,14 +91,14 @@ function lc_clipper_routes(string $method,string $path): bool {
 <div class="panel"><h2>Perfis cadastrados</h2>
 <?php if(!$accounts):lc_empty('Nenhuma rede cadastrada','Cadastre uma conta para começar a enviar publicações.');
 else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th>Integração</th></tr></thead><tbody><?php foreach($accounts as $a):?><tr>
-<td><?=lc_e(ucfirst($a['network']))?></td><td><a href="<?=lc_e($a['profile_url'])?>" target="_blank" rel="noopener noreferrer">@<?=lc_e($a['username'])?> ↗</a></td><td><span class="tag"><?= lc_e(lc_social_oauth_connection_label($a)) ?></span>
-<?php if($oauthEnabled && lc_social_oauth_provider_enabled((string)$a['network']) && lc_social_oauth_status($a)!=='connected' && in_array($a['network'],['instagram','tiktok'],true) && LcSocialOAuth::config((string)$a['network'])['client']!=='' && LcSocialOAuth::config((string)$a['network'])['secret']!==''): ?>
+<td><?=lc_e(ucfirst($a['network']))?></td><td><a href="<?=lc_e($a['profile_url'])?>" target="_blank" rel="noopener noreferrer">@<?=lc_e($a['username'])?> ↗</a></td><td><span class="tag"><?=lc_e($a['network']==='instagram'?'Perfil cadastrado · Apify':lc_social_oauth_connection_label($a))?></span>
+<?php if($oauthEnabled && $a['network']==='tiktok' && lc_social_oauth_provider_enabled((string)$a['network']) && lc_social_oauth_status($a)!=='connected' && in_array($a['network'],['instagram','tiktok'],true) && LcSocialOAuth::config((string)$a['network'])['client']!=='' && LcSocialOAuth::config((string)$a['network'])['secret']!==''): ?>
 <form method="post" action="/redes/oauth/<?=lc_e($a['network'])?>/iniciar">
 <?=lc_csrf()?><input type="hidden" name="account_id" value="<?=(int)$a['id']?>">
 <button class="btn btn-ghost" type="submit">Conectar <?=lc_e(ucfirst($a['network']))?></button>
 </form>
 <?php endif; ?>
-<?php if($oauthEnabled && lc_social_oauth_provider_enabled((string)$a['network']) && lc_social_oauth_status($a)==='connected'): ?>
+<?php if($oauthEnabled && $a['network']==='tiktok' && lc_social_oauth_provider_enabled((string)$a['network']) && lc_social_oauth_status($a)==='connected'): ?>
 <form method="post" action="/redes/oauth/<?=lc_e($a['network'])?>/desconectar">
 <?=lc_csrf()?><input type="hidden" name="account_id" value="<?=(int)$a['id']?>">
 <button class="btn btn-ghost" type="submit">Desconectar</button>
