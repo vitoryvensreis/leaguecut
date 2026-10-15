@@ -7,4 +7,5 @@ if(lc_oauth_safe_error_reason(new RuntimeException('oauth_http_instagram_code_40
 foreach(['oauth_http_instagram_code_400_secret','oauth_http_instagram_code_400_codeabc','oauth_http_instagram_code_400_code100_tokenSECRET'] as $bad){
  if(lc_oauth_safe_error_reason(new RuntimeException($bad))!=='unspecified')throw new RuntimeException('Sensitive error accepted');
 }
+if(lc_meta_oauth_error_suffix(json_encode(['error_type'=>'OAuthException','code'=>400,'error_message'=>'sensitive']))!=='_code400')throw new RuntimeException('Instagram top-level error missed');
 echo "META_NUMERIC_DIAGNOSTICS_OK\n";
