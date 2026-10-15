@@ -104,6 +104,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php endif; ?>
 <link rel="stylesheet" href="/assets/polish.css?v=10">
 <link rel="stylesheet" href="/assets/creator-packages.css?v=2">
+<link rel="stylesheet" href="/assets/ux-upgrade.css?v=1">
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
@@ -119,7 +120,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
       <a class="<?=$active==='home'?'selected':''?>" <?=$active==='home'?'aria-current="page"':''?> href="/"><?=lc_icon("play")?> Início</a>
       <a class="<?=$active==='explore'?'selected':''?>" <?=$active==='explore'?'aria-current="page"':''?> href="/explorar"><?=lc_icon("compass")?> Campanhas</a>
-      <?php if($u && $u['role']==='criador'): ?><a class="<?=$active==='creator'?'selected':''?>" href="/criador"><?=lc_icon('layout-dashboard')?> Minha área</a><a href="/planos"><?=lc_icon('layers')?> Planos</a><?php endif; ?>
+      <?php if($u && $u['role']==='criador'): ?><a class="<?=$active==='creator'?'selected':''?>" href="/criador"><?=lc_icon('layout-dashboard')?> Minha área</a><?php endif; ?>
       <?php if ($u && $u['status']==='approved' && $u['role']!=='criador'): ?>
       <a class="<?=$active==='dashboard'?'selected':''?>" <?=$active==='dashboard'?'aria-current="page"':''?> href="/dashboard"><?=lc_icon("layout-dashboard")?> Minha área</a>
       <a class="<?=$active==='library'?'selected':''?>" <?=$active==='library'?'aria-current="page"':''?> href="/biblioteca"><?=lc_icon("library")?> Biblioteca</a>
@@ -127,7 +128,6 @@ function lc_page(string $title, callable $body, string $active = ''): void {
       <a class="<?=$active==='social'?'selected':''?>" <?=$active==='social'?'aria-current="page"':''?> href="/redes"><?=lc_icon("share-2")?> Redes</a>
       <?php endif; ?>
       <?php if ($u && $u['role']==='admin'): ?><a class="<?=$active==='admin'?'selected':''?>" <?=$active==='admin'?'aria-current="page"':''?> href="/admin"><?=lc_icon("shield-check")?> Administração</a><?php endif; ?>
-      <?php if(!$u): ?><a href="/planos"><?=lc_icon('layers')?> Planos para criadores</a><?php endif; ?>
     </nav><?php else: ?><div class="workspace-breadcrumb"><?=lc_icon("layers")?> <?=lc_e($areaTitle)?> <span class="workspace-breadcrumb-slash">/</span> <?=lc_e($title)?></div><?php endif; ?>
     <div class="header-right">
       <?php if($workspace): ?>
@@ -163,7 +163,9 @@ function lc_page(string $title, callable $body, string $active = ''): void {
   <?php $body(); ?>
 </main>
 <?php if($workspace): ?></div></div><?php endif; ?>
-<footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span><nav aria-label="Informações legais" style="display:flex;gap:14px;flex-wrap:wrap"><a href="/politica-de-privacidade">Privacidade</a><a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a></nav></footer>
+<footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span><nav aria-label="Informações legais" style="display:flex;gap:14px;flex-wrap:wrap"><a href="/planos">Planos para criadores</a><a href="/politica-de-privacidade">Privacidade</a><a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a></nav></footer>
+<?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
+<script src="/assets/ux-upgrade.js?v=1" defer></script>
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
 </body></html><?php
@@ -197,4 +199,44 @@ function lc_empty(string $title, string $details): void {
 }
 function lc_heading(string $eyebrow, string $title, string $description=''): void {
 ?><div class="page-heading"><span class="eyebrow"><?=lc_e($eyebrow)?></span><h1><?=lc_e($title)?></h1><?php if($description):?><p><?=lc_e($description)?></p><?php endif;?></div><?php
+}
+
+/** Shared, progressively enhanced auth dialogs. Direct URLs remain functional without JS. */
+function lc_auth_dialogs(string $path,?array $flash): void {
+    foreach(['entrar'=>'login','cadastrar'=>'signup'] as $route=>$kind):
+        $direct=$path==='/'.$route;
+        $isSignup=$kind==='signup';
+?>
+<dialog id="lc-auth-<?=$kind?>" class="lc-auth-dialog" aria-labelledby="lc-auth-title-<?=$kind?>" <?=$direct?'open':''?>>
+  <div class="lc-auth-dialog-inner">
+    <button class="lc-auth-close" type="button" aria-label="Fechar janela" data-auth-close>×</button>
+    <span class="eyebrow"><?=$isSignup?'Junte-se ao League Cut':'Bem-vindo de volta'?></span>
+    <h2 id="lc-auth-title-<?=$kind?>"><?=$isSignup?'Comece a criar e conquistar.':'Entre na sua arena.'?></h2>
+    <p class="lc-auth-desc"><?=$isSignup?'Crie sua conta para participar de campanhas. Seu cadastro será analisado pela equipe.':'Acompanhe seus clipes, campanhas e recompensas em um só lugar.'?></p>
+    <?php if($direct && $flash):?><p class="lc-auth-message <?=$flash['type']==='error'?'is-error':''?>" role="alert"><?=lc_e($flash['message'])?></p><?php endif;?>
+    <form method="post" action="/<?=$route?>" class="lc-auth-form"><?=lc_csrf()?>
+      <div class="form-grid">
+      <?php if($isSignup):?>
+        <?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
+        <?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?>
+        <?php lc_field('Senha (mínimo 10 caracteres)','password','password','',true,'Crie uma senha forte','minlength="10" autocomplete="new-password"'); ?>
+        <?php lc_field('Instagram (seu @)','instagram','text','',true,'@seuperfil'); ?>
+        <?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'(85) 99999-9999','autocomplete="tel" inputmode="tel"'); ?>
+        <?php lc_field('Portfólio (HTTPS, opcional)','portfolio_url','url','',false,'https://...'); ?>
+        <div class="full"><?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?></div>
+        <label class="field full lc-auth-consent"><span><input type="checkbox" name="consent_whatsapp" value="1"> Aceito receber avisos operacionais sobre meu cadastro por WhatsApp.</span></label>
+      <?php else:?>
+        <div class="full"><?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?></div>
+        <div class="full"><?php lc_field('Senha','password','password','',true,'Sua senha','autocomplete="current-password"'); ?></div>
+      <?php endif;?>
+      </div>
+      <div class="form-actions">
+        <button class="btn" type="submit"><?=$isSignup?'Enviar cadastro':'Entrar'?> <?=lc_icon('arrow-right')?></button>
+        <a href="<?=$isSignup?'/entrar':'/cadastrar'?>" data-auth-link><?=$isSignup?'Já tenho conta':'Criar conta'?></a>
+      </div>
+      <?php if($isSignup):?><p class="form-note">Cadastro sujeito à aprovação. A chave Pix é armazenada criptografada.</p><?php endif;?>
+    </form>
+  </div>
+</dialog>
+<?php endforeach;
 }
