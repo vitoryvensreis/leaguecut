@@ -108,3 +108,10 @@
 @media(prefers-reduced-motion:reduce){
  [data-flow-v2] .lc-v2-node,[data-flow-v2] .lc-v2-output{transition:none!important}
 }
+
+/* Conditions expose true/false independently, with matching wire origin positions. */
+[data-flow-v2] .lc-v2-node-condition .lc-v2-ports{
+ flex-direction:column;align-items:flex-end;gap:10px;min-height:73px;padding-block:7px
+}
+[data-flow-v2] .lc-v2-node-condition .lc-flow-node-head{min-height:48px}
+[data-flow-v2] .lc-v2-node-condition .lc-flow-node-body{min-height:45px}
