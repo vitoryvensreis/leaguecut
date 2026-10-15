@@ -11,4 +11,5 @@ expect(LcTikTokMetrics::parse($payload,'7234567890123456788')===null,'unowned vi
 expect(LcTikTokMetrics::parse('{"error":{"code":"access_token_invalid"},"data":{"videos":[]}}',$id)===null,'provider error');
 expect(LcTikTokMetrics::parse('{"error":{"code":"ok"},"data":{"videos":[{"id":"'.$id.'","view_count":-1}]}}',$id)===null,'negative');
 expect(LcTikTokMetrics::parse('{}',$id)===null,'missing data');
+expect(LcTikTokMetrics::parse('{"data":{"videos":[{"id":"'.$id.'","view_count":500}]}}',$id)===null,'missing success code');
 echo "TikTok official metrics parsing OK\n";

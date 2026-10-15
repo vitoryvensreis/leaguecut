@@ -9,7 +9,7 @@ final class LcTikTokMetrics {
     public static function parse(string $body,string $expectedId): ?array {
         if(!preg_match('/^[0-9]{8,30}$/D',$expectedId)||strlen($body)>262144)return null;
         $decoded=json_decode($body,true);
-        if(!is_array($decoded)||($decoded['error']['code']??'ok')!=='ok')return null;
+        if(!is_array($decoded)||($decoded['error']['code']??null)!=='ok')return null;
         $videos=$decoded['data']['videos']??null;
         if(!is_array($videos))return null;
         foreach($videos as $v){
