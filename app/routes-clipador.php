@@ -296,6 +296,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
             $withdrawalId=(int)lc_db()->lastInsertId();
             lc_realtime_emit('admin',null,'withdrawal.requested','withdrawal',$withdrawalId);
             lc_realtime_emit('user',(int)$u['id'],'withdrawal.requested','withdrawal',$withdrawalId);
+            lc_automation_emit('withdrawal.requested','withdrawal.requested:'.$withdrawalId,(int)$u['id'],['role'=>'clipador','status'=>'requested','link'=>'/admin/financeiro']);
             lc_db()->commit();
         }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
         lc_flash('Solicitação registrada. O pagamento será conferido pelo administrador.');lc_redirect('/financeiro');
