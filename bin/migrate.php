@@ -226,6 +226,52 @@ try{
             throw new RuntimeException('Tabela de automação ausente: '.$table);
         }
     }
+    // Visual flow schema extension. Back up on first structural change.
+    $flowCols=[
+      'automation_rules'=>['graph_json'=>'JSON NULL'],
+      'automation_deliveries'=>[
+          'node_id'=>"VARCHAR(50) NOT NULL DEFAULT 'legacy'",
+          'action_type'=>"ENUM('whatsapp','email','in_app') NULL",
+          'message_template'=>'TEXT NULL'
+      ]
+    ];
+    $missingFields=[];
+    foreach($flowCols as $table=>$fields){
+        foreach($fields as $column=>$definition){
+            $found=lc_one("SELECT 1 AS ok FROM information_schema.COLUMNS
+              WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=? AND COLUMN_NAME=?",[$table,$column]);
+            if(!$found)$missingFields[]=[$table,$column,$definition];
+        }
+    }
+    $index=lc_one("SELECT GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX SEPARATOR ',') AS cols
+      FROM information_schema.STATISTICS
+      WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='automation_deliveries'
+        AND INDEX_NAME='uq_automation_delivery' GROUP BY INDEX_NAME");
+    $indexUpgrade=($index['cols']??'')!=='event_id,rule_id,recipient_user_id,node_id';
+    $switchExists=(bool)lc_one("SELECT 1 AS ok FROM information_schema.TABLES
+       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='automation_whatsapp_settings'");
+    if($missingFields||$indexUpgrade||!$switchExists)lc_migration_backup();
+    foreach($missingFields as [$table,$column,$definition]){
+        $db->exec("ALTER TABLE $table ADD COLUMN $column $definition");
+    }
+    if($indexUpgrade){
+        // MySQL uses the old unique index for fk_automation_event. Create a
+        // dedicated FK index BEFORE dropping it, preserving all existing rows.
+        $eventIndex=lc_one("SELECT 1 AS found FROM information_schema.STATISTICS
+          WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='automation_deliveries'
+            AND INDEX_NAME='idx_automation_event_fk' LIMIT 1");
+        if(!$eventIndex)
+            $db->exec('ALTER TABLE automation_deliveries ADD INDEX idx_automation_event_fk (event_id)');
+        if($index) $db->exec('ALTER TABLE automation_deliveries DROP INDEX uq_automation_delivery');
+        $db->exec('ALTER TABLE automation_deliveries ADD UNIQUE KEY uq_automation_delivery (event_id,rule_id,recipient_user_id,node_id)');
+    }
+    $switchSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261015_automation_visual.sql'));
+    if(!preg_match('/^CREATE TABLE IF NOT EXISTS automation_whatsapp_settings\s*\(/i',$switchSql))
+        throw new RuntimeException('Migração visual inválida.');
+    $db->exec($switchSql);
+    $db->exec('INSERT IGNORE INTO automation_whatsapp_settings(id,enabled) VALUES(1,0)');
+    echo "MIGRACAO_AUTOMACOES_VISUAIS_OK\n";
+
     echo "MIGRACAO_AUTOMACOES_OK\n";
 
     echo "MIGRACAO_CRIADOR_ASSINATURAS_OK\n";

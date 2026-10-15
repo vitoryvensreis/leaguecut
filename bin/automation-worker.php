@@ -25,7 +25,8 @@ function lc_automation_send_email(array $user,string $subject,string $body): voi
     $mail->Body=$body;
     $mail->send();
 }
-$pending=lc_all("SELECT d.id,d.attempts,r.id AS rule_id,r.enabled,r.name,r.action_type,r.message_template,
+$pending=lc_all("SELECT d.id,d.attempts,r.id AS rule_id,r.enabled,r.name,COALESCE(d.action_type,r.action_type) AS action_type,
+   COALESCE(d.message_template,r.message_template) AS message_template,
    e.trigger_code,e.context_json,u.id AS user_id,u.full_name,u.email,u.whatsapp,u.consent_whatsapp,u.status AS user_status
    FROM automation_deliveries d
    JOIN automation_rules r ON r.id=d.rule_id

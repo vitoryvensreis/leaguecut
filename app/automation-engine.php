@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/automation-graph.php';
 
 /** Declarative automations. Never eval user supplied rules or templates. */
 function lc_automation_triggers(): array {
@@ -47,14 +48,25 @@ function lc_automation_emit(string $trigger,string $eventKey,int $subjectUserId,
     $eventId=(int)lc_db()->lastInsertId();
     $count=0;
     foreach($rules as $rule){
-        if(!lc_automation_condition($rule,$context))continue;
-        $ids=$rule['recipient_type']==='admins'
-            ?lc_all("SELECT id FROM users WHERE role='admin' AND status='approved' ORDER BY id LIMIT 20")
-            :[['id'=>$subjectUserId]];
-        foreach($ids as $item){
-            lc_query('INSERT IGNORE INTO automation_deliveries(event_id,rule_id,recipient_user_id) VALUES(?,?,?)',
-                [$eventId,$rule['id'],$item['id']]);
-            $count++;
+        $graphRaw=(string)($rule['graph_json']??'');
+        if($graphRaw!==''){
+            $graph=json_decode($graphRaw,true,32,JSON_THROW_ON_ERROR);
+            $actions=lc_flow_actions($graph,$context);
+        }else{
+            if(!lc_automation_condition($rule,$context))continue;
+            $actions=[['node_id'=>'legacy','action_type'=>$rule['action_type'],
+               'recipient_type'=>$rule['recipient_type'],'message_template'=>$rule['message_template']]];
+        }
+        foreach($actions as $action){
+            $ids=$action['recipient_type']==='admins'
+                ?lc_all("SELECT id FROM users WHERE role='admin' AND status='approved' ORDER BY id LIMIT 20")
+                :[['id'=>$subjectUserId]];
+            foreach($ids as $item){
+                $insert=lc_query('INSERT IGNORE INTO automation_deliveries
+                  (event_id,rule_id,recipient_user_id,node_id,action_type,message_template) VALUES(?,?,?,?,?,?)',
+                  [$eventId,$rule['id'],$item['id'],$action['node_id'],$action['action_type'],$action['message_template']]);
+                $count+=$insert->rowCount();
+            }
         }
     }
     return $count;
@@ -84,8 +96,12 @@ function lc_wpp_base_url(): string {
     return $base;
 }
 function lc_wpp_ready(): bool {
-    return lc_env('WPP_ENABLED','0')==='1' && lc_env('WPP_AUTH_TOKEN')!=='' &&
-      preg_match('/^[A-Za-z0-9_-]{1,50}$/D',lc_env('WPP_SESSION','leaguecut'))===1;
+    $session=lc_env('WPP_SESSION','leaguecut');
+    if($session!=='leaguecut'||lc_env('WPP_AUTH_TOKEN')==='')return false;
+    try{
+        $enabled=lc_one('SELECT enabled FROM automation_whatsapp_settings WHERE id=1');
+        return (int)($enabled['enabled']??0)===1;
+    }catch(Throwable $e){return false;}
 }
 function lc_wpp_send(string $phone,string $message): void {
     if(!lc_wpp_ready())throw new RuntimeException('WPPConnect desligado ou sem sessão/token.');
