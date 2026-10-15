@@ -54,3 +54,15 @@
 .creator-sales-step b{color:#ffbac1;font-size:1.2rem}
 @media(max-width:950px){.ws-rank-dashboard{grid-template-columns:1fr}.creator-sales-benefits{grid-template-columns:1fr}.site-header .brand{min-width:150px}.site-header .brand-image{width:185px;max-width:185px}}
 @media(max-width:620px){.lc-auth-dialog{width:calc(100vw - 18px);max-height:94dvh}.lc-auth-dialog-inner{padding:22px 17px}.lc-auth-dialog .form-grid{grid-template-columns:1fr}.ws-rank-panel{padding:17px}.ws-rank-row{grid-template-columns:36px minmax(0,1fr) auto;gap:8px}.site-header .brand{min-width:107px;min-height:48px}.site-header .brand-image{width:135px;height:49px;max-height:49px}.workspace-header .brand{min-width:98px}.workspace-header .brand-image{width:118px;height:47px;max-width:118px;max-height:47px}}
+
+/* Hero/header brand — 60% larger on desktop; keep small screens usable. */
+.site-header:not(.workspace-header) .brand:has(.brand-image){min-width:376px;min-height:110px}
+.site-header:not(.workspace-header) .brand-image{width:376px;height:109px;max-width:376px;max-height:109px;object-fit:contain}
+@media(max-width:950px){
+  .site-header:not(.workspace-header) .brand:has(.brand-image){min-width:296px;min-height:92px}
+  .site-header:not(.workspace-header) .brand-image{width:296px;height:91px;max-width:296px;max-height:91px}
+}
+@media(max-width:620px){
+  .site-header:not(.workspace-header) .brand:has(.brand-image){min-width:0;min-height:79px}
+  .site-header:not(.workspace-header) .brand-image{width:min(216px,calc(100vw - 215px));height:78px;max-width:216px;max-height:78px}
+}
