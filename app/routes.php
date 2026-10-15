@@ -9,6 +9,7 @@ require __DIR__ . '/drive.php';
 require __DIR__ . '/apify.php';
 require __DIR__ . '/hybrid-persistence.php';
 require __DIR__ . '/social-oauth-callback.php';
+require __DIR__ . '/social-oauth-lifecycle.php';
 require __DIR__ . '/routes-clip-video.php';
 require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/creator-platform.php';

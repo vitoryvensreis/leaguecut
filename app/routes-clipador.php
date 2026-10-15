@@ -98,6 +98,12 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
 <button class="btn btn-ghost" type="submit">Conectar <?=lc_e(ucfirst($a['network']))?></button>
 </form>
 <?php endif; ?>
+<?php if($oauthEnabled && $a['oauth_verified']): ?>
+<form method="post" action="/redes/oauth/<?=lc_e($a['network'])?>/desconectar">
+<?=lc_csrf()?><input type="hidden" name="account_id" value="<?=(int)$a['id']?>">
+<button class="btn btn-ghost" type="submit">Desconectar</button>
+</form>
+<?php endif; ?>
 </td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'social');return true;
     }
