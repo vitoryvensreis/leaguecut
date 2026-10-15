@@ -60,10 +60,10 @@ function lc_integrations_routes(string $method,string $path): bool {
  <div class="panel"><h2><?=lc_icon('chart-column')?> Métricas Instagram · Apify</h2>
    <span class="tag <?=$apifyConfig['token']!==''?'tag-approved':'tag-pending'?>"><?=$apifyConfig['token']!==''?'Token configurado':'Ainda não configurado'?></span>
 
-   <?php if(lc_env('APIFY_SYNC_ENABLED','1')!=='1'): ?>
-      <p class="hint" role="status"><strong>Agendamento pausado.</strong> O token está guardado, mas nenhuma consulta programada será executada até confirmarmos os contadores de views do Actor oficial em um teste controlado.</p>
+   <?php if($apifyConfig['token']===''): ?>
+      <p class="hint" role="status"><strong>Token Apify ausente.</strong> Adicione <code>APIFY_API_TOKEN</code> no arquivo privado <code>.env</code> para permitir as consultas agendadas.</p>
    <?php endif; ?>
-   <p>Consultas periódicas com cache e limite de custo. O sistema consulta URLs exatas de clipes Instagram aprovados, com vídeo original armazenado e em campanhas ativas, registrando visualizações públicas observadas, sem aprovar recompensas automaticamente.</p>
+   <p>Coleta de visualizações públicas pelo Apify, sem exigir que os clipadores conectem contas à Meta. Consultamos URLs exatas de clipes Instagram aprovados, com vídeo original armazenado, respeitando limites de custo. As views observadas não aprovam recompensas automaticamente.</p>
    <p class="hint"><strong>Atualização automática:</strong> diariamente às 02:00 de Fortaleza (05:00 UTC). São consultadas publicações de clipes aprovados com original; o alcance depende do limite de consumo e da disponibilidade do provedor. Os dados são observacionais, sem crédito financeiro automático.</p>
    <div class="stats-grid">
      <div class="metric"><small>Clipes monitorados hoje</small><strong><?=(int)$dailyProgress['updated']?> / <?=(int)$dailyProgress['total']?></strong></div>
@@ -73,7 +73,7 @@ function lc_integrations_routes(string $method,string $path): bool {
      <div class="metric"><small>Intervalo por publicação</small><strong><?=(int)$apifyConfig['min_hours']?>h</strong></div>
    </div>
    <p class="hint">Actor oficial: <strong>apify/instagram-post-scraper</strong>, entrada por link e <code>detailedData</code> (pode ter custo adicional). Valores observados não geram crédito automaticamente.</p>
-   <p class="hint">Para ativar: adicione <code>APIFY_API_TOKEN</code> no arquivo privado <code>/home/leaguecut/shared/.env</code>. Após salvar, verifique o token gratuitamente. O agendamento executa uma vez por dia às 02h (Fortaleza, UTC−3; cron 05:00 UTC), mas respeita as cotas. A API não fornece métricas em tempo real nem garante views de todos os posts; números e gastos reais dependem do provedor.</p>
+   <p class="hint">Para coletar, configure <code>APIFY_API_TOKEN</code> no arquivo privado <code>/home/leaguecut/shared/.env</code>. O agendamento executa diariamente às 02h (Fortaleza, 05:00 UTC), sujeito a atrasos do GitHub Actions e aos limites de custo. A coleta só ocorre para publicações elegíveis e pode não cobrir todos os clipes.</p>
    <div class="form-actions">
      <form method="post" action="/admin/integracoes/apify/verificar"><?=lc_csrf()?>
        <button class="btn btn-ghost" type="submit" <?=$apifyConfig['token']===''?'disabled':''?>><?=lc_icon('circle-check')?> Verificar token (sem cobrança)</button>
