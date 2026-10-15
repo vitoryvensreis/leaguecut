@@ -163,7 +163,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
   <?php $body(); ?>
 </main>
 <?php if($workspace): ?></div></div><?php endif; ?>
-<footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span><span>Crie conteúdo. Faça parte. Receba pelo resultado.</span></footer>
+<footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span><nav aria-label="Informações legais" style="display:flex;gap:14px;flex-wrap:wrap"><a href="/politica-de-privacidade">Privacidade</a><a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a></nav></footer>
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
 </body></html><?php
