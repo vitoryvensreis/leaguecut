@@ -126,5 +126,26 @@ jobs:
             fi
             exit 1
           fi
+          # Reliable local scheduler: cron runs at minute zero every hour, while the
+          # command itself checks for 02:00 in America/Fortaleza, regardless of
+          # the host timezone. The GitHub scheduled workflow remains a fallback.
+          if command -v crontab >/dev/null 2>&1; then
+            USER_CRON="$(crontab -l 2>/dev/null || true)"
+            if ! printf '%s\n' "$USER_CRON" | grep -Fq '# LEAGUECUT_APIFY_02H_MANAGED'; then
+              {
+                printf '%s\n' "$USER_CRON"
+                printf '%s\n' '# LEAGUECUT_APIFY_02H_MANAGED'
+                printf '%s\n' '0 * * * * cd /home/leaguecut/current && /usr/bin/php bin/sync-apify-views.php --fortaleza-02 >> /home/leaguecut/logs/apify-cron.log 2>&1'
+              } | crontab -
+            fi
+            if crontab -l | grep -Fq '# LEAGUECUT_APIFY_02H_MANAGED'; then
+              echo 'APIFY_VPS_CRON_02H_INSTALLED'
+            else
+              echo 'ERR: VPS Apify cron was not installed'
+              exit 1
+            fi
+          else
+            echo 'APIFY_VPS_CRON_UNAVAILABLE: GitHub Actions schedule remains active'
+          fi
           echo "LEAGUECUT_PUBLICADO=$REV"
           REMOTE
