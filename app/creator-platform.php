@@ -117,8 +117,20 @@ function lc_creator_routes(string $method,string $path): bool {
         $packages=lc_all("SELECT id,name,description,fulfillment_mode,monthly_clips,monthly_price_cents FROM creator_packages WHERE status='active' ORDER BY fulfillment_mode,id DESC");
         $viewer=lc_user();
         lc_page('Planos para criadores',function()use($packages,$viewer){?>
-<div class="container">
-<?php lc_heading('Para quem cria lives e conteúdo','Pacotes mensais','Escolha entre receber cortes prontos para baixar ou contratar produção com postagem feita pela equipe LeagueCut.'); ?>
+<div class="creator-sales-page"><section class="creator-sales-hero"><div class="creator-sales-container">
+  <span class="eyebrow"><?=lc_icon('sparkles')?> Para quem cria conteúdo</span>
+  <h1>Você faz a live.<br><em>Nós transformamos em cortes.</em></h1>
+  <p>Mais presença nas redes com menos tempo de edição. Receba clipes para baixar ou contrate a produção com publicação feita pela nossa equipe.</p>
+  <div class="creator-sales-actions"><a class="btn" href="#planos">Conhecer pacotes <?=lc_icon('arrow-right')?></a><a class="btn btn-ghost" href="#como-funciona-criadores">Como funciona</a></div>
+</div></section>
+<div class="creator-sales-container">
+<div class="creator-sales-benefits">
+  <article class="creator-sales-benefit"><?=lc_icon('clapperboard')?><h3>Seus melhores momentos</h3><p>Cortes verticais prontos para movimentar suas redes sociais e apresentar seu conteúdo.</p></article>
+  <article class="creator-sales-benefit"><?=lc_icon('clock-3')?><h3>Mais tempo para criar</h3><p>Foque na audiência, deixe a edição com a equipe League Cut.</p></article>
+  <article class="creator-sales-benefit"><?=lc_icon('chart-column')?><h3>Rotina previsível</h3><p>Pacotes mensais com quantidade definida de clipes e acompanhamento das entregas.</p></article>
+</div>
+<section class="creator-sales-section" id="planos"><span class="eyebrow">Planos para criadores</span><h2>Encontre seu ritmo de publicação.</h2>
+<p>Escolha entre downloads e produção gerenciada. A contratação e os pagamentos são confirmados manualmente nesta fase.</p>
 <div class="creator-plan-grid">
 <?php if(!$packages):lc_empty('Novos planos em preparação','O LeagueCut está preparando seus pacotes de cortes para criadores.');endif;?>
 <?php foreach($packages as $p): ?>
@@ -138,8 +150,13 @@ function lc_creator_routes(string $method,string $path): bool {
    <a class="btn btn-ghost" href="/cadastrar/criador">Criar conta de criador <?=lc_icon('arrow-right')?></a>
   <?php endif;?>
 </article><?php endforeach;?>
-</div>
-</div>
+</div></section>
+<section class="creator-sales-section" id="como-funciona-criadores"><span class="eyebrow">Como funciona</span><h2>Da sua live ao próximo corte.</h2>
+  <div class="creator-sales-step"><b>01</b><div><h3>Escolha um pacote</h3><p>Compare quantidade, preço e modelo de entrega dos clipes.</p></div></div>
+  <div class="creator-sales-step"><b>02</b><div><h3>Solicite a assinatura</h3><p>Crie sua conta de criador. Nossa equipe confirma o pagamento antes de iniciar o primeiro ciclo.</p></div></div>
+  <div class="creator-sales-step"><b>03</b><div><h3>Acompanhe as entregas</h3><p>Veja seus pacotes e os clipes disponibilizados no League Cut.</p></div></div>
+  <div class="creator-sales-actions"><a class="btn" href="/cadastrar/criador">Começar como criador <?=lc_icon('arrow-right')?></a></div>
+</section></div></div>
 <?php },'explore');return true;
     }
     if($path==='/cadastrar/criador'){
