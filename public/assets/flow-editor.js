@@ -178,60 +178,133 @@ if(search)search.addEventListener('input',()=>{
 });
 const wpp=document.querySelector('.lc-wpp-admin');
 if(!wpp)return;
-const statusEl=document.getElementById('wpp-state'),qrImage=document.getElementById('wpp-qr-image'),
-qrInfo=document.getElementById('wpp-qr-info'),feedback=document.getElementById('wpp-feedback');
-let connected=false,active=false,busy=false;
-const req=async(path,post=false)=>{
- const args={credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}};
- if(post){args.method='POST';args.headers['Content-Type']='application/x-www-form-urlencoded';
-     args.body=new URLSearchParams({_csrf:csrf()}).toString();}
- const response=await fetch('/admin/whatsapp/api/'+path,args);
- const data=await response.json();
- if(!response.ok)throw new Error(data.error||'Falha na conexão');
- return data;
-};
-const message=(text)=>{feedback.textContent=text;};
-const qr=async()=>{
- if(connected)return;
- try{
- const result=await req('qr');const value=result.qr||'';
- if(typeof value==='string'&&value.startsWith('data:image/png;base64,')&&value.length<2500000){
-   qrImage.src=value;qrImage.hidden=false;qrInfo.hidden=true;
- }else if(qrImage.hidden){qrInfo.hidden=false;qrInfo.textContent='Aguardando geração do QR Code. Clique em “Conectar” se necessário.';}
- }catch(e){if(qrImage.hidden)qrInfo.textContent='Ainda não há QR Code. Clique em “Conectar” para iniciar.';}
-};
-const update=async()=>{
- try{
-   const state=await req('status');
-   connected=!!state.connected;active=!!state.enabled;
-   statusEl.textContent=connected?'Conectado':'Não conectado · '+(state.status||'UNKNOWN');
-   statusEl.classList.toggle('is-connected',connected);
-   document.getElementById('wpp-enable').disabled=!connected||active;
-   document.getElementById('wpp-pause').disabled=!active;
-   if(connected){qrImage.hidden=true;qrImage.removeAttribute('src');qrInfo.hidden=false;
-       qrInfo.textContent='WhatsApp conectado! '+(active?'Envios automáticos ativados.':'Ative os envios quando estiver pronto.');}
-   else await qr();
- }catch(e){statusEl.textContent='API indisponível';message(e.message);}
-};
-const doAction=async(id,endpoint,question)=>{
- const btn=document.getElementById(id);
- btn.addEventListener('click',async()=>{
-   if(busy)return;
-   if(question&&!window.confirm(question))return;
-   busy=true;btn.disabled=true;message('Processando solicitação...');
-   try{
-     await req(endpoint,true);
-     message(endpoint==='start'?'Sessão iniciada. Aguarde o QR Code e escaneie pelo celular.':'Operação concluída.');
-     if(endpoint==='start')await new Promise(resolve=>setTimeout(resolve,1600));
-   }catch(e){message(e.message);}
-   finally{busy=false;await update();}
- });
-};
-doAction('wpp-start','start');
-doAction('wpp-close','close','Encerrar somente a sessão da LeagueCut? Os disparos serão pausados.');
-doAction('wpp-enable','enable');
-doAction('wpp-pause','pause');
-document.getElementById('wpp-refresh').addEventListener('click',update);
-update();
-setInterval(()=>{if(!document.hidden&&!busy)update();},8000);
+const statusEl=document.getElementById('wpp-state');
+const qrImage=document.getElementById('wpp-qr-image');
+const qrInfo=document.getElementById('wpp-qr-info');
+const feedback=document.getElementById('wpp-feedback');
+const enableButton=document.getElementById('wpp-enable');
+const pauseButton=document.getElementById('wpp-pause');
+const refreshButton=document.getElementById('wpp-refresh');
+let connected=false,enabled=false,initialized=false,actionBusy=false;
+let statusBusy=false,qrBusy=false,lastQrCheck=0;
+const STATUS_POLL_MS=2500;
+const QR_REFRESH_MS=12000;
+const say=text=>{feedback.textContent=text;};
+async function request(path,post=false){
+  const args={credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}};
+  if(post){
+    args.method='POST';
+    args.headers['Content-Type']='application/x-www-form-urlencoded';
+    args.body=new URLSearchParams({_csrf:csrf()}).toString();
+  }
+  // Slow backend calls must never queue up in the browser.
+  const timer=new AbortController();
+  const timeout=setTimeout(()=>timer.abort(),post?32000:10500);
+  args.signal=timer.signal;
+  try{
+    const response=await fetch('/admin/whatsapp/api/'+path,args);
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Falha na conexão');
+    return data;
+  }finally{clearTimeout(timeout);}
+}
+function showStatus(state){
+  const wasConnected=connected;
+  connected=state.connected===true;
+  enabled=state.enabled===true;
+  statusEl.classList.toggle('is-connected',connected);
+  statusEl.classList.remove('is-unavailable');
+  statusEl.textContent=connected?'Conectado':state.status==='CONNECTING'?'Conectando...':'Não conectado';
+  enableButton.disabled=!connected||enabled;
+  pauseButton.disabled=!enabled;
+  if(connected){
+    qrImage.hidden=true;
+    qrImage.removeAttribute('src');
+    qrInfo.hidden=false;
+    qrInfo.textContent=enabled
+      ? 'WhatsApp conectado. Os envios automáticos estão ativados.'
+      : 'WhatsApp conectado! Você pode ativar as automações quando desejar.';
+    if(!initialized||!wasConnected)say('WhatsApp conectado com sucesso! A conexão foi reconhecida automaticamente.');
+  }else if(initialized&&wasConnected){
+    qrImage.hidden=true;
+    qrImage.removeAttribute('src');
+    qrInfo.hidden=false;
+    qrInfo.textContent='Conexão perdida. Aguarde a reconexão ou gere outro QR Code.';
+    say('A conexão com o WhatsApp foi interrompida. Os disparos não serão ativados sem conexão.');
+  }
+  initialized=true;
+}
+async function refreshQr(force=false){
+  if(connected||qrBusy||actionBusy||document.hidden)return;
+  if(!force&&Date.now()-lastQrCheck<QR_REFRESH_MS)return;
+  qrBusy=true;
+  lastQrCheck=Date.now();
+  try{
+    const result=await request('qr');
+    if(connected)return;
+    const value=result.qr||'';
+    if(typeof value==='string'&&value.startsWith('data:image/png;base64,')&&value.length<2500000){
+      if(qrImage.src!==value)qrImage.src=value;
+      qrImage.hidden=false;
+      qrInfo.hidden=true;
+    }else if(qrImage.hidden){
+      qrInfo.hidden=false;
+      qrInfo.textContent='Aguardando QR Code. Clique em “Conectar” se necessário.';
+    }
+  }catch(_e){
+    if(!connected&&qrImage.hidden){
+      qrInfo.hidden=false;
+      qrInfo.textContent='Aguardando novo QR Code.';
+    }
+  }finally{qrBusy=false;}
+}
+async function refreshStatus(force=false){
+  if(statusBusy||actionBusy||(!force&&document.hidden))return;
+  statusBusy=true;
+  try{
+    const state=await request('status');
+    showStatus(state);
+    if(!connected)void refreshQr();
+  }catch(e){
+    // Connection couldn't be verified; never show an unverified green state.
+    statusEl.classList.remove('is-connected');
+    statusEl.classList.add('is-unavailable');
+    statusEl.textContent='Estado indisponível';
+    enableButton.disabled=true;
+    say('Não foi possível verificar a sessão: '+(e.name==='AbortError'?'tempo limite':e.message));
+  }finally{statusBusy=false;}
+}
+async function runAction(id,endpoint,question){
+  const button=document.getElementById(id);
+  button.addEventListener('click',async()=>{
+    if(actionBusy)return;
+    if(question&&!window.confirm(question))return;
+    actionBusy=true;button.disabled=true;
+    say('Aguardando WPPConnect...');
+    try{
+      await request(endpoint,true);
+      if(endpoint==='start'){
+        say('Sessão iniciada. Escaneie o QR Code; o painel detectará a conexão sozinho.');
+        lastQrCheck=0;
+      }else if(endpoint==='enable')say('Envio de automações ativado.');
+      else if(endpoint==='pause')say('Envio de automações pausado.');
+      else if(endpoint==='close')say('Somente a sessão LeagueCut foi encerrada.');
+    }catch(e){say('Não foi possível concluir: '+e.message);}
+    finally{
+      actionBusy=false;
+      await refreshStatus(true);
+      if(endpoint==='start'&&!connected)void refreshQr(true);
+    }
+  });
+}
+runAction('wpp-start','start');
+runAction('wpp-close','close','Encerrar somente a sessão da LeagueCut? Os disparos serão pausados.');
+runAction('wpp-enable','enable');
+runAction('wpp-pause','pause');
+refreshButton.addEventListener('click',()=>{lastQrCheck=0;void refreshStatus(true);});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)void refreshStatus(true);});
+void refreshStatus(true);
+// Deliberate lightweight fallback: status polling is sufficient without restarting
+// the existing WebSocket service; QR itself is fetched less frequently.
+setInterval(()=>{if(!document.hidden&&!actionBusy)void refreshStatus();},STATUS_POLL_MS);
 })();
