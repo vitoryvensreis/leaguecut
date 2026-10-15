@@ -1,0 +1,51 @@
+name: Combined hybrid and Meta MySQL gate
+on:
+  pull_request:
+    paths:
+      - 'database/migrations/20261014_hybrid_verification.sql'
+      - 'database/migrations/20261015_meta_deauthorization_inbox.sql'
+      - 'database/schema.sql'
+      - '.github/workflows/hybrid-combined-mysql.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  combined-schema:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_DATABASE: leaguecut_test
+          MYSQL_USER: leaguecut_ci
+          MYSQL_PASSWORD: ci_password_not_production
+          MYSQL_ROOT_PASSWORD: ci_root_not_production
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -u root -pci_root_not_production"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for MySQL
+        run: |
+          for i in $(seq 1 40); do
+            if mysqladmin ping -h 127.0.0.1 -u leaguecut_ci -pci_password_not_production --silent; then exit 0; fi
+            sleep 2
+          done
+          exit 1
+      - name: Apply both migrations twice and verify isolation
+        env:
+          MYSQL_PWD: ci_password_not_production
+        run: |
+          set -euo pipefail
+          mysql -h 127.0.0.1 -u leaguecut_ci leaguecut_test < database/schema.sql
+          for migration in database/migrations/20261014_hybrid_verification.sql database/migrations/20261015_meta_deauthorization_inbox.sql; do
+            mysql -h 127.0.0.1 -u leaguecut_ci leaguecut_test < "$migration"
+            mysql -h 127.0.0.1 -u leaguecut_ci leaguecut_test < "$migration"
+          done
+          mysql -h 127.0.0.1 -u leaguecut_ci leaguecut_test < tests/hybrid-mysql-smoke.sql
+          mysql -h 127.0.0.1 -u leaguecut_ci leaguecut_test -e "INSERT IGNORE INTO meta_deauthorization_inbox(event_hash,app_scoped_user_hash) VALUES(REPEAT('a',64),REPEAT('b',64)),(REPEAT('a',64),REPEAT('b',64));"
+          COUNT=$(mysql -N -h 127.0.0.1 -u leaguecut_ci leaguecut_test -e "SELECT COUNT(*) FROM meta_deauthorization_inbox")
+          test "$COUNT" = 1
