@@ -203,6 +203,31 @@ try{
     }
     echo "MIGRACAO_HIBRIDA_OK\\n";
 
+    // Declarative automation tables: additive, idempotent, backed up before first use.
+    $autoTables=['automation_rules','automation_events','automation_deliveries'];
+    $autoMissing=false;
+    foreach($autoTables as $table){
+        if(!lc_one("SELECT 1 AS found FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?",[$table])){
+            $autoMissing=true;
+        }
+    }
+    if($autoMissing)lc_migration_backup();
+    $autoSql=(string)file_get_contents(dirname(__DIR__).'/database/migrations/20261015_automation_engine.sql');
+    $autoStatements=array_values(array_filter(array_map('trim',explode(';',$autoSql))));
+    if(count($autoStatements)!==3)throw new RuntimeException('Migração de automações inválida.');
+    foreach($autoStatements as $i=>$statement){
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($autoTables[$i],'/').'\s*\(/i',$statement)){
+            throw new RuntimeException('Tabela inesperada na migração de automações.');
+        }
+        $db->exec($statement);
+    }
+    foreach($autoTables as $table){
+        if(!lc_one("SELECT 1 AS found FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?",[$table])){
+            throw new RuntimeException('Tabela de automação ausente: '.$table);
+        }
+    }
+    echo "MIGRACAO_AUTOMACOES_OK\n";
+
     echo "MIGRACAO_CRIADOR_ASSINATURAS_OK\n";
 
 
