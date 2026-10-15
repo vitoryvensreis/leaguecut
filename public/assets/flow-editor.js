@@ -154,6 +154,7 @@ if(editor){
    if(!graph.nodes.some(n=>n.type==='trigger')||!graph.nodes.some(n=>['whatsapp','email','in_app'].includes(n.type))){alert('É necessário um gatilho e ao menos uma ação.');return;}
    document.getElementById('lc-flow-form-name').value=clean;
    document.getElementById('lc-flow-form-json').value=JSON.stringify(graph);
+   dirty.textContent='Salvando...';
    form.submit();
  });
  document.getElementById('lc-flow-add-condition').addEventListener('click',()=>addNode('condition'));
