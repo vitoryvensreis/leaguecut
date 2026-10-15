@@ -108,7 +108,7 @@ function lc_flow_default(string $trigger='user.approved'): array {
        ['id'=>'gatilho','type'=>'trigger','x'=>65,'y'=>190,'data'=>['trigger'=>$trigger]],
        ['id'=>'acao1','type'=>'whatsapp','x'=>415,'y'=>190,
         'data'=>['recipient'=>'user','message'=>'Olá, {nome}! Temos uma atualização no LeagueCut. {link}']],
-       ['id'=>'fim','type'=>'end','x'=>775,'y'=>190,'data'=>new stdClass()]
+       ['id'=>'fim','type'=>'end','x'=>775,'y'=>190,'data'=>[]]
     ],'edges'=>[
        ['from'=>'gatilho','to'=>'acao1','port'=>'next'],
        ['from'=>'acao1','to'=>'fim','port'=>'next']
