@@ -24,11 +24,12 @@ function lc_social_oauth_refresh_tiktok(array $row): bool {
     $encrypted=lc_encrypt($data['access_token']);
     $encryptedRefresh=lc_encrypt($data['refresh_token']);
     $expires=gmdate('Y-m-d H:i:s',time()+min(31536000,(int)$data['expires_in']));
-    lc_query('UPDATE social_oauth_connections SET access_token_enc=?,refresh_token_enc=?,scopes=?,expires_at=?
+    $updated=lc_query('UPDATE social_oauth_connections SET access_token_enc=?,refresh_token_enc=?,scopes=?,expires_at=?
       WHERE id=? AND provider=? AND revoked_at IS NULL AND refresh_token_enc=?',
       [$encrypted,$encryptedRefresh,(string)($data['scope']??$row['scopes']),$expires,
        (int)$row['id'],'tiktok',$row['refresh_token_enc']]);
-    return true;
+    // A concurrent disconnect or refresh invalidates this stale token snapshot.
+    return $updated->rowCount()===1;
 }
 /** Local disconnect is immediate. Remote revoke is best effort, never blocks user disconnect. */
 function lc_social_oauth_disconnect(int $socialId,int $userId,string $network): void {
