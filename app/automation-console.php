@@ -26,7 +26,7 @@ function lc_automation_routes(string $method,string $path): bool {
         if($id>0){
             $old=lc_one('SELECT id FROM automation_rules WHERE id=?',[$id]);
             if(!$old){lc_flash('Automação não encontrada.','error');lc_redirect($back);}
-            lc_query('UPDATE automation_rules SET name=?,trigger_code=?,condition_field=?,condition_value=?,action_type=?,recipient_type=?,message_template=? WHERE id=?',
+            lc_query('UPDATE automation_rules SET name=?,trigger_code=?,condition_field=?,condition_value=?,action_type=?,recipient_type=?,message_template=?,graph_json=NULL WHERE id=?',
                [$name,$trigger,$field,$value,$action,$recipient,$message,$id]);
         }else{
             // New rules are off until explicitly enabled by an administrator.
