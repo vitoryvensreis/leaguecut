@@ -90,6 +90,20 @@ function lc_instagram_exchange_result(array $initial,array $long): array {
       'refresh_token'=>null,'expires_in'=>$verified['expires_in'],
       'scopes'=>is_string($initial['scope']??null)?$initial['scope']:''];
 }
+/** Preserve literal plus signs in Instagram's query-string authorization code.
+ * PHP's $_GET form decoder replaces a raw + with a space. OAuth codes are opaque.
+ */
+function lc_instagram_oauth_code_from_query(string $query): string {
+    $code=null;
+    foreach(explode('&',$query) as $part){
+        [$name,$value]=array_pad(explode('=',$part,2),2,'');
+        if(rawurldecode($name)!=='code')continue;
+        if($code!==null)throw new InvalidArgumentException('Código OAuth duplicado.');
+        $code=rawurldecode($value);
+    }
+    return $code??'';
+}
+
 /** Instagram sometimes appends the literal #_ fragment marker to OAuth codes. */
 function lc_instagram_oauth_clean_code(string $code): string {
     // Remove only the documented trailing fragment marker, never arbitrary code bytes.
@@ -190,7 +204,7 @@ function lc_social_oauth_route(string $method,string $path): bool {
               [$accountId,(int)$user['id'],$network]);
             if(!$account)throw new RuntimeException('Conta não encontrada.');
             $stage='exchange';
-            $token=lc_social_oauth_exchange($network,(string)($_GET['code']??''),$redirectUri);
+            $token=lc_social_oauth_exchange($network,$network==='instagram'?lc_instagram_oauth_code_from_query((string)($_SERVER['QUERY_STRING']??'')):(string)($_GET['code']??''),$redirectUri);
             $stage='identity';
             $identity=lc_social_oauth_identity($network,$token['access_token']);
             $stage='match';
