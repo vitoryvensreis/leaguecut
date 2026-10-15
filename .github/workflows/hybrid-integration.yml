@@ -29,7 +29,7 @@ jobs:
       - name: Lint PHP integration files
         run: |
           set -euo pipefail
-          for file in app/hybrid-verification.php app/hybrid-persistence.php app/social-oauth.php app/social-oauth-callback.php app/social-oauth-lifecycle.php app/official-metrics.php app/tiktok-official-metrics.php app/instagram-official-metrics.php bin/hybrid-youtube-sync.php bin/hybrid-tiktok-sync.php bin/hybrid-instagram-sync.php app/routes.php app/routes-clipador.php bin/hybrid-backfill.php; do
+          for file in app/hybrid-verification.php app/hybrid-persistence.php app/social-oauth.php app/social-oauth-callback.php app/social-oauth-lifecycle.php app/official-metrics.php app/tiktok-official-metrics.php app/instagram-official-metrics.php bin/hybrid-youtube-sync.php bin/hybrid-tiktok-sync.php bin/hybrid-instagram-sync.php app/routes.php app/routes-clipador.php bin/hybrid-backfill.php bin/hybrid-release-preflight.php; do
             php -l "$file"
           done
       - name: Execute isolated policy and adapter tests
