@@ -38,3 +38,14 @@ background:#10151e;transition:background .18s,border-color .18s}
 .lc-ticket-activity-row:last-child{border-bottom:0}
 .lc-ticket-activity-row small{color:#afb8ca;font-size:.78rem}
 .lc-ticket-message:has(+ .lc-ticket-message){margin-bottom:0}
+
+/* B6F1: accessible search and pagination for long-running ticket queues. */
+.lc-ticket-search{margin:0 0 18px}
+.lc-ticket-search label{display:block;color:#d4dbe5;font-size:.86rem;margin-bottom:8px}
+.lc-ticket-search>div{display:flex;gap:10px;flex-wrap:wrap}
+.lc-ticket-search input{flex:1;min-width:190px;max-width:100%;background:#0d1017;border:1px solid #ffffff2b;color:#f4f6fc;border-radius:8px;padding:11px;font:inherit}
+.lc-ticket-search input:focus-visible,.lc-ticket-pager a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lc-ticket-pager{display:flex;align-items:center;justify-content:flex-end;gap:12px;flex-wrap:wrap;margin-top:20px}
+.lc-ticket-pager a{border:1px solid #ffffff2b;border-radius:8px;padding:9px 13px;color:#f1d5db;text-decoration:none}
+.lc-ticket-pager a:hover{border-color:#ff7180;background:#df26451a}
+.lc-ticket-pager span{color:#b9c4d5;font-size:.88rem}
