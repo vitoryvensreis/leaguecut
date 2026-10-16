@@ -366,6 +366,23 @@ try{
         }
     }
     echo "MIGRACAO_PUSH_STORAGE_OK\n";
+    $supportTables=['support_tickets','support_messages'];
+    $needsSupport=false;
+    foreach($supportTables as $table){
+        if(!lc_one('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?',[$table]))$needsSupport=true;
+    }
+    if($needsSupport){
+        lc_migration_backup();
+        $statements=array_values(array_filter(array_map('trim',explode(';',(string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_support_tickets.sql')))));
+        if(count($statements)!==2)throw new RuntimeException('Migração B6E1 incompleta.');
+        foreach($statements as $i=>$stmt){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($supportTables[$i],'/').'\\s*\\(/i',$stmt))
+                throw new RuntimeException('Migração B6E1 contém tabela inesperada.');
+            $db->exec($stmt);
+        }
+    }
+    echo "MIGRACAO_B6E1_SUPPORT_OK\n";
+
 
 
 

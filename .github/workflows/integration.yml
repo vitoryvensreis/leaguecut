@@ -116,6 +116,7 @@ jobs:
           php tests/pwa_security.php
           php tests/push_storage.php
           php tests/push_vapid_queue.php
+          php tests/support_tickets.php
           node --check public/assets/background-push.js
           node --check public/assets/pwa.js
           node --check public/assets/notification-preferences.js

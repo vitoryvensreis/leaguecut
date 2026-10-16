@@ -30,6 +30,7 @@ function lc_workspace_links(array $u): array {
           ['Visão geral','/admin','layout-dashboard'],
           ['Clipadores','/admin/clipadores','users-round'],
           ['Conferir clipes','/admin/clipes','clipboard-check'],
+          ['Chamados','/admin/chamados','clipboard-check'],
           ['Campanhas','/admin/campanhas','clapperboard'],
           ['Saques','/admin/financeiro','wallet'],
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
@@ -56,6 +57,7 @@ function lc_workspace_links(array $u): array {
         return [
           ['Minha área','/criador','layout-dashboard'],
           ['Pacotes mensais','/planos','layers'],
+          ['Suporte','/suporte','circle-check'],
           ['Indicações','/indicacoes','users-round'],
           ['Notificações','/notificacoes','bell'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check'],
@@ -68,6 +70,7 @@ function lc_workspace_links(array $u): array {
       ['Minha biblioteca','/biblioteca','library'],
       ['Minhas redes','/redes','share-2'],
       ['Financeiro','/financeiro','wallet'],
+      ['Suporte','/suporte','circle-check'],
       ['Indicações','/indicacoes','users-round'],
           ['Notificações','/notificacoes','bell'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check']
@@ -149,6 +152,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b6-layout.css?v=1">
+<?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados")): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>

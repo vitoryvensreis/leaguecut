@@ -43,6 +43,7 @@ require __DIR__ . '/otp-challenge.php';
 require __DIR__ . '/remember-device.php';
 require __DIR__ . '/password-recovery.php';
 require __DIR__ . '/request-audit.php';
+require __DIR__ . '/support.php';
 require __DIR__ . '/account-self.php';
 if (is_file(LC_ROOT . '/vendor/autoload.php')) require_once LC_ROOT . '/vendor/autoload.php';
 
@@ -77,6 +78,7 @@ if(lc_creator_admin_routes($method,$path))return;
 if(lc_wpp_admin_routes($method,$path))return;
 if(lc_automation_visual_routes($method,$path))return;
 if(lc_automation_routes($method,$path))return;
+if(lc_support_routes($method,$path))return;
 if(lc_request_audit_routes($method,$path))return;
 if(lc_mfa_routes($method,$path))return;
 if(lc_password_reset_routes($method,$path))return;

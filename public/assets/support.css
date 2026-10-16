@@ -1,0 +1,33 @@
+.lc-support-page{max-width:1240px;padding-bottom:48px}
+.lc-support-grid{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:20px}
+.lc-support-page .panel{min-width:0}
+.lc-support-page h2{margin:0 0 18px;font-size:1.13rem;letter-spacing:-.025em}
+.lc-support-page .field{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.lc-support-page .field input,.lc-support-page .field select,.lc-support-page .field textarea{
+width:100%;background:#0d1017;border:1px solid #ffffff2b;color:#f4f6fc;border-radius:8px;
+padding:12px;font:inherit;resize:vertical}
+.lc-support-page .field input:focus-visible,.lc-support-page .field textarea:focus-visible,
+.lc-support-page .field select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.lc-ticket-table{display:grid;gap:8px}
+.lc-ticket-row{display:grid;grid-template-columns:70px minmax(0,1fr) 124px 88px;align-items:center;gap:12px;
+color:inherit;padding:15px 13px;text-decoration:none;border:1px solid #ffffff20;border-radius:10px;
+background:#10151e;transition:background .18s,border-color .18s}
+.lc-ticket-row:hover,.lc-ticket-row:focus-visible{background:#1b202b;border-color:#fa304455;outline-offset:2px}
+.lc-ticket-name{font-weight:700;min-width:0;overflow-wrap:anywhere}
+.lc-ticket-name small{display:block;color:#a5aebe;font-weight:400;margin-top:6px}
+.lc-ticket-number{font-weight:700;color:#ff7180;font-variant-numeric:tabular-nums}
+.lc-ticket-status{font-size:.82rem;color:#f2c2ca}
+.lc-ticket-row time{color:#b0b9c7;font-size:.79rem}
+.lc-ticket-filters{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:20px}
+.lc-ticket-filters a{border:1px solid #ffffff25;border-radius:8px;text-decoration:none;color:#dbe1e9;padding:9px 13px}
+.lc-ticket-filters [aria-current=page]{border-color:#df2645;color:white;background:#9d152b35}
+.lc-ticket-messages{display:grid;gap:14px}
+.lc-ticket-message{border:1px solid #ffffff22;background:#0b1019;padding:18px;border-radius:10px;min-width:0}
+.lc-ticket-message-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.lc-ticket-message-top time{font-size:.78rem;color:#a7b0c0}
+.lc-ticket-message p{white-space:normal;overflow-wrap:anywhere;line-height:1.7;margin:12px 0 0}
+@media(max-width:950px){.lc-support-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.lc-ticket-row{grid-template-columns:64px minmax(0,1fr);gap:6px 12px}
+.lc-ticket-status,.lc-ticket-row time{grid-row:2}.lc-ticket-status{grid-column:2}
+.lc-ticket-row time{grid-column:1;font-size:.73rem}}
+@media(prefers-reduced-motion:reduce){.lc-ticket-row{transition:none}}

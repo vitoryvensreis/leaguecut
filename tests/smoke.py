@@ -406,6 +406,20 @@ def main():
     assert match, "Expected pending creator"
     approval=submit(admin,match.group(1),{},"/admin/clipadores")
     assert "aprovado" in approval.lower(), "Approval response"
+    assert 'href="/admin/chamados"' in get(admin,"/admin"), "Admin support inbox nav"
+    assert 'href="/suporte"' in get(creator,"/dashboard"), "User support nav"
+    assert 'name="subject"' in get(creator,"/suporte") and 'name="body"' in get(creator,"/suporte"), "Support form"
+    created=submit(creator,"/suporte",{
+        "subject":"Problema no envio de clipes",
+        "category":"clipes",
+        "body":"Solicitação de teste com mais de vinte caracteres para registro de protocolo."
+    },"/suporte")
+    support_id=re.search(r'Protocolo #([0-9]+)',created)
+    assert support_id and "Problema no envio de clipes" in created, "User ticket created"
+    assert f'href="/admin/chamados/{support_id.group(1)}"' in get(admin,"/admin/chamados"), "Admin ticket queue"
+    assert "Solicitação de teste" in get(admin,"/admin/chamados/"+support_id.group(1)), "Admin ticket detail"
+    guest_ticket=get(make_client(),"/suporte/"+support_id.group(1))
+    assert "Problema no envio de clipes" not in guest_ticket, "Guest cannot read ticket"
     creator_dashboard=get(creator,"/dashboard")
     assert "Olá," in creator_dashboard
     assert "Seu próximo passo" in creator_dashboard
