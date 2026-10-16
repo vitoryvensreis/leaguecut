@@ -51,15 +51,15 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | 4 | Logo 70% maior | Implementado no código B1: cabeçalhos com ajuste responsivo | B1 |
 | 5 | Indicações de clipadores/criadores e comissões fixas/percentuais editáveis | **B3b publicado (PR #79, deploy verde):** links pessoais para ambos os tipos, atribuição única no cadastro, regras por perfil (fixo/percentual), comissão pendente somente por evento financeiro comprovado, conferência e aprovação do ADM antes de entrar no saldo. Reversões após pagamento aprovado exigem processo financeiro manual. | B3 |
 | 6 | ADM editar todas as contas, acessos, senha, e-mail, telefone e Pix | Implementado no código B1: /admin/contas com confirmação da senha do operador; protege último ADM | B1 |
-| 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | **B4b em validação:** máscaras BRL também nos preços de pacotes mensais, comissões fixas, saques, bônus e pagamentos por campanha; percentual preservado sem prefixo de moeda. Teste JS valida precisão em centavos e formulários dinâmicos. Revisão manual completa pendente. | B4 |
+| 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | **B4b publicado (PR #83, deploy e UX Probe aprovados):** máscaras BRL também nos preços de pacotes mensais, comissões fixas, saques, bônus e pagamentos por campanha; percentual preservado sem prefixo de moeda. Teste JS valida precisão em centavos e formulários dinâmicos. Revisão manual completa pendente. | B4 |
 | 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. B2b1 adiciona trilha GET/POST de páginas e operações, sem payload nem query string; classificação detalhada e cron de retenção pendentes. | B2 |
 | 9 | SEO gerenciado pelo ADM (ícones, OG, keywords, metadata, imagem, sitemap) | Pendente: editor e testes de compartilhamento/indexação | B5 |
 | 10 | Muitos bônus mensais cadastráveis | **B4a publicado (PR #81, migração e deploy aprovados):** programas independentes por campanha e critério (views verificadas ou quantidade de clipes aprovados), valores por programa, ativar/pausar e apuração manual por mês com crédito único. Bônus mensal antigo permanece disponível. | B4 |
 | 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **B2b2 publicado (PR #77; entrega real de canais ainda requer homologação):** contas com TOTP confirmam no autenticador; sem TOTP, SMTP/WPPConnect configurado e autorizado permite código temporário de uso único antes de mudar dados ou criar saque. Se nenhum canal estiver operacional, mantém senha atual como fallback temporário. | B2 |
-| 12 | Neon animado sutil em todo o site | **B4b em validação:** nova camada visual nos rankings, cards e KPIs com reflexos sutis, bordas neon, foco acessível e respeito a movimento reduzido. Revisão visual mobile pendente. | B4 |
+| 12 | Neon animado sutil em todo o site | **B4b publicado (PR #83, deploy e UX Probe aprovados):** nova camada visual nos rankings, cards e KPIs com reflexos sutis, bordas neon, foco acessível e respeito a movimento reduzido. Revisão visual mobile pendente. | B4 |
 | 13 | Nick único, login por nick/e-mail, ranking geral público de views com nick | **B3a publicado (PR #78, deploy verde):** nickname case-insensitive exclusivo, login com nickname ou e-mail, nicks provisórios para contas antigas, ranking /ranking e Top 5 na home somente com @nickname; métricas são views **observadas** pela Apify de clipes aprovados, não garantem verificação financeira. | B3 |
 | 14 | Ocultar/revelar dados sensíveis com botão olho | **B3c publicado (PR #80, deploy verde):** botão de olho em telas autenticadas com valores e dados pessoais; mostra/oculta nesta aba e oculta ao trocar de aba. Cobertura complementar de módulos legados permanece pendente. | B3 |
-| 15 | Cards gamificados e animações inspiradas em games | **B4b em validação:** pódio ouro/prata/bronze no ranking geral, Top 5 da home, ranking ADM e campanha; animações escalonadas e reflexos. XP existente continua ilustrativo, sem gerar saldo/bonificações. Conquistas persistentes seguem pendentes. | B4 |
+| 15 | Cards gamificados e animações inspiradas em games | **B4b publicado (PR #83, deploy e UX Probe aprovados):** pódio ouro/prata/bronze no ranking geral, Top 5 da home, ranking ADM e campanha; animações escalonadas e reflexos. XP existente continua ilustrativo, sem gerar saldo/bonificações. Conquistas persistentes seguem pendentes. | B4 |
 
 ### Etapas e critérios de aceite
 
@@ -189,10 +189,20 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B4b — Máscaras monetárias e acabamento neon/gamificado (16/10/2026)
 
-- **Estado:** implementação na branch `feat/b4b-money-masks-game-polish-20261016`, aguardando CI/deploy. Após o merge, confirmar o SHA na VPS e a Production UX Probe antes de anunciar publicação.
+- **Estado: publicado.** PR #83, commit `105a0609cde30ca141eb6bc1d21b5a8df74a6537`; teste integrado, revisão PHP, publicação da VPS e Production UX Probe concluídos com sucesso.
 - Máscaras JS de BRL agora alcançam `monthly_price` (pacotes do criador) e `fixed_value` (comissão fixa), além de `payment_per_video`, `milestone_bonus`, `monthly_leader_bonus`, `amount` (saque) e `bonus_amount`. O helper `lc_field` gera `data-lc-mask="money"` nos nomes permitidos. Campos `percent_value` permanecem numéricos percentuais (sem prefixo R$) para não adulterar as regras de comissão.
 - Conversão ao envio: `R$ 1.234,56` para `1234,56`, compatível com `lc_cents()`; valores monetários persistidos continuam em centavos inteiros, com validações PHP existentes. Preservar o código digitado do Google Authenticator e senhas; CPF/telefone continuam somente com dígitos ao enviar.
 - Novo estilo `public/assets/b4b-arena-polish.css`, sem bibliotecas extras: detalhes ouro/prata/bronze para top 3 em ranking geral, home, ranking de campanhas e ADM; linhas neon e reflexos elegantes nos cards, brilho nos KPIs e animações curtas e escalonadas. Métricas, XP e regras financeiras NÃO são alterados.
 - A animação é decorativa, com `prefers-reduced-motion` para não forçar movimento em quem opta por reduzir. Cor e texto do placar permanecem legíveis e sem colocar nome real no ranking público.
 - Testes novos: `node tests/masks-b4b.cjs` assegura preço, comissões, percentual separado, CPF/telefone, valores BRL e formulários dinâmicos; `tests/smoke.py` verifica máscaras dos painéis e posições do pódio. CI integra os testes sem necessidade de migração MySQL.
 - **Pendente após B4b:** verificação manual Chrome, Safari e Firefox e formulários menos usados; conquistas persistentes e critérios de gameplay avançados; revisão antifraude e estornos financeiros. **Próximo bloco B5:** SEO totalmente administrável (metadados, ícones, OG/Twitter, imagem social, canonical, sitemap e robots).
+
+
+### Registro de publicação B4b
+
+- PR #83: https://github.com/vitoryvensreis/leaguecut/pull/83
+- Commit VPS: `105a0609cde30ca141eb6bc1d21b5a8df74a6537`.
+- Deploy: https://github.com/vitoryvensreis/leaguecut/actions/runs/38890353685 — `LEAGUECUT_PUBLICADO` confirmado.
+- Production UX Probe: https://github.com/vitoryvensreis/leaguecut/actions/runs/38890397886 — sucesso.
+- Testes do PR: `SMOKE PASSED`, `B4B_MASKS_OK`, `UX SMOKE PASSED`. Sem nova tabela ou alteração do saldo.
+- **Próxima entrega: B5 — configurações SEO e compartilhamento editáveis pelo administrador**. Pendências de B4b: validação visual manual em múltiplos navegadores e eventual expansão das conquistas gamificadas.
