@@ -29,7 +29,7 @@ function lc_account_delete_execute(int $actorId,int $subjectId,string $typedEmai
             throw new InvalidArgumentException('O e-mail digitado não corresponde à conta.');
         if($user['role']==='admin'){
             $admins=(int)(lc_one("SELECT COUNT(*) AS n FROM users WHERE role='admin' AND status='approved'")['n']??0);
-            if($admins<=1)throw new InvalidArgumentException('Não é possível excluir o último administrador ativo.');
+            if($user['status']==='approved'&&$admins<=1)throw new InvalidArgumentException('Não é possível excluir o último administrador ativo.');
         }
         $blocker=lc_account_delete_blocker($subjectId);
         if($blocker!==null)throw new InvalidArgumentException($blocker);
