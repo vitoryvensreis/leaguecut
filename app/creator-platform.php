@@ -160,6 +160,7 @@ function lc_creator_routes(string $method,string $path): bool {
 <?php },'explore');return true;
     }
     if($path==='/cadastrar/criador'){
+        if($method==='GET'&&isset($_GET['ref']))lc_referral_capture((string)$_GET['ref']);
         if(lc_user())lc_redirect('/dashboard');
         if($method==='GET'){
             lc_page('Cadastro de criador',function(){?>
@@ -198,7 +199,9 @@ function lc_creator_routes(string $method,string $path): bool {
                  lc_bool('consent_whatsapp')?1:0]);
             $created=(int)$db->lastInsertId();
             lc_nickname_complete($created,$candidate);
+            lc_referral_attach($created,'criador',(string)($_SESSION['referral_code']??''));
             $db->commit();
+            unset($_SESSION['referral_code']);
         }catch(PDOException|InvalidArgumentException $e){
             if(lc_db()->inTransaction())lc_db()->rollBack();
             lc_flash($e instanceof InvalidArgumentException?$e->getMessage():'E-mail ou nickname já está em uso.','error');
