@@ -125,6 +125,7 @@ function lc_public_routes(string $method,string $path): bool {
 <?php },'explore');return true;
     }
     if ($method==='GET' && $path==='/cadastrar') {
+        if(isset($_GET['ref']))lc_referral_capture((string)$_GET['ref']);
         if ($current=lc_user()) lc_redirect($current['role']==='criador'?'/criador':'/dashboard');
         lc_page('Crie sua conta',function(){ ?>
 <div class="lc-auth-deeplink"><span class="eyebrow">Bem-vindo ao League Cut</span><h1>Sua criatividade merece destaque.</h1><p>O formulário de cadastro está aberto em uma janela. Se você o fechou, pode <a href="/cadastrar">abrir novamente</a>.</p></div>
@@ -146,7 +147,9 @@ function lc_public_routes(string $method,string $path): bool {
                 [$name,$email,password_hash($password,PASSWORD_DEFAULT),$instagram,$whatsapp,$portfolio?:null,lc_encrypt($pix),lc_bool('consent_whatsapp')?1:0]);
             $newId=(int)$db->lastInsertId();
             lc_nickname_complete($newId,$candidate);
+            lc_referral_attach($newId,'clipador',(string)($_SESSION['referral_code']??''));
             $db->commit();
+            unset($_SESSION['referral_code']);
         }catch(InvalidArgumentException|PDOException $e){
             if(lc_db()->inTransaction())lc_db()->rollBack();
             lc_flash($e instanceof InvalidArgumentException?$e->getMessage():'E-mail ou nickname já está em uso.','error');
