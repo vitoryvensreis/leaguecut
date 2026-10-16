@@ -286,9 +286,17 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B6D2b1 — Armazenamento seguro de assinaturas Web Push (16/10/2026)
 
-- **Estado:** implementação em `feat/b6d2b1-push-subscription-storage-20261016`, aguardando PR, CI, migração e publicação. Sem habilitar disparos nesta fase.
+- **Estado: publicado e validado na VPS.** PR #92, commit `cabfaeb88420bf44e345ad90a6bde672656a1693`. CI, migração, deploy e Production UX Probe concluídos. O flag segue desligado: sem disparos nesta fase.
 - Migração backup-first idempotente: `push_subscriptions`, `push_preferences` e `push_deliveries` com índices, vínculo por usuário e fila deduplicada por (dispositivo, evento). Instalação limpa também inclui as tabelas no schema.
 - API autenticada `/api/push/status`, `/api/push/subscribe` e `/api/push/unsubscribe` protegida por CSRF nas alterações e desligada por padrão (`PUSH_REGISTRATION_ENABLED=0`). Com a chave desligada devolve HTTP 503, sem armazenar endpoints.
 - Endpoint push só pode ser de provedores de navegador permitidos via HTTPS. Chaves `p256dh` e `auth`, além do endpoint, persistem criptografadas por `APP_KEY`; hash do endpoint garante unicidade sem salvar URL em claro. Máximo de 8 dispositivos; cada usuário revoga apenas os próprios endpoints.
 - Testes em MySQL descartável garantem deduplicação, criptografia, isolamento entre contas, revogação e estado opt-in desligado. **NÃO contém biblioteca Web Push nem worker nesta etapa.**
 - **Próximo B6D2b2:** integrar biblioteca VAPID, gerar chaves privadas diretamente na VPS, habilitar assinaturas apenas após health check do worker, UI de autorização Web Push em segundo plano e envio sem dados sensíveis; separar teste de entrega e monitoramento. **B6E:** chamados/suporte após concluir push.
+
+### Registro de retomada e deploy — B6D2 (16/10/2026)
+
+- **B6D2a:** PR #91 integrado, SHA `145c9df40ec5b252913dfb5840826a463575fe8f`; deploy https://github.com/vitoryvensreis/leaguecut/actions/runs/38912634829 e Production UX Probe https://github.com/vitoryvensreis/leaguecut/actions/runs/38912684540 aprovados.
+- **B6D2b1:** PR #92 integrado, SHA `cabfaeb88420bf44e345ad90a6bde672656a1693`; deploy https://github.com/vitoryvensreis/leaguecut/actions/runs/38913996679 e Production UX Probe https://github.com/vitoryvensreis/leaguecut/actions/runs/38914054963 aprovados.
+- Branch legada `feat/b6d2-opt-in-webpush-20261016` permanece **sem merge**, como referência histórica. Não publicar diretamente aquela branch: mistura envio, banco, UI e dependências e não tem CI aprovado. Próximo passo é B6D2b2 em branch nova, importando apenas código revisado, com os testes próprios.
+- **B6D2b2 pendente:** instalar biblioteca PHP Web Push compatível, configurar VAPID no .env privado, adicionar UI para assinatura em segundo plano e worker por cron existente; só então habilitar `PUSH_REGISTRATION_ENABLED=1`. Confirmar envio efetivo com dispositivo de teste e revogação antes do rollout geral.
+- **B6E pendente:** aba Suporte para usuários e Chamados para ADM, com permissão por ticket, status, histórico e auditoria.
