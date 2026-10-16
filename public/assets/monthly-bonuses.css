@@ -1,0 +1,12 @@
+/* B4a independent monthly prize programs */
+.lc-monthly-program-list{display:grid;gap:14px}
+.lc-monthly-program{display:grid;grid-template-columns:minmax(0,1fr) minmax(250px,1fr);gap:16px;
+ padding:18px;border:1px solid #ffffff1d;border-radius:14px;
+ background:radial-gradient(circle at right top,#e52a4420,transparent 50%),#14191f}
+.lc-monthly-program h3{margin:8px 0;font-size:1.12rem}
+.lc-monthly-program p{margin:8px 0;color:#afbac8}
+.lc-monthly-program-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:start}
+.lc-monthly-program-actions form{flex:1 1 180px;display:grid;gap:8px}
+.lc-monthly-program-actions .field{min-width:0}
+.lc-monthly-program-actions input{max-width:100%}
+@media(max-width:880px){.lc-monthly-program{grid-template-columns:1fr}}
