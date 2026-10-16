@@ -118,6 +118,7 @@ jobs:
           php tests/pwa_security.php
           php tests/push_storage.php
           php tests/push_vapid_queue.php
+          php tests/push_selftest.php
           php tests/support_tickets.php
           php tests/support_actions.php
           php tests/support_listing.php

@@ -26,7 +26,8 @@
     'support.ticket.replied': 'Nova resposta em chamado',
     'support.ticket.answered': 'Seu chamado recebeu uma resposta',
     'support.ticket.updated': 'Seu chamado foi atualizado',
-    'notice.direct': 'Nova comunicação da LeagueCut'
+    'notice.direct': 'Nova comunicação da LeagueCut',
+    'push.test': 'Teste de notificação em segundo plano'
   };
   let lastCursor = 0;
   let initialized = false;

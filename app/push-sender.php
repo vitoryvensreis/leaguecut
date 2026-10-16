@@ -22,7 +22,7 @@ function lc_push_send_ready(): bool {
        lc_push_registration_enabled() && lc_env('PUSH_SENDING_ENABLED','0')==='1';
 }
 function lc_push_payload(int $eventId,string $scope,string $role,string $eventType=''): string {
-    $url=$eventType==='notice.direct'?'/notificacoes':($scope==='admin'?'/admin':($role==='criador'?'/criador':'/dashboard'));
+    $url=in_array($eventType,['notice.direct','push.test'],true)?'/notificacoes':($scope==='admin'?'/admin':($role==='criador'?'/criador':'/dashboard'));
     return json_encode([
         'id'=>$eventId,
         'title'=>'LeagueCut',
@@ -50,7 +50,7 @@ function lc_push_queue_new(): int {
            'withdrawal.updated','campaign.updated','automation.notice',
            'support.ticket.created','support.ticket.replied',
            'support.ticket.answered','support.ticket.updated',
-           'notice.direct')
+           'notice.direct','push.test')
       ORDER BY e.id ASC LIMIT 120")->rowCount();
 }
 function lc_push_sender_instance(): \Minishlink\WebPush\WebPush {

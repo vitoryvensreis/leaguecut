@@ -96,6 +96,10 @@ jobs:
           ln -sfn "$BASE/shared/.env" "$RELEASE/.env"
           composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress
           find app public bin -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l >/dev/null
+          # VAPID is generated only in the private VPS .env, as the leaguecut user.
+          # Do not print, upload or commit any key; flags remain unchanged/off.
+          php bin/push-vapid-setup.php mailto:vitoryvensreisdeoliveira@gmail.com
+          php -r 'require "app/core.php"; require "vendor/autoload.php"; require "app/push-sender.php"; if(!lc_push_vapid_configured())exit(1); echo "LEAGUECUT_VAPID_CONFIGURED=1\n";'
           php bin/migrate.php
           php -r 'require "app/core.php"; lc_db()->query("SELECT COUNT(*) FROM users"); lc_db()->query("SELECT COUNT(*) FROM homepage_banners"); lc_db()->query("SELECT COUNT(*) FROM realtime_events"); echo "DB OK\n";'
 
