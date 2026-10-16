@@ -205,13 +205,13 @@ def main():
     assert "Política de Cookies" in get(make_client(),"/politica-de-cookies"), "Cookie policy is public"
 
     import json
-    assert re.search(r'<link rel="manifest" href="/manifest\.webmanifest(?:\?v=\d+)?">', home), "PWA discoverable"
-    with creator.open(BASE+"/manifest.webmanifest",timeout=12) as response:
+    assert re.search(r'<link rel="manifest" href="/pwa/manifest(?:\?v=\d+)?">', home), "PWA discoverable"
+    with creator.open(BASE+"/pwa/manifest",timeout=12) as response:
         manifest=json.loads(response.read())
         assert response.headers.get("Content-Type","").startswith("application/manifest+json")
     assert manifest["display"]=="standalone" and manifest["start_url"]=="/", "PWA install manifest"
     assert set(icon["sizes"] for icon in manifest["icons"])=={"192x192","512x512"}, "Required PWA sizes"
-    with creator.open(BASE+"/sw.js",timeout=12) as response:
+    with creator.open(BASE+"/pwa/worker",timeout=12) as response:
         worker=response.read().decode("utf-8")
         assert "javascript" in response.headers.get("Content-Type","")
     assert "req.mode==='navigate'" in worker and "const staticAsset=" in worker, "Service worker never caches private HTML"
@@ -231,7 +231,7 @@ def main():
     with creator.open(BASE+"/share/leaguecut.png",timeout=12) as response:
         image=response.read()
         assert response.headers.get("Content-Type")=="image/png" and image[:8]==b"\x89PNG\r\n\x1a\n", "Real social PNG"
-    assert '/assets/pwa.js?v=1' in home and 'data-pwa-install' in home, "PWA install button and script"
+    assert '/assets/pwa.js?v=4' in home and 'data-pwa-install' in home, "PWA install button and script"
 
     assert '<meta name="robots" content="index, follow' in home and '<link rel="canonical" href="https://leaguecut.com/">' in home, "Public home SEO"
     assert '<meta property="og:title"' in home and 'application/ld+json' in home, "Open Graph and JSON-LD"

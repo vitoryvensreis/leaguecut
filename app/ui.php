@@ -142,16 +142,16 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="<?=lc_e($primary)?>">
-<link rel="manifest" href="/manifest.webmanifest?v=3">
+<link rel="manifest" href="/pwa/manifest?v=4">
 <meta name="application-name" content="LeagueCut">
 <meta name="apple-mobile-web-app-title" content="LeagueCut">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" type="image/svg+xml" href="/assets/leaguecut-icon.svg?v=3">
-<link rel="icon" type="image/png" sizes="32x32" href="/app-icon/32.png?v=3">
-<link rel="icon" type="image/png" sizes="48x48" href="/app-icon/48.png?v=3">
+<link rel="icon" type="image/png" sizes="32x32" href="/pwa/icon/32?v=4">
+<link rel="icon" type="image/png" sizes="48x48" href="/pwa/icon/48?v=4">
 <link rel="shortcut icon" href="/favicon.ico?v=3" type="image/x-icon">
-<link rel="apple-touch-icon" sizes="180x180" href="/app-icon/180.png?v=3">
+<link rel="apple-touch-icon" sizes="180x180" href="/pwa/icon/180?v=4">
 <title><?=lc_e($seo['title'])?></title>
 <?php lc_seo_head($seo); ?>
 <!-- System font fallback avoids automatic third-party font requests before optional consent. -->
@@ -183,6 +183,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
+<link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
@@ -248,6 +249,11 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <small>Um produto da <?=lc_e(lc_legal_controller()['business_name'])?> · CNPJ <?=lc_e(lc_legal_controller()['cnpj'])?></small>
 </div>
 <button type="button" class="btn btn-ghost btn-sm" data-pwa-install hidden>Instalar LeagueCut</button>
+<dialog class="lc-pwa-help" id="lc-pwa-install-help" aria-labelledby="lc-pwa-help-title">
+  <div class="lc-pwa-help-head"><h2 id="lc-pwa-help-title">Instalar LeagueCut</h2><button type="button" class="btn btn-ghost btn-sm" data-pwa-close aria-label="Fechar instruções de instalação">Fechar</button></div>
+  <p data-pwa-instructions>Abra o menu do navegador e escolha a opção para instalar este site como aplicativo.</p>
+  <p class="hint" data-pwa-status aria-live="polite"></p>
+</dialog>
 <nav class="lc-footer-nav" aria-label="Informações legais">
 <a href="/planos">Planos para criadores</a><a href="/politica-de-privacidade">Privacidade</a>
 <a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a>
@@ -264,7 +270,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <script src="/assets/flow-editor.js?v=2" defer></script><?php endif; ?>
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
-<script src="/assets/pwa.js?v=1" defer></script>
+<script src="/assets/pwa.js?v=4" defer></script>
 <?php if($path==="/notificacoes" && $u): ?><script src="/assets/background-push.js?v=1" defer></script><?php endif; ?>
 <?php if($path==="/admin/notificacoes" && $u && $u['role']==='admin'): ?><script src="/assets/admin-notices.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/notification-preferences.js?v=1" defer></script><?php endif; ?>

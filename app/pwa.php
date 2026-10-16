@@ -8,10 +8,11 @@ function lc_pwa_icon_png(int $size,bool $maskable=false): string {
 function lc_pwa_sw_source(): string {
     return <<<'JS'
 'use strict';
-const CACHE='leaguecut-public-static-v3';
-const STATIC=['/assets/app.css?v=10','/assets/v2.css?v=10','/assets/icons.svg','/app-icon/192.png?v=3'];
+const CACHE='leaguecut-public-static-v4';
+const STATIC=['/assets/app.css?v=10','/assets/v2.css?v=10','/assets/icons.svg','/pwa/icon/192'];
 self.addEventListener('install',event=>{
-  event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(STATIC)).then(()=>self.skipWaiting()));
+  // Missing optional static files must not block activation or app installation.
+  event.waitUntil(caches.open(CACHE).then(cache=>Promise.allSettled(STATIC.map(url=>cache.add(url)))).then(()=>self.skipWaiting()));
 });
 self.addEventListener('activate',event=>{
   event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(x=>x.startsWith('leaguecut-public-static-')&&x!==CACHE).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));
@@ -46,7 +47,7 @@ self.addEventListener('push',event=>{
   const body=typeof input.body==='string'&&input.body.length<150?input.body:
     'Você tem uma nova atualização.';
   event.waitUntil(self.registration.showNotification('LeagueCut',{
-    body,icon:'/app-icon/192.png?v=3',badge:'/app-icon/48.png?v=3',
+    body,icon:'/pwa/icon/192',badge:'/pwa/icon/48',
     tag:'leaguecut-event-'+id,
     data:{target},renotify:false
   }));
@@ -68,7 +69,9 @@ JS;
 }
 function lc_pwa_routes(string $method,string $path): bool {
     if($method!=='GET')return false;
-    if($path==='/manifest.webmanifest'){
+    // Extensionless canonical endpoints bypass common Nginx static-file rules
+    // that intercept .js/.png/.webmanifest before PHP is reached.
+    if($path==='/pwa/manifest' || $path==='/manifest.webmanifest'){
         $s=lc_settings();
         $name=(string)($s['brand_name']??'LeagueCut');
         header('Content-Type: application/manifest+json; charset=UTF-8');
@@ -78,16 +81,16 @@ function lc_pwa_routes(string $method,string $path): bool {
             'scope'=>'/','display'=>'standalone','background_color'=>'#080a0e',
             'theme_color'=>'#e50914','lang'=>'pt-BR',
             'icons'=>[
-                ['src'=>'/app-icon/192.png?v=3','type'=>'image/png','sizes'=>'192x192','purpose'=>'any'],
-                ['src'=>'/app-icon/512.png?v=3','type'=>'image/png','sizes'=>'512x512','purpose'=>'any'],
-                ['src'=>'/app-icon/192-maskable.png?v=3','type'=>'image/png','sizes'=>'192x192','purpose'=>'maskable'],
-                ['src'=>'/app-icon/512-maskable.png?v=3','type'=>'image/png','sizes'=>'512x512','purpose'=>'maskable']
+                ['src'=>'/pwa/icon/192','type'=>'image/png','sizes'=>'192x192','purpose'=>'any'],
+                ['src'=>'/pwa/icon/512','type'=>'image/png','sizes'=>'512x512','purpose'=>'any'],
+                ['src'=>'/pwa/icon/192-maskable','type'=>'image/png','sizes'=>'192x192','purpose'=>'maskable'],
+                ['src'=>'/pwa/icon/512-maskable','type'=>'image/png','sizes'=>'512x512','purpose'=>'maskable']
             ],
             'description'=>'Acesse suas campanhas, clipes e recompensas LeagueCut.'
         ],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
         return true;
     }
-    if($path==='/sw.js'){
+    if($path==='/pwa/worker' || $path==='/sw.js'){
         header('Content-Type: text/javascript; charset=UTF-8');
         header('Service-Worker-Allowed: /');
         header('Cache-Control: no-cache, no-store, must-revalidate');
@@ -95,7 +98,8 @@ function lc_pwa_routes(string $method,string $path): bool {
         echo lc_pwa_sw_source();
         return true;
     }
-    if(preg_match('~^/app-icon/(32|48|180|192|512)(-maskable)?\.png$~D',$path,$m)){
+    if(preg_match('~^/pwa/icon/(32|48|180|192|512)(-maskable)?$~D',$path,$m) ||
+       preg_match('~^/app-icon/(32|48|180|192|512)(-maskable)?\.png$~D',$path,$m)){
         $png=lc_pwa_icon_png((int)$m[1],($m[2]??'')==='-maskable');
         header('Content-Type: image/png');
         header('X-Content-Type-Options: nosniff');

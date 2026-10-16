@@ -102,6 +102,7 @@ jobs:
           set -e
           curl --fail --silent http://127.0.0.1:8080/health
           python3 tests/smoke.py
+          python3 tests/pwa_install_smoke.py
           python3 tests/creator_subscriptions_smoke.py
           php tests/creator_schema.php
           php tests/creator_billing_cycles.php
