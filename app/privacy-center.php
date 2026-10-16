@@ -59,7 +59,7 @@ function lc_privacy_cookie_form(bool $compact=false): void {
  Estatísticas opcionais (nenhum rastreador de terceiros está ativado neste módulo).</label>
 <label><input type="checkbox" name="marketing" value="1" <?=!empty($saved['marketing_enabled'])?'checked':''?>>
  Publicidade opcional (nenhum pixel publicitário é carregado neste módulo).</label>
-<p class="lc-cookie-note">Permissões opcionais só autorizam futuras integrações que respeitem estas escolhas; elas não ativam serviços inexistentes.</p>
+<p class="lc-cookie-note">Estas preferências valem somente para as finalidades descritas nesta versão. Novos rastreadores exigirão aviso atualizado; sua escolha não ativa serviços inexistentes.</p>
 <button class="btn btn-ghost btn-sm" type="submit" name="choice" value="custom">Salvar minhas escolhas</button>
 </details>
 <div class="lc-cookie-actions">
