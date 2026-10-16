@@ -9,6 +9,8 @@ require __DIR__ . '/automation-whatsapp.php';
 require __DIR__ . '/automation-visual.php';
 require __DIR__ . '/home.php';
 require __DIR__ . '/brand.php';
+require __DIR__ . '/seo.php';
+require __DIR__ . '/seo-admin.php';
 require __DIR__ . '/routes-home-admin.php';
 require __DIR__ . '/drive.php';
 require __DIR__ . '/apify.php';
@@ -44,6 +46,9 @@ $path = $path==='/'?'/':rtrim($path,'/');
 if (!in_array($method,['GET','POST'],true)) {http_response_code(405);header('Allow: GET, POST');exit('Método não permitido.');}
 lc_audit_track($method,$path);
 if ($method==='POST' && $path!=='/redes/oauth/instagram/desautorizacao') lc_check_csrf();
+if($method==='GET' && preg_match('~^/media/seo/(icon|social)/([a-f0-9]{36})$~D',$path,$seoMedia)) {
+    lc_seo_media_response($seoMedia[1],$seoMedia[2]);
+}
 if($method==='GET' && preg_match('~^/media/brand/([a-f0-9]{36})$~D',$path,$brandMatch)) {
     lc_brand_logo_response($brandMatch[1]);
 }
@@ -70,6 +75,8 @@ if(lc_request_audit_routes($method,$path))return;
 if(lc_mfa_routes($method,$path))return;
 if(lc_otp_routes($method,$path))return;
 if(lc_account_self_routes($method,$path))return;
+if(lc_seo_public_routes($method,$path))return;
+if(lc_seo_admin_routes($method,$path))return;
 if(lc_account_admin_routes($method,$path))return;
 if(lc_monthly_bonus_routes($method,$path))return;
 if(lc_admin_routes($method,$path))return;
