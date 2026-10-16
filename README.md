@@ -266,3 +266,11 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Ao restaurar a sessão, verifica status da conta, validade, segredo, versão do MFA, rotaciona token atomicamente e rejeita replay. Até oito dispositivos por usuário; tokens mais antigos revogados.
 - Sair elimina o dispositivo atual. Redefinir a senha elimina todos os tokens e invalida sessões antigas sem desativar o 2FA.
 - Migration com backup idempotente `account_remember_tokens`, testes de token válido, expirado, reutilizado e revogado. **Pendente:** painel para gerenciar dispositivos e revisão manual em múltiplos navegadores. Próximos blocos B6D (PWA/notificações) e B6E (suporte/chamados).
+
+
+### B6D1 — PWA instalável (16/10/2026)
+
+- **Estado: implementação em branch, aguardando CI/deploy.** Manifesto `GET /manifest.webmanifest` e ícones PNG de 192/512 pixels gerados internamente sem GD ou serviços externos. Cabeçalho com manifest e apple-touch-icon. `public/assets/pwa.js` registra service worker sob HTTPS e apresenta botão Instalar quando o navegador oferece `beforeinstallprompt`.
+- Service Worker em `/sw.js` intercepta apenas solicitações GET de **arquivos estáticos públicos** no namespace `/assets/` (CSS, JS, imagens e fontes). Nunca intercepta navegação HTML, APIs, usuário logado, dados financeiros, arquivos privados, respostas autorizadas ou POST. Navegação precisa de internet; não há armazenamento offline de páginas protegidas.
+- Cache público versionado (`leaguecut-public-static-v1`), substituído na ativação. Manifeste `display:standalone`, `start_url:/`, tema escuro. No iOS, adição à Tela de Início depende do menu Compartilhar do Safari.
+- Teste PHP valida PNG e restrições do worker; smoke via HTTP confere manifesto, ícones binários, registro JS e controle de instalação. **B6D2 pendente:** implementar permissão de notificações Web Push, assinatura revogável, servidor VAPID, entregas via worker e controles de som. Instalar o PWA sozinho não habilita envio push.
