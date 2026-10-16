@@ -26,6 +26,7 @@ require __DIR__ . '/clip-admin-actions.php';
 require __DIR__ . '/clip-creator-actions.php';
 require __DIR__ . '/campaign-experience.php';
 require __DIR__ . '/routes-admin.php';
+require __DIR__ . '/account-admin.php';
 if (is_file(LC_ROOT . '/vendor/autoload.php')) require_once LC_ROOT . '/vendor/autoload.php';
 
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
@@ -55,6 +56,7 @@ if(lc_creator_admin_routes($method,$path))return;
 if(lc_wpp_admin_routes($method,$path))return;
 if(lc_automation_visual_routes($method,$path))return;
 if(lc_automation_routes($method,$path))return;
+if(lc_account_admin_routes($method,$path))return;
 if(lc_admin_routes($method,$path))return;
 if(lc_creator_routes($method,$path))return;
 if(lc_clipper_routes($method,$path))return;
