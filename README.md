@@ -300,3 +300,15 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Branch legada `feat/b6d2-opt-in-webpush-20261016` permanece **sem merge**, como referência histórica. Não publicar diretamente aquela branch: mistura envio, banco, UI e dependências e não tem CI aprovado. Próximo passo é B6D2b2 em branch nova, importando apenas código revisado, com os testes próprios.
 - **B6D2b2 pendente:** instalar biblioteca PHP Web Push compatível, configurar VAPID no .env privado, adicionar UI para assinatura em segundo plano e worker por cron existente; só então habilitar `PUSH_REGISTRATION_ENABLED=1`. Confirmar envio efetivo com dispositivo de teste e revogação antes do rollout geral.
 - **B6E pendente:** aba Suporte para usuários e Chamados para ADM, com permissão por ticket, status, histórico e auditoria.
+
+### B6D2b2 — Web Push VAPID e entrega em segundo plano (16/10/2026)
+
+- **Estado:** implementado na branch `feat/b6d2b2-vapid-delivery-20261016`, sujeito a CI/deploy. Não ativar os flags até a validação num dispositivo real; push aceito pelo provedor não comprova exibição no navegador.
+- Biblioteca `minishlink/web-push:^11.0` (PHP >=8.2), instalada pelo Composer. Envio ocorre no cron existente `bin/automation-worker.php`, sob flock; nenhum serviço do TaskEsc é alterado.
+- **Fail closed:** `PUSH_REGISTRATION_ENABLED=0` e `PUSH_SENDING_ENABLED=0` inicialmente. Ambos devem estar em 1, com VAPID completo e biblioteca instalada, para permitir inscrições e envio. A chave privada permanece exclusivamente no .env da VPS.
+- Configurar no terminal SSH, depois do deploy, usando a conta leaguecut: `cd /home/leaguecut/current && php bin/push-vapid-setup.php mailto:contato@seu-dominio.com` (usar e-mail real). Este comando gera a chave pública/privada direto em `/home/leaguecut/shared/.env` com backup e permissão 0600, sem imprimi-las nem ativar os flags. Não colocar segredo em chat ou GitHub.
+- Após confirmar HTTPS/serviço, habilitar os dois flags no `.env` privado apenas para teste com dispositivo autorizado. A aba `/notificacoes` permite ativação/desativação por clique. Só são enviados eventos posteriores à assinatura; remoção de um dispositivo não afeta os demais.
+- Worker deduplica pelo par dispositivo/evento, limita a 20 envios por execução, tenta no máximo quatro vezes, aplica backoff e apaga assinaturas expiradas. Tipos de eventos são limitados; payload contém apenas texto genérico e URL interna, sem nome, telefone, CPF ou dados financeiros. O status `sent` confirma aceite do provedor, não visualização.
+- O service worker abre avisos com a plataforma em segundo plano. Sons/tipo de alerta são controlados pelo navegador e sistema. iOS exige PWA instalado na tela inicial e versão compatível.
+- Testes: `tests/push_vapid_queue.php` (VAPID, dupla trava, fila/aceite simulados), `tests/smoke.py` (interface e SW), `node --check` do JS. Validar entrega real em Chrome, Firefox e iOS; não afirmar entrega ao aparelho baseada só no aceite da API.
+- **Próximo B6E:** suporte/chamados para usuários/ADM, após homologar o B6D2b2.
