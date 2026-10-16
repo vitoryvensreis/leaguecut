@@ -36,13 +36,15 @@ function lc_workspace_links(array $u): array {
           ['Integrações','/admin/integracoes','settings-2'],
           ['Administradores','/admin/administradores','shield-check'],
           ['Gerenciar contas','/admin/contas','user-round-cog'],
-          ['Auditoria de contas','/admin/atividades','activity']
+          ['Auditoria de contas','/admin/atividades','activity'],
+          ['Segurança e 2FA','/seguranca/2fa','shield-check']
         ];
     }
     if($u['role']==='criador'){
         return [
           ['Minha área','/criador','layout-dashboard'],
           ['Pacotes mensais','/planos','layers'],
+          ['Segurança e 2FA','/seguranca/2fa','shield-check'],
         ];
     }
     return [
@@ -50,7 +52,8 @@ function lc_workspace_links(array $u): array {
       ['Explorar campanhas','/explorar','compass'],
       ['Minha biblioteca','/biblioteca','library'],
       ['Minhas redes','/redes','share-2'],
-      ['Financeiro','/financeiro','wallet']
+      ['Financeiro','/financeiro','wallet'],
+      ['Segurança e 2FA','/seguranca/2fa','shield-check']
     ];
 }
 function lc_workspace_nav(array $u, string $current): void {
