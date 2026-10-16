@@ -129,7 +129,7 @@ $link='/admin/chamados'.($value==='all'?'':'?status='.$value);?>
 <a href="<?=lc_e($link)?>" <?=$filter===$value?'aria-current="page"':''?>><?=lc_e($label)?></a><?php endforeach; ?>
 </nav>
 <?php lc_support_ticket_list($rows,true); ?>
-<p class="hint">Respostas e alterações de status serão adicionadas no B6E2.</p>
+<p class="hint">Clique em um protocolo para responder e ajustar seu atendimento.</p>
 </section></div><?php },'admin');return true;
     }
     $id=(int)substr($path,strrpos($path,'/')+1);
@@ -137,7 +137,10 @@ $link='/admin/chamados'.($value==='all'?'':'?status='.$value);?>
     if(!$ticket){http_response_code(404);lc_page('Chamado não encontrado',function(){?><div class="container"><h1>Chamado não encontrado</h1><p>Confira o número do protocolo.</p></div><?php },$adminView?'admin':'dashboard');return true;}
     $messages=lc_all('SELECT m.body,m.created_at,u.nickname,u.role FROM support_messages m
         JOIN users u ON u.id=m.author_id WHERE m.ticket_id=? ORDER BY m.id ASC LIMIT 200',[$id]);
-    lc_page('Chamado #'.$id,function()use($ticket,$messages,$adminView,$id){?>
+    $activity=lc_all("SELECT a.action,a.old_value,a.new_value,a.created_at,u.nickname
+       FROM support_ticket_activity a JOIN users u ON u.id=a.actor_id
+       WHERE a.ticket_id=? ORDER BY a.id ASC LIMIT 200",[$id]);
+    lc_page('Chamado #'.$id,function()use($ticket,$messages,$activity,$adminView,$id){?>
 <div class="container lc-support-page">
 <a href="<?=$adminView?'/admin/chamados':'/suporte'?>">← Voltar aos chamados</a>
 <?php lc_heading('Protocolo #'.$id,(string)$ticket['subject'],
@@ -152,7 +155,47 @@ $link='/admin/chamados'.($value==='all'?'':'?status='.$value);?>
 <p><?=nl2br(lc_e($message['body']))?></p>
 </article>
 <?php endforeach; ?></div>
-<p class="hint">Acompanhamento disponível. Respostas e alterações de status entram no B6E2.</p>
-</section></div>
+</section>
+<?php if($adminView): ?>
+<section class="panel">
+<h2>Gerenciar atendimento</h2>
+<form method="post" action="/admin/chamados/<?=$id?>/atualizar"><?=lc_csrf()?>
+<div class="lc-support-grid">
+<label class="field"><span>Status</span><select name="status">
+<?php foreach(['open'=>'Aberto','in_progress'=>'Em atendimento','answered'=>'Respondido','closed'=>'Encerrado'] as $code=>$name): ?>
+<option value="<?=lc_e($code)?>" <?=$ticket['status']===$code?'selected':''?>><?=lc_e($name)?></option>
+<?php endforeach; ?></select></label>
+<label class="field"><span>Prioridade</span><select name="priority">
+<option value="normal" <?=$ticket['priority']==='normal'?'selected':''?>>Normal</option>
+<option value="high" <?=$ticket['priority']==='high'?'selected':''?>>Alta</option>
+</select></label>
+</div>
+<div class="form-actions"><button class="btn btn-ghost" type="submit">Salvar situação</button></div>
+</form></section>
+<?php endif; ?>
+<?php if($adminView || $ticket['status']!=='closed'): ?>
+<section class="panel">
+<h2>Responder ao chamado</h2>
+<form method="post" action="<?=$adminView?'/admin/chamados':'/suporte'?>/<?=$id?>/responder"><?=lc_csrf()?>
+<label class="field"><span>Sua resposta</span><textarea name="body" rows="5" minlength="3" maxlength="3000" required placeholder="Escreva sua mensagem sem incluir senhas, códigos ou documentos sensíveis."></textarea></label>
+<div class="form-actions"><button class="btn" type="submit">Enviar resposta</button></div>
+</form></section>
+<?php else: ?>
+<section class="panel"><p>Este protocolo foi encerrado. Se precisar de mais ajuda, <a href="/suporte">abra um novo chamado</a>.</p></section>
+<?php endif; ?>
+<?php if($activity): ?>
+<section class="panel"><h2>Alterações registradas</h2>
+<div class="lc-ticket-activity">
+<?php foreach($activity as $event):
+  if($event['action']==='message')$summary='Nova mensagem';
+  elseif($event['action']==='status')$summary='Status alterado: '.lc_support_state_label((string)$event['old_value']).' → '.lc_support_state_label((string)$event['new_value']);
+  else $summary='Prioridade alterada';
+?>
+<div class="lc-ticket-activity-row"><span><?=lc_e($summary)?></span>
+<small><?=lc_e($event['nickname']??'Equipe')?> · <?=lc_e(date('d/m/Y H:i',strtotime($event['created_at'])))?></small></div>
+<?php endforeach; ?>
+</div></section>
+<?php endif; ?>
+</div>
 <?php },$adminView?'admin':'dashboard');return true;
 }
