@@ -326,10 +326,21 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B6E1 — Suporte e triagem dos chamados (16/10/2026)
 
-- **Estado:** implementado em `feat/b6e1-support-intake-20261016`, aguardando CI, PR e deploy. Registrar SHA e Production UX Probe após publicação.
+- **Estado: publicado na VPS.** PR #96, SHA `e91d5b9412a8989b9ce7721589c73ff4608de8d8`, CI e Production UX Probe aprovados.
 - **Usuários autenticados e aprovados:** página `/suporte` com formulário e lista de protocolos. Criadores e clipadores enviam assunto (6–160), categoria e descrição (20–5000); abrem apenas chamados próprios, com limite de 5 por hora e até 20 ainda não encerrados. O primeiro texto é armazenado em tabela separada para permitir histórico completo no B6E2.
 - **ADM:** página `/admin/chamados`, filtros por situação e listagem de solicitantes; detalhes em `/admin/chamados/{id}`. Clipadores/criadores **não** podem consultar tickets de outros usuários, inclusive por ID direto. Acesso de ADM requer status aprovado.
 - **Privacidade/segurança:** toda criação exige CSRF; conteúdo exibido com `htmlspecialchars`, sem renderizar HTML enviado pelos usuários; mensagens não entram em URLs/logs; notificação realtime `support.ticket.created` destinada apenas aos administradores, sem texto do ticket no payload. Acesso não autorizado redireciona/nega sem divulgar conteúdo.
 - **Banco:** migração aditiva `support_tickets` e `support_messages`, com backup completo antes do DDL, idempotente e testada no MySQL descartável. Sem mudanças em financeiro, autenticação ou TaskEsc. UI responsiva em `support.css`.
 - **Testes:** `tests/support_tickets.php` verifica isolamento por proprietário, tentativa de XSS, limite de criação, persistência atômica e evento ADM. Smoke HTTP testa criação, visualização do solicitante e fila ADM.
 - **B6E2 pendente:** respostas dos dois lados, mudança de status e prioridade pelo ADM, trilha de histórico e notificações ao autor; ajustes do painel e testes de autorização/concorrência. Evitar alterações fora desses escopos até B6E1 estar em produção.
+
+
+### B6E2 — Respostas, status, prioridade e histórico dos chamados (16/10/2026)
+
+- **Estado:** implementação em branch `feat/b6e2-ticket-conversations-20261016`; aguarda validação de CI, PR e deploy.
+- ADM pode responder a qualquer protocolo em `/admin/chamados/{id}`, alterar situação entre Aberto, Em atendimento, Respondido e Encerrado e definir prioridade Normal/Alta. Usuários respondem somente aos próprios tickets em `/suporte/{id}`; protocolos fechados só podem ser respondidos/reabertos pelo ADM. Se usuário responde a um ticket respondido, ele volta a Aberto.
+- Operações são transacionais, com auditoria em `support_ticket_activity` (mensagens e alterações de status/prioridade, responsável e momento), proteção contra envio duplicado nos primeiros 10 segundos, limite de 3–3.000 caracteres por resposta e escopo por usuário. Dados privados de mensagens não são incluídos em push/realtime.
+- Realtime do ADM: `support.ticket.created` e `support.ticket.replied`; usuário: `support.ticket.answered` e `support.ticket.updated`. Fila push existente inclui somente avisos genéricos e continua desligada até VAPID ser configurado e homologado na VPS.
+- Migração adicional e idempotente `support_ticket_activity` com backup, chaves estrangeiras e índices. Nada de alterações em créditos, saques, boletos, TaskEsc ou serviços do servidor.
+- Testes `tests/support_actions.php` e smoke HTTP confirmam escopo de resposta por proprietário, acesso ADM, idempotência, prioridade, status, fechamento e histórico, além de notificações sem vazamento entre contas.
+- **Próximos aprimoramentos opcionais:** anexos com verificação de conteúdo, SLA/atribuição de atendente, buscas/paginação e relatórios de atendimento. Não criar automações de disparo em massa por padrão.
