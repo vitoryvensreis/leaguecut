@@ -98,13 +98,13 @@ function lc_admin_routes(string $method,string $path): bool {
   <div class="ws-rank-dashboard">
     <section class="ws-rank-panel"><h2><?=lc_icon('trophy')?> Top clipadores</h2>
     <?php if(!$rankUsers):?><p class="ws-rank-empty">Aguardando clipes aprovados.</p><?php else:foreach($rankUsers as $i=>$p):?>
-    <div class="ws-rank-row"><span class="ws-rank-number"><?=$i+1?>º</span><span><strong><?=lc_private($p['full_name'])?></strong><small>@<?=lc_e($p['nickname']??'sem-nick')?></small>
+    <div class="ws-rank-row" data-arena-position="<?=$i+1?>"><span class="ws-rank-number"><?=$i+1?>º</span><span><strong><?=lc_private($p['full_name'])?></strong><small>@<?=lc_e($p['nickname']??'sem-nick')?></small>
     <small><?=(int)$p['clips']?> clipes · <?=number_format((int)$p['clips']*100+intdiv((int)$p['views'],100),0,',','.')?> XP ilustrativo</small></span>
     <span class="ws-rank-count"><?=number_format((int)$p['views'],0,',','.')?><small>views</small></span></div>
     <?php endforeach;endif;?></section>
     <section class="ws-rank-panel"><h2><?=lc_icon('chart-column')?> Top campanhas</h2>
     <?php if(!$rankCampaigns):?><p class="ws-rank-empty">Nenhuma campanha cadastrada.</p><?php else:foreach($rankCampaigns as $i=>$p):?>
-    <div class="ws-rank-row"><span class="ws-rank-number"><?=$i+1?>º</span><span><a href="/campanhas/<?=lc_e($p['slug'])?>"><strong><?=lc_e($p['title'])?></strong></a><small><?=(int)$p['clips']?> clipes aprovados</small></span>
+    <div class="ws-rank-row" data-arena-position="<?=$i+1?>"><span class="ws-rank-number"><?=$i+1?>º</span><span><a href="/campanhas/<?=lc_e($p['slug'])?>"><strong><?=lc_e($p['title'])?></strong></a><small><?=(int)$p['clips']?> clipes aprovados</small></span>
     <span class="ws-rank-count"><?=number_format((int)$p['views'],0,',','.')?><small>views</small></span></div>
     <?php endforeach;endif;?></section>
   </div>
