@@ -306,7 +306,8 @@ function lc_auth_dialogs(string $path,?array $flash): void {
         <?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'(85) 99999-9999','autocomplete="tel" inputmode="tel"'); ?>
         <?php lc_field('Portfólio (HTTPS, opcional)','portfolio_url','url','',false,'https://...'); ?>
         <div class="full"><?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?></div>
-        <label class="field full lc-auth-consent"><span><input type="checkbox" name="consent_whatsapp" value="1"> Aceito receber avisos operacionais sobre meu cadastro por WhatsApp.</span></label>
+        <label class="field full lc-auth-consent"><span><input type="checkbox" name="consent_whatsapp" value="1"> Quero receber mensagens operacionais opcionais pelo WhatsApp. Posso pedir a revogação em <a href="/privacidade/solicitacoes">Meus direitos LGPD</a> ou pelo contato da Política de Privacidade.</span></label>
+        <p class="form-note full">Ao enviar seu cadastro, seus dados serão utilizados para criar e analisar a conta e executar os serviços solicitados, conforme os <a href="/termos-de-uso">Termos de Uso</a> e a <a href="/politica-de-privacidade">Política de Privacidade</a>. Esta informação não é um consentimento para publicidade.</p>
       <?php else:?>
         <div class="full"><?php lc_field('E-mail ou nickname','email','text','',true,'seunick ou voce@exemplo.com','autocomplete="username"'); ?></div>
         <div class="full"><?php lc_field('Senha','password','password','',true,'Sua senha','autocomplete="current-password"'); ?></div>
