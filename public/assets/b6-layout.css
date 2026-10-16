@@ -1,0 +1,91 @@
+/* B6A — correct sizing/scroll of existing LeagueCut shell, without touching account logic */
+@media(min-width:971px){
+  .site-header .header-inner{display:flex;align-items:center;gap:clamp(10px,1.25vw,22px);min-width:0;max-width:100%}
+  .site-header .brand:has(.brand-image),.site-header:not(.workspace-header) .brand:has(.brand-image),
+  .workspace-header .brand:has(.brand-image){
+    min-width:0!important;min-height:0!important;
+    width:auto!important;max-width:190px!important;
+    flex:0 0 auto!important;
+  }
+  .site-header .brand-image,.site-header:not(.workspace-header) .brand-image,.workspace-header .brand-image{
+    display:block!important;width:188px!important;height:55px!important;
+    max-width:188px!important;max-height:55px!important;object-fit:contain;
+  }
+  .site-header:not(.workspace-header) .header-inner{height:78px!important;min-height:78px!important}
+  .workspace-header .header-inner{height:78px!important;min-height:78px!important}
+  .site-header .main-nav{
+    display:flex;align-items:center;gap:4px;flex:1 1 0;min-width:0!important;
+    overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;
+    white-space:nowrap;padding-block:4px;
+  }
+  .site-header .main-nav::-webkit-scrollbar{display:none}
+  .site-header .main-nav a{flex:0 0 auto}
+  .site-header .header-right{
+    flex:0 0 auto;min-width:max-content;margin-left:auto;display:flex;align-items:center;
+    gap:clamp(6px,.7vw,12px);position:relative;z-index:1;
+  }
+  .site-header .header-right .inline-form{flex:0 0 auto}
+  .site-header .header-right .text-button{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+  .workspace-shell{--sidebar:254px;grid-template-columns:var(--sidebar) minmax(0,1fr);min-width:0}
+  .workspace-sidebar{
+    position:sticky;top:78px;height:calc(100dvh - 78px);max-height:calc(100dvh - 78px);
+    padding:16px 12px 12px;overflow:hidden!important;display:flex;flex-direction:column;
+  }
+  .workspace-sidebar .ws-sidebar-top{flex:0 0 auto;margin-bottom:12px}
+  .workspace-sidebar>nav{
+    min-height:0;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;
+    overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#5a293a #12151b;
+    padding:3px 3px 12px 0;
+  }
+  .workspace-sidebar>nav::-webkit-scrollbar{width:6px}
+  .workspace-sidebar>nav::-webkit-scrollbar-thumb{background:#5a293a;border-radius:10px}
+  .workspace-sidebar .ws-sidebar-bottom{
+    flex:0 0 auto;margin-top:0;padding:14px 7px 5px;background:#11141b;
+    box-shadow:0 -15px 24px #101319f0;
+  }
+  .workspace-body{min-width:0;grid-column:2}
+}
+@media(min-width:971px) and (max-width:1310px){.workspace-shell{--sidebar:228px}}
+@media(min-width:971px) and (max-width:1370px){
+  .site-header:not(.workspace-header) .user-short{display:none}
+  .site-header:not(.workspace-header) .main-nav{gap:2px}
+  .site-header:not(.workspace-header) .brand-image{width:165px!important;max-width:165px!important}
+}
+/* Tablet/mobile: navigation belongs to its own horizontally-scrollable row. */
+@media(max-width:970px){
+  .site-header .brand:has(.brand-image),.site-header:not(.workspace-header) .brand:has(.brand-image),
+  .workspace-header .brand:has(.brand-image){
+    width:auto!important;min-width:0!important;min-height:0!important;max-width:145px!important;flex:0 0 auto!important;
+  }
+  .site-header .brand-image,.site-header:not(.workspace-header) .brand-image,.workspace-header .brand-image{
+    width:clamp(90px,17vw,145px)!important;height:48px!important;
+    max-width:145px!important;max-height:48px!important;object-fit:contain;
+  }
+  .site-header .header-inner{display:flex;min-width:0;gap:10px}
+  .site-header .header-right{display:flex;flex:0 0 auto;margin-left:auto;min-width:0;align-items:center;gap:7px}
+  .site-header .main-nav{
+    flex:1 0 100%;order:3;min-width:0;max-width:100%;overflow-x:auto;
+    white-space:nowrap;overscroll-behavior-x:contain;
+  }
+  .site-header .main-nav a{flex:0 0 auto}
+  .workspace-header .header-inner{height:70px!important;min-height:70px!important}
+  .workspace-sidebar{display:none!important}
+}
+@media(max-width:620px){
+  .site-header .header-right .user-short{display:none}
+  .site-header .header-right .text-button{display:inline-flex!important;align-items:center;min-width:36px;min-height:36px;justify-content:center}
+  .site-header .header-right .text-button span{display:none}
+  .site-header .brand-image{width:105px!important;max-width:105px!important}
+  .workspace-breadcrumb{display:none}
+}
+/* Footer may wrap freely; external social links cannot cover legal links. */
+.site-footer{display:flex;align-items:center;justify-content:space-between;gap:14px 22px;flex-wrap:wrap}
+.site-footer .lc-footer-nav{display:flex;align-items:center;gap:12px 16px;flex-wrap:wrap}
+.site-footer .lc-footer-socials{display:flex;gap:9px 16px;align-items:center;flex-wrap:wrap}
+.site-footer .lc-footer-socials a{display:inline-flex;align-items:center;gap:5px;min-height:36px;color:#c3c8d1}
+.site-footer .lc-footer-socials a:hover,.site-footer .lc-footer-socials a:focus-visible{color:white;text-decoration:underline}
+.site-footer .lc-footer-socials .lc-icon{width:15px;height:15px;color:var(--accent)}
+@media(max-width:700px){
+  .site-footer{display:flex;flex-direction:column;align-items:flex-start}
+  .site-footer .lc-footer-nav{gap:8px 14px}
+}
