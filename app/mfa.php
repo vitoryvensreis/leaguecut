@@ -129,10 +129,28 @@ function lc_mfa_finish_login(int $uid): never {
 }
 /** A step-up challenge required for high-value operations. */
 function lc_mfa_stepup_or_password(array $u,string $code,string $password): bool {
-    if(lc_mfa_enabled((int)$u['id']))return lc_mfa_consume((int)$u['id'],$code);
-    if($password===''||strlen($password)>200)return false;
-    $record=lc_one('SELECT password_hash FROM users WHERE id=?',[$u['id']]);
-    return $record!==null&&password_verify($password,$record['password_hash']);
+    $uid=(int)$u['id'];
+    if(lc_mfa_enabled($uid))return lc_mfa_consume($uid,$code);
+    // Password-only accounts receive a short-term attempt limit as well.
+    $fails=(int)(lc_one('SELECT COUNT(*) AS n FROM account_mfa_attempts WHERE user_id=? AND created_at > DATE_SUB(NOW(),INTERVAL 15 MINUTE)',[$uid])['n']??0);
+    if($fails>=6)return false;
+    $record=lc_one('SELECT password_hash FROM users WHERE id=?',[$uid]);
+    $valid=$password!==''&&strlen($password)<=200&&$record!==null
+        &&password_verify($password,$record['password_hash']);
+    if(!$valid){
+        lc_query('INSERT INTO account_mfa_attempts(user_id,ip_hash) VALUES(?,?)',[$uid,lc_mfa_ip_hash()]);
+        lc_mfa_event('stepup.failed',$uid);
+        return false;
+    }
+    lc_query('DELETE FROM account_mfa_attempts WHERE user_id=?',[$uid]);
+    return true;
+}
+/** Revoke other signed-in browsers without resetting the enrolled authenticator. */
+function lc_mfa_rotate_sessions(int $uid): int {
+    lc_query("INSERT INTO account_mfa(user_id,secret_enc,recovery_json,last_used_step,session_version,enabled_at)
+      VALUES(?,'','[]',-1,1,NULL)
+      ON DUPLICATE KEY UPDATE session_version=session_version+1",[$uid]);
+    return (int)(lc_mfa_state($uid)['session_version']??0);
 }
 function lc_mfa_session_is_valid(int $uid): bool {
     $state=lc_mfa_state($uid);
