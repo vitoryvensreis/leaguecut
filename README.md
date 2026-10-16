@@ -229,3 +229,19 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Testes: `B5_SEO_UPLOAD_OK`, `B5_SEO_SECURITY_OK`, `SMOKE PASSED` e `UX SMOKE PASSED`.
 - A ativação/configuração no painel é manual: enviar o favicon e a imagem social. Recomenda-se PNG quadrado para ícone, PNG/JPG 1200x630 para OG. Prévia de WhatsApp/Google depende de caches e rastreadores externos; não se afirma verificação real nessas plataformas.
 - **Pendências futuras:** testes manuais de cards reais, Search Console, monitoração de indexação, expurgo seguro de imagens substituídas e parametrização por campanha individual além dos metadados automáticos por título/descrição/capa. Outras demandas históricas seguem no checklist da tabela.
+
+
+## Bloco 6 — Ajustes pós-B5 (16/10/2026)
+
+### B6A/B6B — Navegação, logo, rodapé e links sociais
+- Estado: **implementado em branch; aguarda CI, deploy e verificação de produção**. PR e SHA devem ser registrados ao finalizar.
+- Desktop (>=971px): largura da logo reduzida aproximadamente à metade da configuração B5, mantendo proporção do arquivo; a barra superior reserva espaço exclusivo para usuário e Sair. Links de navegação longos passam a ter rolagem horizontal, sem sobreposição. Em tablet/mobile, a barra continua responsiva com links roláveis.
+- Sidebar desktop: cabeçalho da área e cartão do perfil ficam visíveis, enquanto **apenas a lista de opções** tem rolagem vertical própria. `position:sticky` mantém a sidebar imóvel durante a rolagem da página enquanto a workspace está visível. Sidebar mobile permanece recolhida no menu móvel.
+- Documentos legais já existentes antes deste bloco: `/politica-de-privacidade`, `/termos-de-uso`, `/exclusao-de-dados`. Mantidos os links públicos do rodapé e verificados no teste de integração. Textos exigem revisão jurídica pelo operador antes de uso em escala.
+- `/admin/seo`: novos campos de links HTTPS oficiais de Instagram, TikTok, YouTube, Facebook, X/Twitter e LinkedIn; valores ficam em `platform_settings` e usam o fluxo de senha/2FA/auditoria já aplicado ao SEO. Links em branco desaparecem do rodapé. Só são aceitos domínios oficiais, sem usuário/senha na URL ou portas especiais.
+- Nenhuma migration MySQL, nem alteração em pagamentos. CSS `/assets/b6-layout.css` carregado após o design anterior para evitar regras antigas de escala da logo. Testes de integração para links sociais e documentos legais; validação visual Chrome desktop/tablet/mobile recomendada após deploy.
+
+### Próximos blocos
+- **B6C:** recuperação de senha por e-mail e WhatsApp com verificação de titularidade, token temporário e anti-abuso; sessão persistente `Manter logado` com token opaco rotativo, expiração e revogação por dispositivo. Não usar sessão PHP sem expiração como login permanente.
+- **B6D:** PWA com manifesto, ícones, service worker restrito a recursos estáticos e páginas públicas; implementação de Web Push com opt-in, VAPID, armazenamento protegido de subscriptions, respeitar permissão do navegador e controle de sons/alertas. Não armazenar HTML privado em cache offline.
+- **B6E:** suporte via formulário de chamados para clipadores/criadores, fila ADM com status/prioridades/respostas e notificações de atualização; permissão por autor e trilha de auditoria.
