@@ -132,6 +132,10 @@ def main():
     from urllib.error import HTTPError
     # Bloco 7: Google Drive connection is admin-only and never exposes OAuth tokens.
     integrations=get(admin,"/admin/integracoes")
+    bonus_page=get(admin,"/admin/bonus-mensal")
+    assert 'Cadastrar novo bônus mensal' in bonus_page and 'name="bonus_name"' in bonus_page, "Multi-bonus form"
+    assert 'name="bonus_amount"' in bonus_page and 'data-lc-mask="money"' in bonus_page, "Money mask"
+    assert 'Fechar mês' in bonus_page, "Legacy monthly bonus preserved"
     assert "Google Drive" in integrations
     assert "Métricas Instagram" in integrations
     assert "Verificar token (sem cobrança)" in integrations
