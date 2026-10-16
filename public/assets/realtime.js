@@ -25,7 +25,8 @@
     'support.ticket.created': 'Novo chamado recebido',
     'support.ticket.replied': 'Nova resposta em chamado',
     'support.ticket.answered': 'Seu chamado recebeu uma resposta',
-    'support.ticket.updated': 'Seu chamado foi atualizado'
+    'support.ticket.updated': 'Seu chamado foi atualizado',
+    'notice.direct': 'Nova comunicação da LeagueCut'
   };
   let lastCursor = 0;
   let initialized = false;
@@ -59,10 +60,11 @@
         const el = document.createElement('div');
         el.className = 'rt-notification';
         const line = document.createElement('strong');
-        line.textContent = explanations[entry.type] || 'Atualização da plataforma';
+        line.textContent = entry.type === 'notice.direct' ? entry.title : (explanations[entry.type] || 'Atualização da plataforma');
         const at = document.createElement('span');
         at.textContent = entry.created_at ? entry.created_at.replace('T', ' ').slice(0, 16) : 'Agora';
         el.append(line, at);
+        if(entry.type==='notice.direct' && entry.message){const body=document.createElement('p');body.textContent=entry.message;el.append(body);}
         fragment.append(el);
       }
     }
@@ -102,7 +104,8 @@
       notifications.unshift(entry);
       if (announce) {
         if (!opener?.open) unread++;
-        toastMessage(explanations[entry.type] || 'Uma informação foi atualizada');
+        toastMessage(entry.type==='notice.direct'?entry.title:(explanations[entry.type] || 'Uma informação foi atualizada'));
+        window.dispatchEvent(new CustomEvent('leaguecut:notice',{detail:entry}));
         window.dispatchEvent(new CustomEvent('leaguecut:live-event',{detail:{type:entry.type}}));
       }
     }
