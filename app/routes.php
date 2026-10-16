@@ -29,6 +29,7 @@ require __DIR__ . '/routes-admin.php';
 require __DIR__ . '/account-admin.php';
 require __DIR__ . '/mfa.php';
 require __DIR__ . '/mfa-routes.php';
+require __DIR__ . '/request-audit.php';
 require __DIR__ . '/account-self.php';
 if (is_file(LC_ROOT . '/vendor/autoload.php')) require_once LC_ROOT . '/vendor/autoload.php';
 
@@ -36,6 +37,7 @@ $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
 $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/';
 $path = $path==='/'?'/':rtrim($path,'/');
 if (!in_array($method,['GET','POST'],true)) {http_response_code(405);header('Allow: GET, POST');exit('Método não permitido.');}
+lc_audit_track($method,$path);
 if ($method==='POST' && $path!=='/redes/oauth/instagram/desautorizacao') lc_check_csrf();
 if($method==='GET' && preg_match('~^/media/brand/([a-f0-9]{36})$~D',$path,$brandMatch)) {
     lc_brand_logo_response($brandMatch[1]);
@@ -59,6 +61,7 @@ if(lc_creator_admin_routes($method,$path))return;
 if(lc_wpp_admin_routes($method,$path))return;
 if(lc_automation_visual_routes($method,$path))return;
 if(lc_automation_routes($method,$path))return;
+if(lc_request_audit_routes($method,$path))return;
 if(lc_mfa_routes($method,$path))return;
 if(lc_account_self_routes($method,$path))return;
 if(lc_account_admin_routes($method,$path))return;
