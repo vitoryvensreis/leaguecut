@@ -29,6 +29,7 @@ require __DIR__ . '/routes-admin.php';
 require __DIR__ . '/account-admin.php';
 require __DIR__ . '/mfa.php';
 require __DIR__ . '/mfa-routes.php';
+require __DIR__ . '/account-self.php';
 if (is_file(LC_ROOT . '/vendor/autoload.php')) require_once LC_ROOT . '/vendor/autoload.php';
 
 $method = strtoupper((string)($_SERVER['REQUEST_METHOD'] ?? 'GET'));
@@ -59,6 +60,7 @@ if(lc_wpp_admin_routes($method,$path))return;
 if(lc_automation_visual_routes($method,$path))return;
 if(lc_automation_routes($method,$path))return;
 if(lc_mfa_routes($method,$path))return;
+if(lc_account_self_routes($method,$path))return;
 if(lc_account_admin_routes($method,$path))return;
 if(lc_admin_routes($method,$path))return;
 if(lc_creator_routes($method,$path))return;
