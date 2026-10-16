@@ -12,6 +12,25 @@ function lc_clip_submission_error(string $message,string $back): never {
     }
     lc_flash($message,'error');lc_redirect($back);
 }
+/**
+ * Caller owns the transaction. Re-check balance with locked user row, so the
+ * emailed/WhatsApp-verified amount cannot be replaced at confirmation time.
+ */
+function lc_withdrawal_apply(array $u,int $amount): int {
+    if($amount<100||$amount>100000000000)
+        throw new InvalidArgumentException('Valor de saque inválido (mínimo R$ 1,00).');
+    lc_one('SELECT id FROM users WHERE id=? FOR UPDATE',[(int)$u['id']]);
+    $balance=lc_balance((int)$u['id']);
+    if($amount>$balance['available'])throw new InvalidArgumentException('Saldo insuficiente.');
+    lc_query('INSERT INTO withdrawals(user_id,amount_cents) VALUES(?,?)',[$u['id'],$amount]);
+    $withdrawalId=(int)lc_db()->lastInsertId();
+    lc_realtime_emit('admin',null,'withdrawal.requested','withdrawal',$withdrawalId);
+    lc_realtime_emit('user',(int)$u['id'],'withdrawal.requested','withdrawal',$withdrawalId);
+    lc_automation_emit('withdrawal.requested','withdrawal.requested:'.$withdrawalId,(int)$u['id'],
+       ['role'=>'clipador','status'=>'requested','link'=>'/admin/financeiro']);
+    return $withdrawalId;
+}
+
 function lc_clipper_routes(string $method,string $path): bool {
     // A buyer/creator must never access creator-of-clips submissions, Pix or payouts.
     $visitor=lc_user();
@@ -271,7 +290,9 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
         $u=lc_login_required();$balance=lc_balance((int)$u['id']);
         $entries=lc_all('SELECT amount_cents,kind,description,created_at FROM ledger_entries WHERE user_id=? ORDER BY id DESC LIMIT 60',[$u['id']]);
         $withdrawals=lc_all('SELECT id,amount_cents,status,created_at,processed_at FROM withdrawals WHERE user_id=? ORDER BY id DESC LIMIT 30',[$u['id']]);
-        lc_page('Financeiro',function()use($u,$balance,$entries,$withdrawals){?>
+        $contact=lc_one('SELECT email,whatsapp,consent_whatsapp FROM users WHERE id=?',[$u['id']])?:[];
+        $channels=lc_mfa_enabled((int)$u['id'])?[]:lc_otp_available_channels($contact);
+        lc_page('Financeiro',function()use($u,$balance,$entries,$withdrawals,$channels){?>
 <div class="container"><?php lc_heading('Suas recompensas','Financeiro','Veja seus créditos confirmados, saldo disponível e pedidos de saque.'); ?>
 <div class="stats-grid"><div class="metric"><small>Ganhos creditados</small><strong><?=lc_money($balance['earned'])?></strong></div><div class="metric"><small>Saldo disponível</small><strong><?=lc_money($balance['available'])?></strong></div>
 <div class="metric"><small>Reservado / já sacado</small><strong><?=lc_money($balance['reserved'])?></strong></div><div class="metric"><small>Chave Pix</small><strong style="font-size:1rem">Cadastrada <?=lc_icon('lock-keyhole')?></strong></div></div>
@@ -283,7 +304,14 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
 <label class="field"><span>Código do Google Authenticator ou recuperação</span><input name="mfa_code" maxlength="60" autocomplete="one-time-code" required></label>
 <?php else:?>
 <label class="field"><span>Confirme sua senha atual</span><input type="password" name="current_password" autocomplete="current-password" required></label>
-<p class="hint">Proteja seus próximos saques com <a href="/seguranca/2fa">Google Authenticator</a>. Confirmação por código de e-mail/WhatsApp virá em outra etapa.</p>
+<?php if($channels):?>
+<label class="field"><span>Receber código de segurança por</span><select name="verification_channel" required>
+<?php foreach($channels as $ch):?><option value="<?=lc_e($ch)?>"><?=$ch==='email'?'E-mail cadastrado':'WhatsApp cadastrado'?></option><?php endforeach; ?>
+</select></label>
+<p class="hint">O saque só será solicitado depois da confirmação do código recebido.</p>
+<?php else:?>
+<p class="hint">Nenhum canal para códigos está configurado. Temporariamente é necessária sua senha atual. Recomendamos <a href="/seguranca/2fa">ativar o Google Authenticator</a>.</p>
+<?php endif;?>
 <?php endif;?></form></div>
 <div class="panel"><h2>Extrato de créditos</h2><?php if(!$entries):lc_empty('Nenhum crédito liberado','A aprovação e as metas semanais determinam quando os créditos entram no saldo.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Data</th><th>Valor</th></tr></thead><tbody><?php foreach($entries as $e):?><tr><td><?=lc_e($e['description'])?><small><?=lc_e($e['kind'])?></small></td><td><?=date('d/m/Y',strtotime($e['created_at']))?></td><td><?=lc_money($e['amount_cents'])?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div>
@@ -293,25 +321,30 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
     }
     if($method==='POST'&&$path==='/financeiro/saques'){
         $u=lc_login_required();
-        if(!lc_mfa_stepup_or_password($u,lc_post('mfa_code',60),(string)($_POST['current_password']??''))){
-            lc_flash('Confirmação de segurança inválida ou limite de tentativas atingido.','error');
-            lc_redirect('/financeiro');
-        }
         $amount=lc_cents('amount',0);
         if($amount<100){lc_flash('O valor mínimo é R$ 1,00.','error');lc_redirect('/financeiro');}
-        lc_db()->beginTransaction();
-        try {
-            lc_one('SELECT id FROM users WHERE id=? FOR UPDATE',[$u['id']]);
-            $balance=lc_balance((int)$u['id']);
-            if($amount>$balance['available']){lc_db()->rollBack();lc_flash('Saldo insuficiente.','error');lc_redirect('/financeiro');}
-            lc_query('INSERT INTO withdrawals(user_id,amount_cents) VALUES(?,?)',[$u['id'],$amount]);
-            $withdrawalId=(int)lc_db()->lastInsertId();
-            lc_realtime_emit('admin',null,'withdrawal.requested','withdrawal',$withdrawalId);
-            lc_realtime_emit('user',(int)$u['id'],'withdrawal.requested','withdrawal',$withdrawalId);
-            lc_automation_emit('withdrawal.requested','withdrawal.requested:'.$withdrawalId,(int)$u['id'],['role'=>'clipador','status'=>'requested','link'=>'/admin/financeiro']);
-            lc_db()->commit();
-        }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
-        lc_flash('Solicitação registrada. O pagamento será conferido pelo administrador.');lc_redirect('/financeiro');
+        $contact=lc_one('SELECT email,whatsapp,consent_whatsapp FROM users WHERE id=?',[$u['id']])?:[];
+        $channels=lc_mfa_enabled((int)$u['id'])?[]:lc_otp_available_channels($contact);
+        try{
+            if($channels){
+                if(!lc_otp_require_password($u,(string)($_POST['current_password']??'')))
+                    throw new InvalidArgumentException('Sua senha atual não foi confirmada.');
+                lc_otp_begin($u,'withdrawal',['amount_cents'=>$amount],
+                    (string)($_POST['verification_channel']??''));
+                lc_flash('Código solicitado. O saque só será criado depois da confirmação.');
+                lc_redirect('/seguranca/codigo');
+            }
+            if(!lc_mfa_stepup_or_password($u,lc_post('mfa_code',60),
+                 (string)($_POST['current_password']??'')))
+                throw new InvalidArgumentException('Confirmação de segurança inválida ou bloqueada.');
+            $db=lc_db();$db->beginTransaction();
+            try{lc_withdrawal_apply($u,$amount);$db->commit();}
+            catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+            lc_flash('Solicitação registrada. O pagamento será conferido pelo administrador.');
+        }catch(InvalidArgumentException|RuntimeException $e){
+            lc_flash($e->getMessage(),'error');
+        }
+        lc_redirect('/financeiro');
     }
     return false;
 }
