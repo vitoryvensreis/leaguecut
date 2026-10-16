@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/referrals.php';
 
 /**
  * Credits are granted only when the weekly minimum is reached by APPROVED clips.
