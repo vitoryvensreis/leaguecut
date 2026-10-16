@@ -49,7 +49,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | 2 | 2FA Google Authenticator para ADM, clipador e criador | **B2a implementado no código:** TOTP por chave manual no aplicativo, challenge de login, códigos de recuperação de uso único, rate limit e revogação das sessões antigas. QR local SVG incluído no B2b1; validação real de navegador pendente. | B2 |
 | 3 | Item não consta da lista original | N/A | — |
 | 4 | Logo 70% maior | Implementado no código B1: cabeçalhos com ajuste responsivo | B1 |
-| 5 | Indicações de clipadores/criadores e comissões fixas/percentuais editáveis | Pendente: atribuição, antifraude, reversões e créditos em centavos | B3 |
+| 5 | Indicações de clipadores/criadores e comissões fixas/percentuais editáveis | **B3b implementado no código, aguardando CI/deploy:** links pessoais para ambos os tipos, atribuição única no cadastro, regras por perfil (fixo/percentual), comissão pendente somente por evento financeiro comprovado, conferência e aprovação do ADM antes de entrar no saldo. Reversões após pagamento aprovado exigem processo financeiro manual. | B3 |
 | 6 | ADM editar todas as contas, acessos, senha, e-mail, telefone e Pix | Implementado no código B1: /admin/contas com confirmação da senha do operador; protege último ADM | B1 |
 | 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | Parcial B1: máscara JS de telefone e CPF. Valores monetários e auditoria de formulários pendentes | B4 |
 | 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. B2b1 adiciona trilha GET/POST de páginas e operações, sem payload nem query string; classificação detalhada e cron de retenção pendentes. | B2 |
@@ -79,7 +79,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 2. Leia o último run de CI e do workflow de deploy. Se houver falha, não anuncie que chegou à VPS.
 3. Na VPS, confira /home/leaguecut/current, /health e logs sem revelar segredos; só então marque como verificado em produção.
 4. A cada bloco concluído, atualize esta tabela, testes, PR, data, pendências, alterações do banco e próximo bloco.
-5. B3a: nickname e ranking público; **B3b:** indicação de clipadores/criadores, comissão fixa ou percentual configurável, antifraude e liquidação segura. Verificar canais OTP no navegador.
+5. B3a já publicado; B3b está em validação no GitHub. Após B3b, continuar B3c: ocultar/revelar dados sensíveis conforme permissões e revisar antifraude de indicações. Depois B4 (múltiplos bônus, gamificação e máscaras).
 
 
 ### B2a — Implementação retomada após o B1 (16/10/2026)
@@ -140,3 +140,16 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Contas suspensas ou clipes não aprovados não aparecem no ranking público. Métricas Apify de views são observadas, **não** são recibos/validação financeira; resultados não acionam créditos.
 - Testes e2e: cadastro legado, ranking de campanha sem nomes reais, rank da home, migração idempotente e uniqueness da nickname.
 - **Próxima entrega: B3b** com links de indicação clipador/criador, regras do ADM e comissões somente após eventos financeiros elegíveis, sem pagar por cadastro falso.
+
+
+### B3b — Indicações e comissões configuráveis (16/10/2026)
+
+- Estado: **implementado em branch; confirmar CI e publicação antes de marcar como concluído na VPS**.
+- Um link de indicação por usuário é gerado com código aleatório de 16 caracteres hexadecimais; em `/indicacoes`, cada clipador/criador pode copiar seu convite separado para clipador e criador. Não expõe e-mail/telefone.
+- O cadastro clipador/criador com parâmetro `?ref=` atribui no MySQL um único indicador (sem poder trocar depois). Rejeita autoindicação e tentativas com o mesmo WhatsApp entre indicador e indicado; aprovações financeiras permanecem manuais para prevenção de fraude adicional.
+- `/admin/indicacoes`: regras separadas por tipo de indicado, inicialmente DESATIVADAS; valores fixos até R$ 500,00 uma única vez ou percentuais até 50,00% de cada evento elegível. Confirmação da senha e 2FA do ADM se ativo para alterações e liberações.
+- **Base financeira do percentual**: clipador = pagamento por clipe inserido após cumprir meta semanal; criador = valor do ciclo mensal com recebimento confirmado manualmente pelo ADM. Cadastro e visualizações isoladas não geram comissão.
+- Cada evento cria comissão `pending` com origem única e valores congelados conforme regra vigente. A comissão NÃO compõe saldo nem saque até revisão individual `approved` no ADM. Rejeição não credita nada.
+- Aprovação verifica se o evento original ainda é válido e credita `ledger_entries.kind=adjustment` com chave deduplicada. Créditos já aprovados não podem ser aprovados novamente. Cancelamento/reembolso após crédito requer análise e ajuste financeiro manual; evitar reversões silenciosas.
+- Migration idempotente com backup: tabelas `referral_codes`, `referral_rules`, `referrals`, `referral_commissions`, regras padrão desativadas. Integração de teste cobre referência, autoindicação, limites e emissão única de crédito.
+- Próximo passo B3c: opção visual de ocultar/revelar dados pessoais e financeiros sem enviar dados não autorizados ao frontend; análise reforçada antifraude de múltiplas contas, fraude de IP/aparelhos, reversão de comissões após estorno e avisos nos eventos.

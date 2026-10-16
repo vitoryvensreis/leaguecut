@@ -36,9 +36,11 @@ function lc_workspace_links(array $u): array {
           ['Integrações','/admin/integracoes','settings-2'],
           ['Administradores','/admin/administradores','shield-check'],
           ['Gerenciar contas','/admin/contas','user-round-cog'],
+          ['Indicações e comissões','/admin/indicacoes','hand-coins'],
           ['Auditoria de contas','/admin/atividades','activity'],
           ['Acessos e operações','/admin/auditoria','list-checks'],
           ['Meus dados','/conta','user-round-cog'],
+          ['Indicações','/indicacoes','users-round'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check']
         ];
     }
@@ -46,6 +48,7 @@ function lc_workspace_links(array $u): array {
         return [
           ['Minha área','/criador','layout-dashboard'],
           ['Pacotes mensais','/planos','layers'],
+          ['Indicações','/indicacoes','users-round'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check'],
         ];
     }
@@ -56,7 +59,8 @@ function lc_workspace_links(array $u): array {
       ['Minha biblioteca','/biblioteca','library'],
       ['Minhas redes','/redes','share-2'],
       ['Financeiro','/financeiro','wallet'],
-      ['Segurança e 2FA','/seguranca/2fa','shield-check']
+      ['Indicações','/indicacoes','users-round'],
+          ['Segurança e 2FA','/seguranca/2fa','shield-check']
     ];
 }
 function lc_workspace_nav(array $u, string $current): void {
@@ -118,6 +122,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
 <link rel="stylesheet" href="/assets/arena.css?v=1">
+<?php if(in_array($path,['/indicacoes','/admin/indicacoes'],true)): ?><link rel="stylesheet" href="/assets/referrals.css?v=1"><?php endif; ?>
 <?php if($path==='/seguranca/2fa'): ?><link rel="stylesheet" href="/assets/mfa-qr.css?v=1"><?php endif; ?>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><link rel="stylesheet" href="/assets/flow-editor.css?v=2">
 <?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><link rel="stylesheet" href="/assets/flow-canvas-v2.css?v=1"><?php endif; ?><?php endif; ?>
