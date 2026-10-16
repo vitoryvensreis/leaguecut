@@ -306,6 +306,18 @@ try{
         }
     }
     echo "MIGRACAO_MFA_OK\n";
+    // Only one new audited-access table. Back up before changing production.
+    $hasAudit=(bool)lc_one("SELECT 1 AS present FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='request_audit'");
+    if(!$hasAudit){
+        lc_migration_backup();
+        $auditSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_request_audit.sql'));
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS request_audit\s*\(/i',$auditSql))
+            throw new RuntimeException('Migração de auditoria inválida.');
+        $db->exec($auditSql);
+    }
+    echo "MIGRACAO_REQUEST_AUDIT_OK\n";
+
 
 
     echo "MIGRACAO_CRIADOR_ASSINATURAS_OK\n";
