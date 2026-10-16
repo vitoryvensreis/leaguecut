@@ -55,7 +55,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. B2b1 adiciona trilha GET/POST de páginas e operações, sem payload nem query string; classificação detalhada e cron de retenção pendentes. | B2 |
 | 9 | SEO gerenciado pelo ADM (ícones, OG, keywords, metadata, imagem, sitemap) | Pendente: editor e testes de compartilhamento/indexação | B5 |
 | 10 | Muitos bônus mensais cadastráveis | Pendente: regras de bônus, limites e não duplicação | B4 |
-| 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **Parcial B2a:** /conta permite alterar dados, senha e Pix com TOTP se ativo; saque exige TOTP ou senha atual; alteração revoga outras sessões; Pix bloqueado durante saques pendentes. Código enviado por e-mail/WhatsApp ainda pendente. | B2 |
+| 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **B2b2 em validação:** contas com TOTP confirmam no autenticador; sem TOTP, SMTP/WPPConnect configurado e autorizado permite código temporário de uso único antes de mudar dados ou criar saque. Se nenhum canal estiver operacional, mantém senha atual como fallback temporário. | B2 |
 | 12 | Neon animado sutil em todo o site | Parcial B1: fundo luminoso e hover discretos. Acabamento global pendente | B4 |
 | 13 | Nick único, login por nick/e-mail, ranking geral público de views com nick | Pendente: índice único, privacidade, views verificadas | B3 |
 | 14 | Ocultar/revelar dados sensíveis com botão olho | Pendente: interface e revisão de permissões no servidor | B3 |
@@ -79,7 +79,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 2. Leia o último run de CI e do workflow de deploy. Se houver falha, não anuncie que chegou à VPS.
 3. Na VPS, confira /home/leaguecut/current, /health e logs sem revelar segredos; só então marque como verificado em produção.
 4. A cada bloco concluído, atualize esta tabela, testes, PR, data, pendências, alterações do banco e próximo bloco.
-5. Próximo passo: **B2b2**, códigos OTP por SMTP/WhatsApp com confirmação real de entrega, cron de retenção de auditoria e revisão de eventos, depois B3.
+5. Próximo passo após aprovação do PR B2b2: **B3** indicações, nickname único e ranking; verificar no navegador os canais OTP antes de exigir segunda etapa universalmente.
 
 
 ### B2a — Implementação retomada após o B1 (16/10/2026)
@@ -115,3 +115,17 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
   15 3 * * * cd /home/leaguecut/current && /usr/bin/php bin/audit-prune.php >> /home/leaguecut/logs/audit-prune.log 2>&1
 - B2b2 PENDENTE: códigos por SMTP/WhatsApp com entrega realmente confirmada e expiração, consentimento, limites de tentativas e vinculação ao saque/alteração. O worker bin/notify.php atualmente envia mensagem fixa de aprovação e NÃO deve ser reutilizado sem revisão.
 - Verificação após merge: status do deploy, renderização do QR no navegador, auditoria GET/POST sem segredos, cron de retenção e rollback se algum teste falhar. Próximo bloco depois B2b2: B3 indicações, nickname e ranking.
+
+
+### B2b2 — Códigos transacionais para saques e mudança de dados (16/10/2026)
+
+- **Implementado no código, aguardando CI/deploy:** desafio OTP de seis dígitos, cinco minutos de validade, até cinco tentativas, até quatro emissões por 20 minutos e intervalo de 60 segundos entre solicitações (serializado via trava de linha do usuário).
+- **E-mail:** envio síncrono via PHPMailer com TLS usando `MAIL_HOST`, `MAIL_USERNAME`, `MAIL_PASSWORD`, `MAIL_FROM`; nenhum segredo ou código vai para URL/log/banco em texto. **WhatsApp:** reutiliza a sessão WPPConnect exclusiva da LeagueCut somente quando automações estão habilitadas, token configurado e usuário autorizou WhatsApp. A mensagem é de segurança, não da fila de aprovações do `bin/notify.php`.
+- **Não confundir envio com entrega:** o status HTTP/SMTP confirma apenas aceitação pelo provedor. A operação requer inserir o código correto na página `/seguranca/codigo`; se o transporte falhar, o desafio é invalidado e nenhum dado é alterado.
+- **Operação atômica:** payload cifrado em `account_otp_challenges`, associação à sessão, conta e tipo de operação; o código é guardado como HMAC e fica inutilizável se for expirado, repetido ou invalidado. Verificação e mutação MySQL no mesmo commit. Dados sensíveis apagados do desafio após uso.
+- **Mudança de perfil e Pix:** contato de segurança é o contato **anterior cadastrado**, e a senha atual é necessária para solicitar o código. Saques revalidam saldo sob trava de usuário no instante da confirmação. Contas com TOTP continuam usando Google Authenticator.
+- **Fallback transitório controlado:** se o usuário não tiver TOTP e **nenhum** dos canais estiver operacional/consentido, permanece confirmação por senha atual para não bloquear saques de produção. Não equivale a OTP. Ativar SMTP, autorizar WhatsApp ou configurar TOTP para reforçar proteção; reavaliar este fallback depois da homologação do provedor.
+- **Migração:** `database/migrations/20261016_account_otp.sql` adiciona tabela; executada com backup MySQL antes de criar. `bin/otp-prune.php` apaga operações expiradas, e `bin/audit-prune.php` remove logs antigos. Deploy registra um único cron de retenção às 03h15 na conta Unix `leaguecut`.
+- **Teste de integração:** `tests/otp_security.php` testa código incorreto, replay, desafio ainda sem aceite, expiração e alteração atômica sem realizar envios reais no CI.
+- **Pendente fora de B2b2:** prova de entrega/leitura de WhatsApp (não suportada por mera resposta síncrona), verificação manual de contas reais no navegador, políticas de recuperação caso se perca TOTP e códigos, garantia de consistência de contatos verificados, login/social, restante dos itens B3–B5.
+- **Próximo bloco: B3**, começando por nickname único, ranking público só com nicks e programa de indicação/comissões com regras antifraude.
