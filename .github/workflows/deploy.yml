@@ -130,6 +130,16 @@ jobs:
             fi
             exit 1
           fi
+          # Apply the approved social card only after public health checks.
+          # Do not overwrite future changes made via ADM > SEO.
+          if ! php bin/activate-social-share.php; then
+            echo "ERR: arte social invalida; restaurando release anterior"
+            if [ -n "$PREV" ] && [ -d "$PREV" ]; then
+              ln -s "$PREV" "$BASE/current.rollback"
+              mv -Tf "$BASE/current.rollback" "$BASE/current"
+            fi
+            exit 1
+          fi
           # Reliable local scheduler: cron runs at minute zero every hour, while the
           # command itself checks for 02:00 in America/Fortaleza, regardless of
           # the host timezone. The GitHub scheduled workflow remains a fallback.

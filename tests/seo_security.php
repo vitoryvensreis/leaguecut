@@ -19,7 +19,7 @@ foreach(lc_social_footer_specs() as $key=>$spec){
 }
 seo_assert(lc_seo_config([])['social_instagram']==='','Missing social keys default to empty');
 $home=lc_seo_meta('Início',$base,'/');
-seo_assert($home['image']==='https://leaguecut.com/share/leaguecut.png?v=3','default Open Graph image');
+seo_assert($home['image']==='https://leaguecut.com/assets/leaguecut-share-clean-2026.jpg','default Open Graph image');
 seo_assert($home['public'] && $home['robots']==='index, follow, max-image-preview:large','public home indexable');
 seo_assert($home['canonical']==='https://leaguecut.com/','fixed canonical');
 $admin=lc_seo_meta('Gerenciar dados',$base,'/admin/contas');
@@ -49,6 +49,8 @@ seo_assert(str_contains($html,'application/ld+json')&&
     str_contains($html,'https://schema.org'),'structured website metadata');
 seo_assert(str_contains($html,'property="og:title"'),'Open Graph rendered');
 seo_assert(str_contains($html,'og:image:width') && str_contains($html,'1200'),'social dimensions');
+seo_assert(str_contains($html,'image/jpeg'),'social type must match static JPG');
+seo_assert(lc_seo_default_share_image()==='https://leaguecut.com/assets/leaguecut-share-clean-2026.jpg','stable static share URL');
 seo_assert(str_contains($html,'name="twitter:card"'),'Twitter card rendered');
 ob_start();lc_seo_head($admin);$privateHead=(string)ob_get_clean();
 seo_assert(!str_contains($privateHead,'og:title')&&!str_contains($privateHead,'canonical'),'no share metadata on private panel');

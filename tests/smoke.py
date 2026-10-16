@@ -151,6 +151,8 @@ def seo_upload_and_save(admin):
     with admin.open(req,timeout=18) as response:
         panel=response.read().decode('utf-8')
     assert "SEO atualizado" in panel, "Successful authenticated SEO update"
+    assert "Prévia da imagem de compartilhamento" in panel, "Admin share preview visible"
+    assert "Ver imagem padrão atual" in panel, "Admin may inspect the default share artwork"
     assert 'name="social_instagram" value="https://www.instagram.com/leaguecut/"' in panel, "Saved Instagram remains visible in SEO form"
     assert 'name="social_tiktok" value="https://www.tiktok.com/@leaguecut"' in panel, "Saved TikTok remains visible in SEO form"
 
@@ -216,7 +218,12 @@ def main():
     assert len(manifest["icons"])==4 and {"any","maskable"}==set(i["purpose"] for i in manifest["icons"]), "PWA safe-zone icons"
     assert 'rel="apple-touch-icon" sizes="180x180"' in home, "iPhone home-screen artwork"
     assert 'rel="icon" type="image/svg+xml"' in home, "Browser vector favicon"
-    assert 'https://leaguecut.com/share/leaguecut.png?v=3' in home, "Default social card"
+    assert 'https://leaguecut.com/assets/leaguecut-share-clean-2026.jpg' in home, "Default social card"
+    with creator.open(BASE+"/assets/leaguecut-share-clean-2026.jpg",timeout=15) as response:
+        binary=response.read()
+        assert response.headers.get("Content-Type","").startswith("image/jpeg"), "Social file is publicly cacheable JPEG"
+        assert binary[:3]==b"\xff\xd8\xff", "Genuine JPEG signature"
+        assert len(binary)>30000, "Production preview artwork is not empty"
     for dim in [32,48,180,192,512]:
         with creator.open(BASE+f"/app-icon/{dim}.png",timeout=12) as response:
             data=response.read()

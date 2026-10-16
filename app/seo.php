@@ -35,6 +35,10 @@ function lc_social_footer_links(array $s): array {
 
 /** Public SEO never derives a canonical host from the Host header or a query string. */
 function lc_seo_origin(): string { return 'https://leaguecut.com'; }
+/** Static, cacheable and crawler-friendly 1200x630 JPG; ADM upload can override it. */
+function lc_seo_default_share_image(): string {
+    return lc_seo_origin().'/assets/leaguecut-share-clean-2026.jpg';
+}
 function lc_seo_public_path(string $path): bool {
     return in_array($path,['/','/explorar','/ranking','/planos'],true) ||
       (bool)preg_match('~^/campanhas/[a-z0-9-]{1,210}$~D',$path);
@@ -99,7 +103,7 @@ function lc_seo_meta(string $routeTitle,array $s,string $path,int $httpStatus=20
         $desc=mb_substr(trim(preg_replace('/\s+/u',' ',strip_tags((string)$campaign['description']))??''),0,200);
     }
     $image=lc_seo_absolute_asset((string)$cfg['seo_social_image_url']);
-    if($image==='')$image=lc_seo_origin().'/share/leaguecut.png?v=3';
+    if($image==='')$image=lc_seo_default_share_image();
     if(isset($campaign)&&$public && lc_seo_valid_asset((string)$campaign['cover_url'],'social')){
         $cover=lc_seo_absolute_asset((string)$campaign['cover_url']);
         if($cover!=='')$image=$cover;
@@ -138,7 +142,11 @@ function lc_seo_head(array $meta): void {
 <meta property="og:image" content="<?=lc_e($meta['image'])?>">
 <meta property="og:image:secure_url" content="<?=lc_e($meta['image'])?>">
 <meta property="og:image:alt" content="<?=lc_e($meta['title'])?>">
-<?php if(str_starts_with($meta['image'],lc_seo_origin().'/share/leaguecut.png')):?>
+<?php if($meta['image']===lc_seo_default_share_image()):?>
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<?php elseif(str_starts_with($meta['image'],lc_seo_origin().'/share/leaguecut.png')):?>
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">

@@ -85,8 +85,10 @@ function lc_seo_admin_routes(string $method,string $path): bool {
 <small>Os buscadores podem apresentar títulos e descrições diferentes.</small>
 </section>
 <section class="panel lc-seo-share-preview">
-<span class="eyebrow">Prévia ilustrativa do compartilhamento</span>
-<?php if($image=lc_seo_absolute_asset((string)$cfg['seo_social_image_url'])):?>
+<span class="eyebrow">Prévia da imagem de compartilhamento</span>
+<?php $image=lc_seo_absolute_asset((string)$cfg['seo_social_image_url']);
+if($image==='')$image=lc_seo_default_share_image();
+if($image!==''):?>
 <img src="<?=lc_e($image)?>" alt="Prévia da imagem compartilhada" class="lc-seo-social-image">
 <?php else:?><div class="lc-seo-social-empty">Adicione uma imagem 1200 × 630 para personalizar o compartilhamento.</div><?php endif;?>
 <strong><?=lc_e($cfg['seo_home_title'])?></strong>
@@ -106,7 +108,8 @@ function lc_seo_admin_routes(string $method,string $path): bool {
 <label class="field full"><span>Palavras-chave (separadas por vírgula)</span><textarea name="seo_keywords" maxlength="255" rows="2"><?=lc_e($cfg['seo_keywords'])?></textarea><small>Keywords são informativas: não garantem posicionamento no Google.</small></label>
 </div></section>
 <section><h2>Ícones e imagem de compartilhamento</h2>
-<p class="hint">PNG, JPG ou WebP. Favicon quadrado de pelo menos 48 × 48; imagem social recomendada 1200 × 630. Uploads ficam no armazenamento privado da LeagueCut.</p>
+<p class="hint">A arte padrão LeagueCut (1200 × 630) já está ativa. Para trocar, envie um novo JPG/PNG/WebP ou informe a URL HTTPS da imagem. Os uploads ficam em armazenamento privado da plataforma.</p>
+<p class="hint"><a href="<?=lc_e(lc_seo_default_share_image())?>" target="_blank" rel="noopener noreferrer">Ver imagem padrão atual ↗</a></p>
 <div class="form-grid">
 <label class="field"><span>Enviar novo favicon</span><input type="file" name="seo_favicon_upload" accept="image/png,image/jpeg,image/webp"></label>
 <label class="field"><span>Enviar imagem social</span><input type="file" name="seo_social_image_upload" accept="image/png,image/jpeg,image/webp"></label>
