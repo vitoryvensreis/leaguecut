@@ -21,7 +21,11 @@
     'clip.reviewed': 'Atualização na revisão de um clipe',
     'withdrawal.requested': 'Nova solicitação de saque',
     'withdrawal.updated': 'Status de saque atualizado',
-    'campaign.updated': 'Campanha atualizada'
+    'campaign.updated': 'Campanha atualizada',
+    'support.ticket.created': 'Novo chamado recebido',
+    'support.ticket.replied': 'Nova resposta em chamado',
+    'support.ticket.answered': 'Seu chamado recebeu uma resposta',
+    'support.ticket.updated': 'Seu chamado foi atualizado'
   };
   let lastCursor = 0;
   let initialized = false;
