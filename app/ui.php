@@ -31,6 +31,7 @@ function lc_workspace_links(array $u): array {
           ['Clipadores','/admin/clipadores','users-round'],
           ['Conferir clipes','/admin/clipes','clipboard-check'],
           ['Chamados','/admin/chamados','clipboard-check'],
+          ['Relatórios suporte','/admin/chamados/relatorios','chart-column'],
           ['Campanhas','/admin/campanhas','clapperboard'],
           ['Saques','/admin/financeiro','wallet'],
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
