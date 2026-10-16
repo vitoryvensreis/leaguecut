@@ -455,8 +455,8 @@ def main():
     assert "R$ 75,00" in finance, "Five clips (R$75); public views do not auto-credit"
     assert 'data-lc-private' in finance and '/assets/privacy-toggle.js?v=1' in finance, "Clipper finance privacy toggle"
     assert 'lc-private-value' in finance, "Authorized amounts are marked for masking"
-    admin_finance=get(admin,"/admin/financeiro")
-    assert 'data-lc-private' in admin_finance, "Admin Pix and withdrawal amounts must be visually concealable"
+    admin_accounts=get(admin,"/admin/contas")
+    assert 'data-lc-private' in admin_accounts, "Admin identities are maskable once accounts exist"
     rank_page=get(creator,"/campanhas/"+slug.group(1))
     assert "Ranking da campanha" in rank_page and "lc-podium" in rank_page
     assert re.search(r"@lc_\d+",rank_page) and "500 XP" in rank_page, "Five approved clips yield 500 XP with public nick"
@@ -478,6 +478,8 @@ def main():
     submit(creator,"/financeiro/saques",{"amount":"10,00","current_password":"This-Is-A-Test-Password-123"},"/financeiro")
     finance=get(creator,"/financeiro")
     assert "R$ 65,00" in finance, "Withdrawal reserves available balance"
+    admin_finance=get(admin,"/admin/financeiro")
+    assert 'data-lc-private' in admin_finance, "Admin Pix and withdrawal amounts must be visually concealable"
     creator_latest=json.loads(get(creator,"/api/realtime/snapshot"))
     assert creator_latest["state"]["available_cents"]==6500
     assert creator_latest["state"]["approved_clips"]==5
