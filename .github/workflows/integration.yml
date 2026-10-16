@@ -109,6 +109,7 @@ jobs:
           php tests/referrals.php
           php tests/multiple_monthly_bonus.php
           php tests/privacy_ui.php
+          php tests/privacy_center.php
           php tests/seo_security.php
           php tests/social_footer.php
           php tests/password_reset.php

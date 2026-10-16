@@ -411,6 +411,26 @@ try{
         }
     }
     echo "MIGRACAO_B7C_SUPPORT_MANAGEMENT_OK\n";
+    // LGPD: three additive tables, safe backup before first DDL.
+    $privacyTables=['privacy_cookie_choices','privacy_subject_requests','privacy_request_audit'];
+    $privacyMissing=false;
+    foreach($privacyTables as $table){
+        if(!lc_one('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?',[$table]))
+            $privacyMissing=true;
+    }
+    if($privacyMissing){
+        lc_migration_backup();
+        $parts=array_values(array_filter(array_map('trim',explode(';',
+            (string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_lgpd.sql')))));
+        if(count($parts)!==3)throw new RuntimeException('Migração LGPD incompleta.');
+        foreach($parts as $index=>$sql){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($privacyTables[$index],'/').'\\s*\\(/i',$sql))
+                throw new RuntimeException('Tabela LGPD não autorizada.');
+            $db->exec($sql);
+        }
+    }
+    echo "MIGRACAO_LGPD_PRIVACY_CENTER_OK\\n";
+
 
 
 

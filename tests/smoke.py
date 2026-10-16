@@ -187,6 +187,17 @@ def main():
     admin=make_client()
     home=get(creator,"/")
     assert "Seu talento." in home, "Landing hero"
+    privacy_visitor=make_client()
+    assert "Sua privacidade importa" in get(privacy_visitor,"/"), "Cookie choice visible by default"
+    post(privacy_visitor,"/privacidade/cookies",{"choice":"reject","return_to":"/"})
+    assert "Sua privacidade importa" not in get(privacy_visitor,"/"), "Reject persists without blocking site"
+    preferences=get(privacy_visitor,"/preferencias-de-privacidade")
+    assert "Preferências de cookies" in preferences and "Personalizar escolhas" in preferences, "Choices can be revised"
+    post(privacy_visitor,"/privacidade/cookies",{"choice":"custom","analytics":"1","return_to":"/preferencias-de-privacidade"})
+    post(privacy_visitor,"/privacidade/cookies",{"choice":"reject","return_to":"/"})
+    assert "Sua privacidade importa" not in get(privacy_visitor,"/"), "Revocation is persistent"
+    assert "Política de Cookies" in get(make_client(),"/politica-de-cookies"), "Cookie policy is public"
+
     import json
     assert re.search(r'<link rel="manifest" href="/manifest\.webmanifest(?:\?v=\d+)?">', home), "PWA discoverable"
     with creator.open(BASE+"/manifest.webmanifest",timeout=12) as response:
