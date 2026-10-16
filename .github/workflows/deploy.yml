@@ -130,6 +130,15 @@ jobs:
             fi
             exit 1
           fi
+          # PWA diagnostics query CloudPanel Nginx directly, bypassing Cloudflare WAF.
+          # Advisory only: origin-local TLS/routes may differ from public access.
+          for pwa_route in pwa/manifest pwa/worker pwa/icon/192 pwa/icon/512; do
+            pwa_result="$(curl -k -sS -o /dev/null -w '%{http_code} %{content_type}' \
+              --connect-timeout 4 --max-time 20 \
+              --resolve leaguecut.com:443:127.0.0.1 \
+              "https://leaguecut.com/$pwa_route" 2>/dev/null || true)"
+            echo "PWA_ORIGIN_CHECK $pwa_route $pwa_result"
+          done
           # Apply the approved social card only after public health checks.
           # Do not overwrite future changes made via ADM > SEO.
           if ! php bin/activate-social-share.php; then
