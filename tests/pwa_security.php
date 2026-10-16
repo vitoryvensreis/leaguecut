@@ -11,13 +11,13 @@ foreach([32,48,180,192,512] as $size){
     pa(strlen($img)>500,'image pixels encoded');
 }
 $maskable=lc_pwa_icon_png(192,true);
-pa(substr($maskable,0,8)==="\\x89PNG\\r\\n\\x1a\\n",'maskable PNG signature');
+pa(substr($maskable,0,8)==="\x89PNG\r\n\x1a\n",'maskable PNG signature');
 pa(hash('sha256',$maskable)!==hash('sha256',lc_pwa_icon_png(192,false)),'maskable art has distinct safe zone');
 $ico=lc_brand_favicon_ico();
-pa(substr($ico,0,4)==="\\x00\\x00\\x01\\x00",'real ICO format');
+pa(substr($ico,0,4)==="\x00\x00\x01\x00",'real ICO format');
 $card=lc_brand_social_png();
 $cardDims=unpack('Nwidth/Nheight',substr($card,16,8));
-pa(substr($card,0,8)==="\\x89PNG\\r\\n\\x1a\\n",'social card PNG');
+pa(substr($card,0,8)==="\x89PNG\r\n\x1a\n",'social card PNG');
 pa($cardDims['width']===1200&&$cardDims['height']===630,'social card 1200 by 630');
 ob_start();
 pa(lc_pwa_routes('GET','/manifest.webmanifest'),'manifest route');
