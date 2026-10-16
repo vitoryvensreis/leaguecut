@@ -12,6 +12,7 @@ require __DIR__ . '/brand.php';
 require __DIR__ . '/seo.php';
 require __DIR__ . '/pwa.php';
 require __DIR__ . '/push-storage.php';
+require __DIR__ . '/push-sender.php';
 require __DIR__ . '/notification-preferences.php';
 require __DIR__ . '/seo-admin.php';
 require __DIR__ . '/routes-home-admin.php';
