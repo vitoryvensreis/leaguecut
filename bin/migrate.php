@@ -345,12 +345,9 @@ try{
         lc_migration_backup();
         $db->exec('CREATE UNIQUE INDEX uq_users_nickname ON users (nickname)');
     }
-    $nullable=lc_one("SELECT IS_NULLABLE FROM information_schema.COLUMNS
-        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='nickname'");
-    if(($nullable['IS_NULLABLE']??'YES')==='YES'){
-        lc_migration_backup();
-        $db->exec('ALTER TABLE users MODIFY COLUMN nickname VARCHAR(32) NOT NULL');
-    }
+    // Keep column nullable for legacy insert scripts/seeders. All signup routes
+    // assign lc_ID or chosen nick in their transaction; the unique index
+    // ensures every non-NULL nickname is globally unique.
     echo "MIGRACAO_NICKNAME_OK\n";
 
 
