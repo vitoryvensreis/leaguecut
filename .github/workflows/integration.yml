@@ -76,6 +76,7 @@ jobs:
           DB_PASSWORD: integration
           HOME_MEDIA_DIR: /tmp/leaguecut-home-media
           BRAND_MEDIA_DIR: /tmp/leaguecut-brand-media
+          SEO_MEDIA_DIR: /tmp/leaguecut-seo-media
           LC_E2E_FAKE_DRIVE: '1'
         run: |
           export APP_KEY="$(php -r 'echo base64_encode(random_bytes(32));')"
