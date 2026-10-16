@@ -1,0 +1,23 @@
+/* Installation guidance stays low-profile; no modal until requested. */
+[data-pwa-install][hidden]{display:none!important}
+.lc-pwa-help{
+  border:1px solid #ffffff29;
+  border-radius:14px;
+  background:#171a22;
+  color:#f5f6fa;
+  box-shadow:0 22px 80px #000a;
+  padding:22px;
+  width:min(420px,calc(100vw - 28px));
+  max-height:calc(100dvh - 32px);
+  overflow-y:auto;
+}
+.lc-pwa-help::backdrop{background:#06080dc2}
+.lc-pwa-help-head{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.lc-pwa-help-head h2{font-size:1.2rem;margin:0}
+.lc-pwa-help>p{line-height:1.6;font-size:.94rem}
+.lc-pwa-help .hint{font-size:.81rem;color:#aeb6c7}
+@media(max-width:480px){
+  .lc-pwa-help{padding:17px}
+  .lc-pwa-help-head{align-items:flex-start}
+}
+@media(prefers-reduced-motion:reduce){.lc-pwa-help{scroll-behavior:auto}}
