@@ -106,6 +106,7 @@ jobs:
           php tests/creator_billing_cycles.php
           php tests/nickname_ranking.php
           php tests/referrals.php
+          php tests/privacy_ui.php
           php tests/campaign_ranking.php || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           php tests/automation_rules.php
           php tests/automation_visual.php

@@ -98,7 +98,7 @@ function lc_admin_routes(string $method,string $path): bool {
   <div class="ws-rank-dashboard">
     <section class="ws-rank-panel"><h2><?=lc_icon('trophy')?> Top clipadores</h2>
     <?php if(!$rankUsers):?><p class="ws-rank-empty">Aguardando clipes aprovados.</p><?php else:foreach($rankUsers as $i=>$p):?>
-    <div class="ws-rank-row"><span class="ws-rank-number"><?=$i+1?>º</span><span><strong><?=lc_e($p['full_name'])?></strong><small>@<?=lc_e($p['nickname']??'sem-nick')?></small>
+    <div class="ws-rank-row"><span class="ws-rank-number"><?=$i+1?>º</span><span><strong><?=lc_private($p['full_name'])?></strong><small>@<?=lc_e($p['nickname']??'sem-nick')?></small>
     <small><?=(int)$p['clips']?> clipes · <?=number_format((int)$p['clips']*100+intdiv((int)$p['views'],100),0,',','.')?> XP ilustrativo</small></span>
     <span class="ws-rank-count"><?=number_format((int)$p['views'],0,',','.')?><small>views</small></span></div>
     <?php endforeach;endif;?></section>
@@ -145,7 +145,7 @@ function lc_admin_routes(string $method,string $path): bool {
 <div class="panel"><div class="panel-head"><h2>Administradores cadastrados</h2><span class="tag"><?=count($admins)?> contas</span></div>
 <div class="alert">Por segurança, novas contas administrativas são criadas no terminal da VPS com senha digitada sem aparecer na tela. Não compartilhe senhas no ChatGPT ou GitHub.</div>
 <div class="table-wrap"><table><thead><tr><th>Usuário</th><th>E-mail</th><th>Status</th><th>Criado em</th></tr></thead><tbody>
-<?php foreach($admins as $a):?><tr><td><?=lc_e($a['full_name'])?></td><td><?=lc_e($a['email'])?></td><td><span class="tag tag-<?=lc_e($a['status'])?>"><?=lc_e($a['status'])?></span></td><td><?=date('d/m/Y',strtotime($a['created_at']))?></td></tr><?php endforeach;?>
+<?php foreach($admins as $a):?><tr><td><?=lc_private($a['full_name'])?></td><td><?=lc_private($a['email'])?></td><td><span class="tag tag-<?=lc_e($a['status'])?>"><?=lc_e($a['status'])?></span></td><td><?=date('d/m/Y',strtotime($a['created_at']))?></td></tr><?php endforeach;?>
 </tbody></table></div></div><a class="btn btn-ghost" href="/admin">Voltar ao painel</a></div>
 <?php },'admin');return true;
     }
@@ -163,7 +163,7 @@ function lc_admin_routes(string $method,string $path): bool {
 <?php if(!$users):lc_empty('Nenhum cadastro','Os próximos clipadores vão aparecer aqui.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Clipador</th><th>Instagram</th><th>WhatsApp</th><th>Status</th><th>Ação</th></tr></thead><tbody>
 <?php foreach($users as $u):?><tr>
-<td><?=lc_e($u['full_name'])?><small><?=lc_e($u['email'])?></small><?php if($u['portfolio_url']):?><a href="<?=lc_e($u['portfolio_url'])?>" target="_blank" rel="noopener noreferrer">Portfólio ↗</a><?php endif;?></td>
+<td><?=lc_private($u['full_name'])?><small><?=lc_private($u['email'])?></small><?php if($u['portfolio_url']):?><a href="<?=lc_e($u['portfolio_url'])?>" target="_blank" rel="noopener noreferrer">Portfólio ↗</a><?php endif;?></td>
 <td>@<?=lc_e($u['instagram'])?></td><td><?=lc_e($u['whatsapp'])?></td><td><span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(lc_status_label($u['status']))?></span></td>
 <td><?php if($u['status']==='pending'):?><form method="post" action="/admin/clipadores/<?=(int)$u['id']?>/aprovar"><?=lc_csrf()?><button class="btn btn-sm" type="submit">Aprovar <?=lc_icon('check')?></button></form><?php else:?>—<?php endif;?></td>
 </tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
@@ -286,8 +286,8 @@ function lc_admin_routes(string $method,string $path): bool {
 <div class="alert">Pagamentos seguem manuais nesta versão. Marque como pago somente após confirmar a transferência e informar o identificador real do Pix. Não compartilhe chaves Pix em logs públicos.</div><div class="panel">
 <?php if(!$withdrawals):lc_empty('Sem saques pendentes','Os pedidos dos clipadores vão aparecer aqui.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Clipador</th><th>Valor</th><th>Chave Pix</th><th>Status</th><th>Processar</th></tr></thead><tbody>
-<?php foreach($withdrawals as $w):?><tr><td><?=lc_e($w['full_name'])?><small><?=lc_e($w['email'])?></small></td><td><?=lc_money($w['amount_cents'])?></td>
-<td><?=lc_e(lc_decrypt($w['pix_key_enc']))?></td><td><span class="tag tag-<?=lc_e($w['status'])?>"><?=lc_e(lc_status_label($w['status']))?></span></td>
+<?php foreach($withdrawals as $w):?><tr><td><?=lc_private($w['full_name'])?><small><?=lc_private($w['email'])?></small></td><td><?=lc_private(lc_money($w['amount_cents']))?></td>
+<td><?=lc_private(lc_decrypt($w['pix_key_enc']))?></td><td><span class="tag tag-<?=lc_e($w['status'])?>"><?=lc_e(lc_status_label($w['status']))?></span></td>
 <td><?php if(in_array($w['status'],['requested','processing'],true)):?><form method="post" action="/admin/saques/<?=(int)$w['id']?>/decidir" class="mini-form"><?=lc_csrf()?>
 <input type="text" name="reference" placeholder="ID real do Pix" maxlength="180">
 <select name="decision"><option value="paid">Confirmar pago</option><option value="rejected">Rejeitar</option></select>
@@ -319,7 +319,7 @@ function lc_admin_routes(string $method,string $path): bool {
         lc_page('Bônus mensal',function()use($campaigns){?><div class="container container-md"><?php lc_heading('Fechamento','Bônus mensal','Premie a maior soma de views verificadas no mês para cada campanha.'); ?>
 <div class="panel"><h2>Fechar mês</h2><p>Este processo só aceita meses finalizados. Em empate, vence o menor ID de usuário (critério provisório). A operação é idempotente.</p>
 <form method="post" action="/admin/bonus-mensal"><?=lc_csrf()?><div class="form-inline">
-<label class="field"><span>Campanha</span><select name="campaign_id"><?php foreach($campaigns as $c):?><option value="<?=(int)$c['id']?>"><?=lc_e($c['title'])?> · <?=lc_money($c['monthly_leader_bonus_cents'])?></option><?php endforeach;?></select></label>
+<label class="field"><span>Campanha</span><select name="campaign_id"><?php foreach($campaigns as $c):?><option value="<?=(int)$c['id']?>"><?=lc_e($c['title'])?> · <?=lc_private(lc_money($c['monthly_leader_bonus_cents']))?></option><?php endforeach;?></select></label>
 <label class="field"><span>Mês encerrado</span><input type="month" name="month" max="<?=date('Y-m',strtotime('first day of previous month'))?>" required></label>
 <button class="btn" type="submit">Apurar vencedor →</button></div></form></div></div>
 <?php },'admin');return true;

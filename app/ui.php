@@ -9,6 +9,12 @@ function lc_icon(string $name, string $class = ''): string {
 }
 
 /** Portuguese, accessible status labels without changing persisted enum values. */
+/** Escape sensitive display content and enable the page-wide visual privacy toggle. */
+function lc_private(mixed $value): string {
+    return '<span class="lc-private" data-lc-private><span class="lc-private-value">'.
+       lc_e($value).'</span></span>';
+}
+
 function lc_status_label(string $status): string {
     return [
         'pending'=>'Pendente','approved'=>'Aprovado','rejected'=>'Rejeitado',
@@ -122,6 +128,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
 <link rel="stylesheet" href="/assets/arena.css?v=1">
+<?php if($u): ?><link rel="stylesheet" href="/assets/privacy-toggle.css?v=1"><?php endif; ?>
 <?php if(in_array($path,['/indicacoes','/admin/indicacoes'],true)): ?><link rel="stylesheet" href="/assets/referrals.css?v=1"><?php endif; ?>
 <?php if($path==='/seguranca/2fa'): ?><link rel="stylesheet" href="/assets/mfa-qr.css?v=1"><?php endif; ?>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><link rel="stylesheet" href="/assets/flow-editor.css?v=2">
@@ -129,6 +136,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
+<?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
 </head>
 <body class="<?=$workspace?'workspace-page':'public-page'?>">
@@ -194,6 +202,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
 <script src="/assets/input-masks.js?v=1" defer></script>
+<?php if($u): ?><script src="/assets/privacy-toggle.js?v=1" defer></script><?php endif; ?>
 </body></html><?php
 }
 function lc_tile(array $c): void {

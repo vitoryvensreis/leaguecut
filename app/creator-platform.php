@@ -235,7 +235,7 @@ function lc_creator_routes(string $method,string $path): bool {
 <td><?=lc_e($s['package_name'])?></td>
 <td><?=$s['fulfillment_mode_snapshot']==='download'?'Download':'Produção + postagem'?></td>
 <td><span class="tag"><?=lc_e(lc_creator_subscription_label($s))?></span></td>
-<td><?php if($s['balance']):?><strong><?=(int)$s['balance']['remaining']?></strong> / <?=(int)$s['balance']['clips_included']?> clipes
+<td><?php if($s['balance']):?><strong><?=lc_private((int)$s['balance']['remaining'])?></strong> / <?=(int)$s['balance']['clips_included']?> clipes
 <?php else:?>Não liberados<?php endif;?></td>
 <td><?php if($s['balance']):?><?=date('d/m/Y',strtotime($s['balance']['cycle_start']))?> — <?=date('d/m/Y',strtotime($s['balance']['cycle_end']))?>
 <small>Data final exclusiva</small><?php else:?>Aguardando confirmação de recebimento<?php endif;?></td>

@@ -30,12 +30,12 @@ function lc_referral_routes(string $method,string $path): bool {
    'Compartilhe sua indicação com clipadores ou criadores. Comissões dependem de pagamentos elegíveis e aprovação administrativa.'); ?>
 <div class="ws-kpi-grid">
 <div class="ws-kpi"><span>Indicados</span><strong><?=number_format((int)($stats['referrals']??0),0,',','.')?></strong></div>
-<div class="ws-kpi"><span>Comissões em análise</span><strong><?=lc_money((int)($summary['pending_cents']??0))?></strong></div>
-<div class="ws-kpi"><span>Créditos aprovados</span><strong><?=lc_money((int)($summary['paid_credits']??0))?></strong></div>
+<div class="ws-kpi"><span>Comissões em análise</span><strong><?=lc_private(lc_money((int)($summary['pending_cents']??0)))?></strong></div>
+<div class="ws-kpi"><span>Créditos aprovados</span><strong><?=lc_private(lc_money((int)($summary['paid_credits']??0)))?></strong></div>
 </div>
 <div class="panel"><h2>Seu convite exclusivo</h2>
 <?php foreach($links as $label=>$link):?><label class="field"><span>Indicar <?=$label?></span>
-<div class="lc-referral-copy"><input type="text" readonly value="<?=lc_e($link)?>" aria-label="Link para indicar <?=$label?>" data-copy-field>
+<div class="lc-referral-copy"><input type="text" readonly value="<?=lc_e($link)?>" data-lc-private-input aria-label="Link para indicar <?=$label?>" data-copy-field>
 <button type="button" class="btn btn-ghost btn-sm" data-copy-ref>Copiar</button></div></label><?php endforeach;?>
 <p class="hint">A comissão não é gerada pelo cadastro. Ela entra em análise após o primeiro evento financeiro elegível e só vira crédito depois da conferência do ADM.</p></div>
 <div class="panel"><h2>Regras vigentes</h2><div class="lc-referral-rules">
@@ -48,7 +48,7 @@ function lc_referral_routes(string $method,string $path): bool {
 <?php else:?><div class="table-wrap"><table><thead><tr><th>Indicado</th><th>Origem</th><th>Comissão</th><th>Situação</th></tr></thead><tbody>
 <?php foreach($history as $entry):?><tr><td>@<?=lc_e($entry['referred_nick']??'indicado')?></td>
 <td><?=lc_e($entry['source_type']==='clip_credit'?'Clipe creditado':'Mensalidade confirmada')?></td>
-<td><?=lc_money((int)$entry['amount_cents'])?></td><td><?=lc_e($entry['status']==='pending'?'Em análise':($entry['status']==='approved'?'Aprovada':'Recusada'))?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
+<td><?=lc_private(lc_money((int)$entry['amount_cents']))?></td><td><?=lc_e($entry['status']==='pending'?'Em análise':($entry['status']==='approved'?'Aprovada':'Recusada'))?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <script src="/assets/referral-copy.js" defer></script>
 <?php },$viewer['role']==='admin'?'admin':($viewer['role']==='criador'?'creator':'dashboard'));
         return true;
@@ -117,8 +117,8 @@ function lc_referral_routes(string $method,string $path): bool {
   'Configure por tipo de indicado. Cadastro não gera pagamento; cada comissão depende de receita elegível e aprovação.'); ?>
 <div class="ws-kpi-grid">
 <div class="ws-kpi"><span>Pendentes</span><strong><?=(int)($totals['pending']??0)?></strong></div>
-<div class="ws-kpi"><span>Valor em análise</span><strong><?=lc_money((int)($totals['pending_cents']??0))?></strong></div>
-<div class="ws-kpi"><span>Créditos aprovados</span><strong><?=lc_money((int)($totals['approved_cents']??0))?></strong></div></div>
+<div class="ws-kpi"><span>Valor em análise</span><strong><?=lc_private(lc_money((int)($totals['pending_cents']??0)))?></strong></div>
+<div class="ws-kpi"><span>Créditos aprovados</span><strong><?=lc_private(lc_money((int)($totals['approved_cents']??0)))?></strong></div></div>
 <div class="panel"><h2>Configurar comissões</h2><div class="lc-referral-admin-rules">
 <?php foreach($rules as $rule):?><form method="post" action="/admin/indicacoes/regras" class="lc-referral-rule-form"><?=lc_csrf()?>
 <h3>Indicação de <?=lc_e($rule['referred_role'])?></h3>
@@ -139,9 +139,9 @@ function lc_referral_routes(string $method,string $path): bool {
 <div class="panel"><div class="panel-head"><h2>Comissões aguardando aprovação</h2><span class="tag"><?=(int)($totals['pending']??0)?></span></div>
 <?php if(!$pending):?><p class="hint">Nenhuma comissão pendente.</p><?php else:?>
 <div class="table-wrap"><table><thead><tr><th>Indicador</th><th>Indicado</th><th>Origem</th><th>Base</th><th>Comissão</th><th>Decisão</th></tr></thead><tbody>
-<?php foreach($pending as $row):?><tr><td><?=lc_e($row['parent_name'])?><small>@<?=lc_e($row['parent_nick'])?></small></td>
+<?php foreach($pending as $row):?><tr><td><?=lc_private($row['parent_name'])?><small>@<?=lc_e($row['parent_nick'])?></small></td>
 <td>@<?=lc_e($row['child_nick'])?></td><td><?=lc_e($row['source_type']==='clip_credit'?'Clipe creditado':'Mensalidade confirmada')?></td>
-<td><?=lc_money((int)$row['base_amount_cents'])?></td><td><?=lc_money((int)$row['amount_cents'])?></td>
+<td><?=lc_private(lc_money((int)$row['base_amount_cents']))?></td><td><?=lc_private(lc_money((int)$row['amount_cents']))?></td>
 <td><form method="post" action="/admin/indicacoes/<?=(int)$row['id']?>/avaliar"><?=lc_csrf()?>
 <label class="field"><span>Senha do ADM</span><input type="password" name="admin_password" required autocomplete="current-password"></label>
 <?php if(lc_mfa_enabled((int)$admin['id'])):?><label class="field"><span>Código 2FA</span><input name="mfa_code" autocomplete="one-time-code" required></label><?php endif;?>

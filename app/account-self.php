@@ -89,10 +89,10 @@ function lc_account_self_routes(string $method,string $path): bool {
 <div class="panel">
 <form action="/conta" method="post" autocomplete="off"><?=lc_csrf()?>
 <div class="form-grid">
-<label class="field"><span>Nome completo</span><input name="full_name" value="<?=lc_e($u['full_name'])?>" minlength="3" maxlength="160" required></label>
+<label class="field"><span>Nome completo</span><input name="full_name" value="<?=lc_e($u['full_name'])?>" data-lc-private-input minlength="3" maxlength="160" required></label>
 <label class="field"><span>Seu nickname público</span><input name="nickname" value="<?=lc_e($u['nickname']??'')?>" minlength="3" maxlength="24" pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" required></label>
-<label class="field"><span>E-mail de acesso</span><input type="email" name="email" value="<?=lc_e($u['email'])?>" required maxlength="190"></label>
-<label class="field"><span>WhatsApp</span><input name="whatsapp" data-lc-mask="phone" value="<?=lc_e($u['whatsapp'])?>" required maxlength="19"></label>
+<label class="field"><span>E-mail de acesso</span><input type="email" name="email" value="<?=lc_e($u['email'])?>" data-lc-private-input required maxlength="190"></label>
+<label class="field"><span>WhatsApp</span><input name="whatsapp" data-lc-mask="phone" value="<?=lc_e($u['whatsapp'])?>" data-lc-private-input required maxlength="19"></label>
 <label class="field"><span>Nova senha (opcional)</span><input type="password" name="new_password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Mantenha em branco para não alterar"></label>
 <label class="field full"><span>Nova chave Pix (opcional)</span><input name="new_pix_key" maxlength="150" autocomplete="off" placeholder="Informe somente para substituir a atual"></label>
 <?php if($enabled):?>

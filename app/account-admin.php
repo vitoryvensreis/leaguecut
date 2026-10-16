@@ -78,7 +78,7 @@ function lc_account_admin_routes(string $method,string $path): bool {
 <div class="panel"><div class="panel-head"><h2>Administradores cadastrados</h2><span class="tag"><?=count($admins)?> contas</span></div>
 <p class="hint">Cadastros e alterações exigem confirmação da sua senha administrativa. Nunca compartilhe senhas por mensagens.</p>
 <div class="table-wrap"><table><thead><tr><th>Usuário</th><th>E-mail</th><th>WhatsApp</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-<?php foreach($admins as $a):?><tr><td><?=lc_e($a['full_name'])?></td><td><?=lc_e($a['email'])?></td><td><?=lc_e($a['whatsapp'])?></td><td><span class="tag tag-<?=lc_e($a['status'])?>"><?=lc_e($a['status'])?></span></td><td><a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$a['id']?>/editar">Editar</a></td></tr><?php endforeach;?></tbody></table></div></div>
+<?php foreach($admins as $a):?><tr><td><?=lc_private($a['full_name'])?></td><td><?=lc_private($a['email'])?></td><td><?=lc_private($a['whatsapp'])?></td><td><span class="tag tag-<?=lc_e($a['status'])?>"><?=lc_e($a['status'])?></span></td><td><a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$a['id']?>/editar">Editar</a></td></tr><?php endforeach;?></tbody></table></div></div>
 <div class="panel lc-account-form-panel"><h2>Adicionar administrador</h2>
 <form method="post" action="/admin/administradores/criar" autocomplete="off"><?=lc_csrf()?>
 <div class="form-grid">
@@ -100,7 +100,7 @@ function lc_account_admin_routes(string $method,string $path): bool {
         lc_page('Gerenciar contas',function()use($users){?>
 <div class="container lc-account-admin"><?php lc_heading('Contas e permissões','Gerenciar usuários','Clipadores, criadores e administradores em um único lugar.'); ?>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-<?php foreach($users as $row):?><tr><td><?=lc_e($row['full_name'])?></td><td><?=lc_e($row['email'])?></td><td><?=lc_e($row['role'])?></td><td><?=lc_e($row['status'])?></td><td><a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$row['id']?>/editar">Editar</a></td></tr><?php endforeach; ?></tbody></table></div>
+<?php foreach($users as $row):?><tr><td><?=lc_private($row['full_name'])?></td><td><?=lc_private($row['email'])?></td><td><?=lc_e($row['role'])?></td><td><?=lc_e($row['status'])?></td><td><a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$row['id']?>/editar">Editar</a></td></tr><?php endforeach; ?></tbody></table></div>
 <p class="hint">Exibindo as 300 contas mais recentes. Alterações de e-mail, função, telefone e senha são auditadas.</p></div></div>
 <?php },'admin');return true;
     }
@@ -163,9 +163,9 @@ function lc_account_admin_routes(string $method,string $path): bool {
 <div class="container container-md lc-account-admin"><?php lc_heading('Permissões e dados','Editar conta #'.(int)$user['id'],'Alterações sensíveis exigem sua senha atual e ficam registradas.'); ?>
 <div class="panel"><form method="post" action="/admin/contas/<?=(int)$user['id']?>/editar" autocomplete="off"><?=lc_csrf()?>
 <div class="form-grid">
-<label class="field"><span>Nome completo</span><input name="full_name" maxlength="160" minlength="3" required value="<?=lc_e($user['full_name'])?>"></label>
-<label class="field"><span>E-mail</span><input name="email" type="email" maxlength="190" required value="<?=lc_e($user['email'])?>"></label>
-<label class="field"><span>WhatsApp</span><input name="whatsapp" data-lc-mask="phone" maxlength="18" inputmode="tel" value="<?=lc_e($user['whatsapp'])?>"></label>
+<label class="field"><span>Nome completo</span><input name="full_name" maxlength="160" minlength="3" required value="<?=lc_e($user['full_name'])?>" data-lc-private-input></label>
+<label class="field"><span>E-mail</span><input name="email" type="email" maxlength="190" required value="<?=lc_e($user['email'])?>" data-lc-private-input></label>
+<label class="field"><span>WhatsApp</span><input name="whatsapp" data-lc-mask="phone" maxlength="18" inputmode="tel" value="<?=lc_e($user['whatsapp'])?>" data-lc-private-input></label>
 <label class="field"><span>Instagram</span><input name="instagram" maxlength="80" value="<?=lc_e($user['instagram'])?>"></label>
 <label class="field"><span>Tipo de conta</span><select name="role">
 <?php foreach(['admin'=>'Administrador','clipador'=>'Clipador','criador'=>'Criador'] as $role=>$label):?><option value="<?=$role?>" <?=$user['role']===$role?'selected':''?>><?=$label?></option><?php endforeach;?></select></label>
