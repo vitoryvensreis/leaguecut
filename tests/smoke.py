@@ -123,6 +123,7 @@ def main():
     assert 'assets/icons.svg' in get(creator,"/")
     assert 'lc-icon' in get(creator,"/")
     assert "Junte-se aos criadores." in get(creator,"/cadastrar")
+    assert 'privacy-toggle.js' not in get(make_client(),"/cadastrar"), "No private fields on public signup"
     creator_page=register(creator,"creator@leaguecut.test","Criador Teste")
     assert "analisando" in creator_page.lower(), "Creator pending page"
     register(admin,"admin@leaguecut.test","Admin Teste")
@@ -452,6 +453,11 @@ def main():
     assert "Clipe de teste 04" not in get(admin,"/admin/clipes?status=pending"), "Pending filter"
     finance=get(creator,"/financeiro")
     assert "R$ 75,00" in finance, "Five clips (R$75); public views do not auto-credit"
+    assert 'data-lc-private' in finance and '/assets/privacy-toggle.js?v=1' in finance, "Clipper finance privacy toggle"
+    assert 'lc-private-value' in finance, "Authorized amounts are marked for masking"
+    admin_finance=get(admin,"/admin/financeiro")
+    assert 'data-lc-private' in admin_finance, "Admin Pix and withdrawal amounts must be visually concealable"
+    assert 'data-lc-private' not in guest_campaign, "Anonymous campaign rankings must remain public without personal data markers"
     rank_page=get(creator,"/campanhas/"+slug.group(1))
     assert "Ranking da campanha" in rank_page and "lc-podium" in rank_page
     assert re.search(r"@lc_\d+",rank_page) and "500 XP" in rank_page, "Five approved clips yield 500 XP with public nick"
