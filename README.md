@@ -353,3 +353,11 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - **Rota do usuário:** `/suporte` para abrir chamados e consultar o próprio histórico; `/suporte/{id}` para responder. **Rota ADM:** `/admin/chamados` e `/admin/chamados/{id}` para triagem, respostas, status, prioridade e auditoria. Acesso de outros usuários aos protocolos é proibido. O formulário só aceita texto (anexos não foram implementados neste bloco).
 - **Operacional pendente fora do B6E:** Web Push B6D2b2 está implantado com `PUSH_REGISTRATION_ENABLED=0` e `PUSH_SENDING_ENABLED=0` até configurar VAPID no `.env` privado e verificar recebimento/revogação em dispositivo real autorizado. CI de envio simulado não equivale a entrega efetiva ao aparelho.
 - **Opcionais futuros:** SLA e atribuição de responsável no ADM, anexos com armazenamento/verificação seguros, pesquisa/paginação no histórico de tickets, alertas por WhatsApp/e-mail via automações do sistema com consentimento. Não iniciar automaticamente.
+
+### B6F1 — Busca e paginação de protocolos (16/10/2026)
+
+- **Estado: PR #99 aberto, NÃO publicado.** https://github.com/vitoryvensreis/leaguecut/pull/99 — aguardar CI, merge, deploy e Production UX Probe antes de marcar concluído.
+- Rota /suporte: paginação (25 por página) e busca por assunto/protocolo apenas do próprio usuário. Rota /admin/chamados: busca por protocolo, assunto, nickname e e-mail, preservando filtro de status.
+- Busca SQL parametrizada com escopo obrigatório de proprietário, limite de tamanho, escaping de curingas e paginação no servidor. Sem migração de banco ou mudanças financeiras.
+- Teste novo tests/support_listing.php cobre isolamento entre contas, filtro, paginação, pesquisa literal e URLs. Aguardando CI e prova real da interface.
+- **Operacional independente:** Web Push VAPID ainda exige chaves privadas no .env da VPS e homologação real; não ativar flags automaticamente.
