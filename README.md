@@ -356,8 +356,8 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B6F1 — Busca e paginação de protocolos (16/10/2026)
 
-- **Estado: PR #99 aberto, NÃO publicado.** https://github.com/vitoryvensreis/leaguecut/pull/99 — aguardar CI, merge, deploy e Production UX Probe antes de marcar concluído.
+- **Estado: publicado na VPS.** PR #99 integrado, commit `fc20fb104d2426697a992306481bced0f0752532`; CI e deploy https://github.com/vitoryvensreis/leaguecut/actions/runs/38937025830 aprovados, Production UX Probe https://github.com/vitoryvensreis/leaguecut/actions/runs/38937092048 aprovado.
 - Rota /suporte: paginação (25 por página) e busca por assunto/protocolo apenas do próprio usuário. Rota /admin/chamados: busca por protocolo, assunto, nickname e e-mail, preservando filtro de status.
 - Busca SQL parametrizada com escopo obrigatório de proprietário, limite de tamanho, escaping de curingas e paginação no servidor. Sem migração de banco ou mudanças financeiras.
-- Teste novo tests/support_listing.php cobre isolamento entre contas, filtro, paginação, pesquisa literal e URLs. Aguardando CI e prova real da interface.
+- Teste novo tests/support_listing.php cobre isolamento entre contas, filtro, paginação, pesquisa literal e URLs. CI integrado aprovado (https://github.com/vitoryvensreis/leaguecut/actions/runs/38936851206). Revisão manual de busca no navegador permanece recomendada.
 - **Operacional independente:** Web Push VAPID ainda exige chaves privadas no .env da VPS e homologação real; não ativar flags automaticamente.
