@@ -158,9 +158,13 @@ def seo_upload_and_save(admin):
     assert '/assets/b6-layout.css?v=2' in homepage, "Responsive logo/sidebar/header stylesheet"
     assert 'href="https://www.instagram.com/leaguecut/"' in homepage and 'href="https://www.tiktok.com/@leaguecut"' in homepage, "Configured footer social links"
     assert '/politica-de-privacidade' in homepage and '/exclusao-de-dados' in homepage and '/termos-de-uso' in homepage, "Legal footer pages linked"
-    for legal in ['/politica-de-privacidade','/exclusao-de-dados','/termos-de-uso']:
+    assert "ESCOTILHA PRODUTORA LTDA" in homepage and "64.069.224/0001-32" in homepage, "Legal owner visible in site footer"
+    for legal in ['/politica-de-privacidade','/exclusao-de-dados','/termos-de-uso','/politica-de-cookies']:
         legal_html=get(make_client(),legal)
         assert '<h1>' in legal_html, "Legal pages readable without login"
+        assert "ESCOTILHA PRODUTORA LTDA" in legal_html and "64.069.224/0001-32" in legal_html, "Correct controller on every legal page"
+        assert "Av. Pasteur" in legal_html and "60335-000" in legal_html, "Business address on legal pages"
+        assert "vitoryvensreisdeoliveira@gmail.com" in legal_html, "Privacy contact on legal pages"
 
     assert 'LeagueCut — Campanhas e conquistas' in homepage, "Home meta title editable"
     assert '<meta property="og:title"' in homepage and '<meta name="twitter:card" content="summary_large_image">' in homepage
