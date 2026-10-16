@@ -40,15 +40,15 @@ function lc_public_routes(string $method,string $path): bool {
 </section>
 <section class="lc-home-ranking"><div class="lp-container">
 <div class="lc-home-ranking-head">
-<div><span class="eyebrow">LEAGUECUT ARENA</span><h2>Quem está dominando as views?</h2>
-<p>Placar público por nickname, com a última medição observada em cada clipe aprovado.</p></div>
+<div><span class="eyebrow"><?=lc_demo_enabled()?'LEAGUECUT ARENA · DEMONSTRAÇÃO':'LEAGUECUT ARENA'?></span><h2>Quem está dominando as views?</h2>
+<p><?=lc_demo_enabled()?'Ranking ilustrativo com perfis e visualizações fictícias, misturado aos registros reais para apresentação.':'Placar público por nickname, com a última medição observada em cada clipe aprovado.'?></p></div>
 <a class="btn btn-ghost" href="/ranking">Ver ranking completo <?=lc_icon('arrow-right')?></a>
 </div>
 <div class="lc-home-ranking-rows">
 <?php if(!$topRanking):?><p class="hint">Aguardando as primeiras publicações aprovadas.</p><?php else:foreach($topRanking as $pos=>$player):?>
 <div class="lc-home-ranking-player" data-arena-position="<?=$pos+1?>"><span class="lc-home-ranking-pos"><?=$pos+1?>º</span>
 <strong>@<?=lc_e($player['nickname'])?></strong>
-<span><?=number_format((int)$player['views'],0,',','.')?> views</span></div>
+<span><?=number_format((int)$player['views'],0,',','.')?> <?=!empty($player['is_demo'])?'views fictícias':'views'?></span></div>
 <?php endforeach;endif;?></div>
 </div></section>
 <section class="lp-section lp-benefits" id="beneficios" aria-labelledby="benefits-title">
@@ -97,6 +97,10 @@ function lc_public_routes(string $method,string $path): bool {
         $term=mb_substr(trim((string)($_GET['q']??'')),0,80);
         $category=mb_substr(trim((string)($_GET['categoria']??'')),0,70);
         $categories=lc_all("SELECT DISTINCT category FROM campaigns WHERE status='active' ORDER BY category LIMIT 50");
+        if(lc_demo_enabled()){
+            foreach(lc_demo_campaigns() as $fake){$categories[]=['category'=>$fake['category']];}
+            $categories=array_map(static fn(string $c)=>['category'=>$c],array_values(array_unique(array_column($categories,'category'))));
+        }
         $allowed=array_column($categories,'category');
         if($category!==''&&!in_array($category,$allowed,true))$category='';
         $where=["status='active'"];
@@ -104,10 +108,11 @@ function lc_public_routes(string $method,string $path): bool {
         if($term!==''){$where[]='(title LIKE ? OR description LIKE ?)';$args[]='%'.$term.'%';$args[]='%'.$term.'%';}
         if($category!==''){$where[]='category=?';$args[]=$category;}
         $campaigns=lc_all('SELECT title,slug,category,cover_url,status,payment_per_video_cents FROM campaigns WHERE '.implode(' AND ',$where).' ORDER BY created_at DESC LIMIT 80',$args);
+        $campaigns=lc_demo_merge_campaigns($campaigns,$term,$category);
         lc_page('Explorar campanhas',function()use($campaigns,$categories,$category,$term){ ?>
 <div class="explore-page">
  <div class="explore-banner"><div class="lp-container"><span class="eyebrow">Oportunidades para criadores</span>
-  <h1>Descubra sua próxima <span>campanha.</span></h1><p>Encontre briefings e conheça as regras antes de criar seu conteúdo.</p>
+  <h1>Descubra sua próxima <span>campanha.</span></h1><p><?=lc_demo_enabled()?'Demonstração ativa: campanhas identificadas como fictícias são apenas exemplos, sem inscrições e sem pagamentos.':'Encontre briefings e conheça as regras antes de criar seu conteúdo.'?></p>
   <form class="explore-filters" action="/explorar" method="get" role="search">
    <label class="explore-search"><?=lc_icon('compass')?><span class="sr-only">Buscar campanhas</span><input name="q" type="search" value="<?=lc_e($term)?>" maxlength="80" placeholder="Buscar por nome ou palavra-chave"></label>
    <label class="explore-category"><span class="sr-only">Categoria</span><select name="categoria" aria-label="Categoria"><option value="">Todas as categorias</option><?php foreach($categories as $item):?><option value="<?=lc_e($item['category'])?>" <?=$category===$item['category']?'selected':''?>><?=lc_e($item['category'])?></option><?php endforeach;?></select></label>
@@ -119,7 +124,7 @@ function lc_public_routes(string $method,string $path): bool {
   <?php if($campaigns): lc_campaign_catalog($campaigns);
   else:lc_empty($term!==''||$category!==''?'Nenhuma campanha encontrada':'Novas campanhas em breve',$term!==''||$category!==''?'Tente outro termo ou remova os filtros.':'Você pode criar sua conta enquanto preparamos novas oportunidades.');?>
   <div class="explore-empty-action"><a class="btn btn-ghost" href="<?=$term!==''||$category!==''?'/explorar':'/cadastrar'?>"><?=$term!==''||$category!==''?'Limpar filtros':'Seja um clipador'?> <?=lc_icon('arrow-right')?></a></div><?php endif;?>
-  <p class="explore-disclaimer"><?=lc_icon('shield-check')?> Recompensas dependem das metas e da aprovação previstas em cada campanha.</p>
+  <p class="explore-disclaimer"><?=lc_icon('shield-check')?> <?=lc_demo_enabled()?'MODO DEMONSTRAÇÃO ATIVO · Campanhas fictícias não permitem envio de clipes ou pagamentos.':'Recompensas dependem das metas e da aprovação previstas em cada campanha.'?></p>
  </div>
 </div>
 <?php },'explore');return true;

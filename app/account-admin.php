@@ -100,7 +100,7 @@ function lc_account_admin_routes(string $method,string $path): bool {
         lc_page('Gerenciar contas',function()use($users){?>
 <div class="container lc-account-admin"><?php lc_heading('Contas e permissões','Gerenciar usuários','Clipadores, criadores e administradores em um único lugar.'); ?>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-<?php foreach($users as $row):?><tr><td><?=lc_private($row['full_name'])?></td><td><?=lc_private($row['email'])?></td><td><?=lc_e($row['role'])?></td><td><?=lc_e($row['status'])?></td><td><a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$row['id']?>/editar">Editar</a></td></tr><?php endforeach; ?></tbody></table></div>
+<?php foreach($users as $row):?><tr><td><?=lc_private($row['full_name'])?></td><td><?=lc_private($row['email'])?></td><td><?=lc_e($row['role'])?></td><td><?=lc_e($row['status'])?></td><td><a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$row['id']?>/editar">Editar</a> <a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$row['id']?>/excluir">Excluir</a></td></tr><?php endforeach; ?></tbody></table></div>
 <p class="hint">Exibindo as 300 contas mais recentes. Alterações de e-mail, função, telefone e senha são auditadas.</p></div></div>
 <?php },'admin');return true;
     }

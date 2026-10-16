@@ -46,6 +46,7 @@ function lc_workspace_links(array $u): array {
           ['Integrações','/admin/integracoes','settings-2'],
           ['Administradores','/admin/administradores','shield-check'],
           ['Gerenciar contas','/admin/contas','user-round-cog'],
+           ['Modo demonstração','/admin/demo','sparkles'],
           ['Indicações e comissões','/admin/indicacoes','hand-coins'],
           ['Auditoria de contas','/admin/atividades','activity'],
           ['Acessos e operações','/admin/auditoria','list-checks'],
@@ -253,14 +254,14 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 }
 function lc_tile(array $c): void {
     $cover = (string)($c['cover_url'] ?? '');
-?><a class="campaign-card" href="/campanhas/<?=lc_e($c['slug'])?>">
+?><?php $isDemo=!empty($c['is_demo']); ?><a class="campaign-card" href="<?=$isDemo?'/demo/campanhas/':'/campanhas/'?><?=lc_e($c['slug'])?>">
   <div class="campaign-cover">
     <?php if(lc_valid_https($cover)):?><img src="<?=lc_e($cover)?>" alt="" loading="lazy" decoding="async"><?php else:?><div class="default-art"><span><?=lc_e(mb_strtoupper(mb_substr($c['title'],0,1)))?></span><i><?=lc_icon("play")?></i></div><?php endif;?>
     <div class="cover-overlay"></div><span class="cover-play"><?=lc_icon("play")?></span>
-    <span class="cover-tag"><?=lc_e($c['status']==='active'?'EM ALTA':'CAMPANHA')?></span>
+    <span class="cover-tag"><?=!empty($c['is_demo'])?'DEMONSTRAÇÃO':lc_e($c['status']==='active'?'EM ALTA':'CAMPANHA')?></span>
   </div>
   <div class="campaign-info"><strong><?=lc_e($c['title'])?></strong>
-  <span><?=lc_money((int)$c['payment_per_video_cents'])?> / vídeo</span>
+  <span><?=!empty($c['is_demo'])?'Valor ilustrativo: ':''?><?=lc_money((int)$c['payment_per_video_cents'])?> / vídeo</span>
   <div class="card-meta"><span><?=lc_e($c['category'])?></span><span>Ver campanha <?=lc_icon("arrow-right")?></span></div></div>
 </a><?php
 }

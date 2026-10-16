@@ -110,17 +110,17 @@ function lc_campaign_catalog(array $campaigns,bool $admin=false): void {
   <img class="lc-catalog-hero-img" src="<?=lc_e($hero['cover_url'])?>" alt="" loading="eager" decoding="async">
   <?php endif;?>
   <div class="lc-catalog-hero-content">
-    <span class="lc-catalog-topline"><?=lc_icon('sparkles')?> LeagueCut em destaque</span>
+    <span class="lc-catalog-topline"><?=lc_icon('sparkles')?> <?=!empty($hero['is_demo'])?'DEMONSTRAÇÃO':'LeagueCut em destaque'?></span>
     <h2><?=lc_e($hero['title'])?></h2>
     <p><?=lc_e(mb_substr((string)($hero['description']??''),0,220))?></p>
     <div class="lc-catalog-hero-meta">
       <span><?=lc_e($hero['category'])?></span>
       <span><?=lc_money((int)$hero['payment_per_video_cents'])?> / vídeo</span>
-      <span><?=$hero['status']==='active'?'Ativa':lc_e(lc_status_label($hero['status']))?></span>
+      <span><?=!empty($hero['is_demo'])?'Fictícia':($hero['status']==='active'?'Ativa':lc_e(lc_status_label($hero['status'])))?></span>
     </div>
     <div class="lc-catalog-hero-buttons">
-      <a class="btn" href="/campanhas/<?=lc_e($hero['slug'])?>"><?=lc_icon('play')?> Explorar e ver ranking</a>
-      <?php if($admin):?><a class="btn btn-ghost" href="/admin/campanhas/<?=(int)$hero['id']?>/editar"><?=lc_icon('settings-2')?> Editar</a><?php endif;?>
+      <a class="btn" href="<?=!empty($hero['is_demo'])?'/demo/campanhas/':'/campanhas/'?><?=lc_e($hero['slug'])?>"><?=lc_icon('play')?> Explorar e ver ranking</a>
+      <?php if($admin&&empty($hero['is_demo'])):?><a class="btn btn-ghost" href="/admin/campanhas/<?=(int)$hero['id']?>/editar"><?=lc_icon('settings-2')?> Editar</a><?php endif;?>
     </div>
   </div>
 </section>
@@ -133,7 +133,7 @@ function lc_campaign_catalog(array $campaigns,bool $admin=false): void {
     <?php foreach($items as $campaign):?>
     <article class="lc-catalog-item">
       <?php lc_tile($campaign); ?>
-      <?php if($admin):?><a href="/admin/campanhas/<?=(int)$campaign['id']?>/editar" class="lc-catalog-manage"><?=lc_icon('settings-2')?> Editar campanha</a><?php endif;?>
+      <?php if($admin&&empty($campaign['is_demo'])):?><a href="/admin/campanhas/<?=(int)$campaign['id']?>/editar" class="lc-catalog-manage"><?=lc_icon('settings-2')?> Editar campanha</a><?php endif;?>
     </article>
     <?php endforeach;?>
   </div>
