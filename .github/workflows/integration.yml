@@ -76,6 +76,7 @@ jobs:
           DB_PASSWORD: integration
           HOME_MEDIA_DIR: /tmp/leaguecut-home-media
           BRAND_MEDIA_DIR: /tmp/leaguecut-brand-media
+          SEO_MEDIA_DIR: /tmp/leaguecut-seo-media
           LC_E2E_FAKE_DRIVE: '1'
         run: |
           export APP_KEY="$(php -r 'echo base64_encode(random_bytes(32));')"
@@ -108,6 +109,7 @@ jobs:
           php tests/referrals.php
           php tests/multiple_monthly_bonus.php
           php tests/privacy_ui.php
+          php tests/seo_security.php
           php tests/campaign_ranking.php || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           php tests/automation_rules.php
           php tests/automation_visual.php

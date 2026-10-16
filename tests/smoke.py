@@ -108,11 +108,75 @@ def register(client,email,name):
     },"/cadastrar")
 
 
+def seo_upload_and_save(admin):
+    """Real multipart SEO upload and metadata publish using disposable CI images."""
+    import struct
+    import zlib
+
+    def image_png(width, height):
+        def chunk(label, data):
+            return struct.pack(">I", len(data)) + label + data + struct.pack(">I", zlib.crc32(label + data) & 0xffffffff)
+        ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+        pixels = b"".join(b"\x00" + b"\xdd\x23\x4f" * width for _ in range(height))
+        return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(pixels)) + chunk(b"IEND", b"")
+
+    token=csrf_from(admin,"/admin/seo")
+    fields={
+        "_csrf":token,"seo_home_title":"LeagueCut — Campanhas e conquistas",
+        "seo_home_description":"Descubra campanhas, publique cortes e alcance novas conquistas com a LeagueCut.",
+        "seo_default_description":"Participe de campanhas para clipadores e acompanhe conteúdos e rankings na LeagueCut.",
+        "seo_explore_title":"Campanhas disponíveis | LeagueCut",
+        "seo_ranking_title":"Ranking de views | LeagueCut",
+        "seo_plans_title":"Planos para criadores | LeagueCut",
+        "seo_keywords":"leaguecut, clipadores, criadores, vídeos",
+        "seo_canonical_base":"https://leaguecut.com",
+        "seo_twitter_handle":"@leaguecut",
+        "seo_index_enabled":"1","seo_favicon_url":"","seo_social_image_url":"",
+        "admin_password":"This-Is-A-Test-Password-123"
+    }
+    boundary="leaguecut-ci-seo-upload"
+    payload=[]
+    for k,v in fields.items():
+        payload.append((f'--{boundary}\r\nContent-Disposition: form-data; name="{k}"\r\n\r\n{v}\r\n').encode())
+    for key,name,image in [
+        ("seo_favicon_upload","icon.png",image_png(96,96)),
+        ("seo_social_image_upload","card.png",image_png(1200,630))
+    ]:
+        payload.append((f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"; filename="{name}"\r\nContent-Type: image/png\r\n\r\n').encode()+image+b'\r\n')
+    payload.append((f'--{boundary}--\r\n').encode())
+    req=urllib.request.Request(BASE+"/admin/seo",data=b''.join(payload),method="POST",
+       headers={"Content-Type":"multipart/form-data; boundary="+boundary})
+    with admin.open(req,timeout=18) as response:
+        panel=response.read().decode('utf-8')
+    assert "SEO atualizado" in panel, "Successful authenticated SEO update"
+    homepage=get(make_client(),"/")
+    assert 'LeagueCut — Campanhas e conquistas' in homepage, "Home meta title editable"
+    assert '<meta property="og:title"' in homepage and '<meta name="twitter:card" content="summary_large_image">' in homepage
+    assert 'href="https://leaguecut.com/"' in homepage, "Fixed canonical URL"
+    icon=re.search(r'<link rel="icon" href="https://leaguecut.com(/media/seo/icon/[a-f0-9]{36})">',homepage)
+    social=re.search(r'<meta property="og:image" content="https://leaguecut.com(/media/seo/social/[a-f0-9]{36})">',homepage)
+    assert icon and social, "Images use safe absolute URLs for sharing"
+    for path in [icon.group(1),social.group(1)]:
+        with admin.open(BASE+path,timeout=12) as response:
+            assert response.headers.get("Content-Type")=="image/png"
+            assert response.read(8)==b"\x89PNG\r\n\x1a\n", "Public image response"
+    sitemap=get(admin,"/sitemap.xml")
+    assert '<urlset' in sitemap and '<loc>https://leaguecut.com/</loc>' in sitemap, "XML sitemap public URLs"
+    robots=get(admin,"/robots.txt")
+    assert "Disallow: /admin/" in robots and "Sitemap: https://leaguecut.com/sitemap.xml" in robots, "Private routes disallowed"
+    private=get(admin,"/admin/seo")
+    assert '<meta name="robots" content="noindex, nofollow, noarchive">' in private, "Admin pages noindex"
+    assert '<meta property="og:title"' not in private, "Private pages have no social metadata"
+    print("B5_SEO_UPLOAD_OK")
+
+
 def main():
     creator=make_client()
     admin=make_client()
     home=get(creator,"/")
     assert "Seu talento." in home, "Landing hero"
+    assert '<meta name="robots" content="index, follow' in home and '<link rel="canonical" href="https://leaguecut.com/">' in home, "Public home SEO"
+    assert '<meta property="og:title"' in home and 'application/ld+json' in home, "Open Graph and JSON-LD"
     assert "Perguntas frequentes" in home, "FAQ section"
     assert 'href="/ranking"' in home, "Public nickname ranking linked from home"
     assert 'href="/explorar"' in home, "Catalog link"
@@ -130,6 +194,13 @@ def main():
     register(admin,"admin@leaguecut.test","Admin Teste")
     import subprocess
     subprocess.check_call(["php","bin/make-admin.php","admin@leaguecut.test"])
+    seo_upload_and_save(admin)
+    from urllib.error import HTTPError
+    try:
+        get(creator,"/admin/seo")
+        raise AssertionError("Clipador must never update site SEO")
+    except HTTPError as exc:
+        assert exc.code==403, "Admin SEO permissions enforced"
     from urllib.error import HTTPError
     # Bloco 7: Google Drive connection is admin-only and never exposes OAuth tokens.
     integrations=get(admin,"/admin/integracoes")
