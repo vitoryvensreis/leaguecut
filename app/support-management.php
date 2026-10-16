@@ -27,7 +27,7 @@ function lc_support_manage_update(int $ticketId,array $actor,int $assignedAdminI
         $previous=lc_one('SELECT assigned_admin_id,target_at FROM support_ticket_tracking WHERE ticket_id=? FOR UPDATE',[$ticketId]);
         $oldId=(int)($previous['assigned_admin_id']??0);
         $oldTarget=(string)($previous['target_at']??'');
-        if($oldId===$assignedAdminId&&$oldTarget===$target){$db->commit();return false;}
+        if($oldId===$assignedAdminId&&$oldTarget!==''&&strtotime($oldTarget)===strtotime($target)){$db->commit();return false;}
         lc_query('INSERT INTO support_ticket_tracking(ticket_id,assigned_admin_id,target_at,updated_by)
            VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE
              assigned_admin_id=VALUES(assigned_admin_id),target_at=VALUES(target_at),updated_by=VALUES(updated_by)',
