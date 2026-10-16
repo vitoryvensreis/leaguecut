@@ -418,6 +418,17 @@ def main():
     assert support_id and "Problema no envio de clipes" in created, "User ticket created"
     assert f'href="/admin/chamados/{support_id.group(1)}"' in get(admin,"/admin/chamados"), "Admin ticket queue"
     assert "Solicitação de teste" in get(admin,"/admin/chamados/"+support_id.group(1)), "Admin ticket detail"
+    admin_ticket="/admin/chamados/"+support_id.group(1)
+    owner_ticket="/suporte/"+support_id.group(1)
+    assert 'name="status"' in get(admin,admin_ticket) and 'name="priority"' in get(admin,admin_ticket), "ADM ticket controls"
+    answer=submit(admin,admin_ticket+"/responder",{"body":"Recebemos sua solicitação. Estamos verificando este problema e retornaremos com orientações."},admin_ticket)
+    assert "Recebemos sua solicitação" in answer, "Staff answered support"
+    assert "Respondido" in get(creator,owner_ticket), "Owner sees answered status"
+    customer_reply=submit(creator,owner_ticket+"/responder",{"body":"Obrigado pela resposta! Gostaria de mais alguns detalhes desta análise."},owner_ticket)
+    assert "Gostaria de mais alguns detalhes" in customer_reply, "Owner can reply"
+    update=submit(admin,admin_ticket+"/atualizar",{"status":"closed","priority":"high"},admin_ticket)
+    assert "Encerrado" in update and "Prioridade alterada" in update, "Staff closes and audits priority"
+
     guest_ticket=get(make_client(),"/suporte/"+support_id.group(1))
     assert "Problema no envio de clipes" not in guest_ticket, "Guest cannot read ticket"
     creator_dashboard=get(creator,"/dashboard")
