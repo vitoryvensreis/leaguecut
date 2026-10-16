@@ -39,6 +39,7 @@ function lc_workspace_links(array $u): array {
           ['Conexão WhatsApp','/admin/whatsapp','share-2'],
           ['Banner da Home','/admin/home','layers'],
           ['Personalização','/admin/configuracoes','palette'],
+          ['SEO e compartilhamento','/admin/seo','globe'],
           ['Integrações','/admin/integracoes','settings-2'],
           ['Administradores','/admin/administradores','shield-check'],
           ['Gerenciar contas','/admin/contas','user-round-cog'],
@@ -96,6 +97,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     $flash = lc_take_flash();
     $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && in_array($active,['admin','dashboard','library','social','finance','creator'],true);
     $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
+    $seo=lc_seo_meta($title,$s,$path,(int)(http_response_code()?:200));
     $areaTitle=$u && $u['role']==='admin'?'Administração':($u&&$u['role']==='criador'?'Área do criador':'Área do clipador');
     // Load only assets used on this page. Keep the base design system everywhere.
     $isHome=$active==='home';
@@ -107,8 +109,9 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 ?><!doctype html>
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#101114"><meta name="description" content="LeagueCut — campanhas e recompensas para criadores de conteúdo">
-<title><?=lc_e($title)?> · <?=lc_e($brand)?></title>
+<meta name="theme-color" content="<?=lc_e($primary)?>">
+<title><?=lc_e($seo['title'])?></title>
+<?php lc_seo_head($seo); ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -128,6 +131,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
 <link rel="stylesheet" href="/assets/arena.css?v=1">
+<?php if($path==='/admin/seo'): ?><link rel="stylesheet" href="/assets/seo-admin.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b4b-arena-polish.css?v=1">
 <?php if($path==='/admin/bonus-mensal'): ?><link rel="stylesheet" href="/assets/monthly-bonuses.css?v=1"><?php endif; ?>
 <?php if($u): ?><link rel="stylesheet" href="/assets/privacy-toggle.css?v=1"><?php endif; ?>
