@@ -96,6 +96,7 @@ function lc_seo_meta(string $routeTitle,array $s,string $path,int $httpStatus=20
         $desc=mb_substr(trim(preg_replace('/\s+/u',' ',strip_tags((string)$campaign['description']))??''),0,200);
     }
     $image=lc_seo_absolute_asset((string)$cfg['seo_social_image_url']);
+    if($image==='')$image=lc_seo_origin().'/share/leaguecut.png?v=3';
     if(isset($campaign)&&$public && lc_seo_valid_asset((string)$campaign['cover_url'],'social')){
         $cover=lc_seo_absolute_asset((string)$campaign['cover_url']);
         if($cover!=='')$image=$cover;
@@ -132,7 +133,13 @@ function lc_seo_head(array $meta): void {
 <meta name="twitter:description" content="<?=lc_e($meta['description'])?>">
 <?php if($meta['image']!==''):?>
 <meta property="og:image" content="<?=lc_e($meta['image'])?>">
+<meta property="og:image:secure_url" content="<?=lc_e($meta['image'])?>">
 <meta property="og:image:alt" content="<?=lc_e($meta['title'])?>">
+<?php if(str_starts_with($meta['image'],lc_seo_origin().'/share/leaguecut.png')):?>
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<?php endif;?>
 <meta name="twitter:image" content="<?=lc_e($meta['image'])?>">
 <?php endif;?>
 <?php if($meta['twitter']!==''):?><meta name="twitter:site" content="<?=lc_e($meta['twitter'])?>"><?php endif;?>
@@ -142,8 +149,8 @@ $structured=['@context'=>'https://schema.org','@type'=>'WebSite','name'=>$meta['
 echo '<script type="application/ld+json">'.json_encode($structured,JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES|JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT|JSON_THROW_ON_ERROR).'</script>'."\n";
 endif;
 if($meta['icon']!==''):?>
+<!-- Optional custom SEO favicon; the PWA/iOS app icon remains LeagueCut-branded. -->
 <link rel="icon" href="<?=lc_e($meta['icon'])?>">
-<link rel="apple-touch-icon" href="<?=lc_e($meta['icon'])?>">
 <?php endif;
 }
 /** Durable shared directory. This is not under public/ or a GitHub release. */
@@ -232,8 +239,15 @@ function lc_seo_public_routes(string $method,string $path): bool {
     if($path==='/sitemap.xml')lc_seo_sitemap();
     if($path==='/favicon.ico'){
         $url=lc_seo_absolute_asset((string)(lc_seo_config(lc_settings())['seo_favicon_url']??''));
-        if($url===''){http_response_code(404);exit;}
-        header('Location: '.$url,true,302);exit;
+        if($url!==''){header('Location: '.$url,true,302);exit;}
+        // Old browsers request favicon.ico directly, without reading the head.
+        require_once __DIR__ . '/brand-images.php';
+        $ico=lc_brand_favicon_ico();
+        header('Content-Type: image/x-icon');
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: public,max-age=604800');
+        header('Content-Length: '.strlen($ico));
+        echo $ico;exit;
     }
     return false;
 }
