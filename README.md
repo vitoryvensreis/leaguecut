@@ -46,16 +46,16 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | # | Requisito | Situação | Bloco |
 |---|---|---|---|
 | 1 | Cadastrar ADM no painel | Implementado no código B1: formulário em /admin/administradores, confirmação da senha do operador e auditoria | B1 |
-| 2 | 2FA Google Authenticator para ADM, clipador e criador | Pendente: TOTP, códigos de recuperação, gestão segura | B2 |
+| 2 | 2FA Google Authenticator para ADM, clipador e criador | **B2a implementado no código:** TOTP por chave manual no aplicativo, challenge de login, códigos de recuperação de uso único, rate limit e revogação das sessões antigas. Falta QR local e validação real de navegador. | B2 |
 | 3 | Item não consta da lista original | N/A | — |
 | 4 | Logo 70% maior | Implementado no código B1: cabeçalhos com ajuste responsivo | B1 |
 | 5 | Indicações de clipadores/criadores e comissões fixas/percentuais editáveis | Pendente: atribuição, antifraude, reversões e créditos em centavos | B3 |
 | 6 | ADM editar todas as contas, acessos, senha, e-mail, telefone e Pix | Implementado no código B1: /admin/contas com confirmação da senha do operador; protege último ADM | B1 |
 | 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | Parcial B1: máscara JS de telefone e CPF. Valores monetários e auditoria de formulários pendentes | B4 |
-| 8 | Auditoria de ações e acessos de TODOS os usuários | Parcial B1: account_admin_audit e /admin/atividades para criação e edição de contas. Logs globais de acesso, ações e retenção pendentes | B2 |
+| 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. Auditoria transversal de acessos, navegação, exclusões, financeiro e retenção pendente. | B2 |
 | 9 | SEO gerenciado pelo ADM (ícones, OG, keywords, metadata, imagem, sitemap) | Pendente: editor e testes de compartilhamento/indexação | B5 |
 | 10 | Muitos bônus mensais cadastráveis | Pendente: regras de bônus, limites e não duplicação | B4 |
-| 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | Pendente: step-up com código expirável, limites e revogação de sessões | B2 |
+| 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **Parcial B2a:** /conta permite alterar dados, senha e Pix com TOTP se ativo; saque exige TOTP ou senha atual; alteração revoga outras sessões; Pix bloqueado durante saques pendentes. Código enviado por e-mail/WhatsApp ainda pendente. | B2 |
 | 12 | Neon animado sutil em todo o site | Parcial B1: fundo luminoso e hover discretos. Acabamento global pendente | B4 |
 | 13 | Nick único, login por nick/e-mail, ranking geral público de views com nick | Pendente: índice único, privacidade, views verificadas | B3 |
 | 14 | Ocultar/revelar dados sensíveis com botão olho | Pendente: interface e revisão de permissões no servidor | B3 |
@@ -79,4 +79,27 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 2. Leia o último run de CI e do workflow de deploy. Se houver falha, não anuncie que chegou à VPS.
 3. Na VPS, confira /home/leaguecut/current, /health e logs sem revelar segredos; só então marque como verificado em produção.
 4. A cada bloco concluído, atualize esta tabela, testes, PR, data, pendências, alterações do banco e próximo bloco.
-5. Próximo bloco após B1: **B2 começando por 2FA TOTP e validação de sessões**.
+5. Próximo passo: **B2b**, códigos OTP transacionais por e-mail/WhatsApp (somente com provedor operacional e consentimento), auditoria global com políticas de retenção, QR Code local e revisão de controle de sessões.
+
+
+### B2a — Implementação retomada após o B1 (16/10/2026)
+
+**Entregue no código (aguardando CI, merge e verificação da VPS):**
+- Login protegido com segundo fator TOTP de 6 dígitos para os três papéis.
+- Ativação voluntária em /seguranca/2fa, exigindo senha atual. Adição no Google Authenticator via **inserção manual da chave**, sem serviços externos e sem vazamento por gerador de QR.
+- Segredo TOTP guardado com criptografia AES-GCM usando APP_KEY já existente; dez códigos de recuperação de uso único mostrados uma vez e armazenados exclusivamente como HMAC.
+- Janela de 30 s, tolerância de ±1 intervalo, rejeição de código repetido, seis falhas por 15 min; auditoria mínima de login/2FA.
+- Sessões de outros navegadores invalidadas na ativação/desativação do 2FA, edições administrativas ou atualização dos próprios dados.
+- Administração de contas exige TOTP recente quando o ADM configurou o fator; operações financeiras exigem TOTP se ativo, ou senha atual como fallback **temporário**.
+- /conta: edição de nome, e-mail, telefone, senha e Pix; alteração de Pix bloqueada com saque solicitado/em análise.
+- Migração idempotente: account_mfa, account_mfa_attempts, account_security_events. Sempre realizar backup antes de executar pela primeira vez.
+
+**Ainda não entregue no B2:** confirmação por e-mail/WhatsApp com código de curta duração (depende de provedor operacional, opt-in e retenção), QR Code gerado localmente (atualmente manual), logs de **todas** as requisições/leituras/ações de usuários, recuperação assistida quando todos os códigos forem perdidos, avisos de mudança de endereço de e-mail, controles antifraude avançados e testes manuais de UX. **Nunca** confundir senha de confirmação com código OTP enviado por e-mail/WhatsApp.
+
+**Checagens pós-deploy:**
+1. Conta clipador sem 2FA continua fazendo login normalmente.
+2. Em /seguranca/2fa, cadastrar chave manualmente no Google Authenticator, confirmar e salvar códigos de recuperação.
+3. Sair, entrar com senha: sistema deve pedir código antes de estabelecer sessão. Testar código errado, código repetido e recuperação.
+4. Alterar senha/Pix na página /conta e fazer saque com o segundo fator ativo; testar também conta sem segundo fator (confirmação de senha).
+5. Alterar credenciais pelo ADM e garantir que outra sessão do usuário é invalidada.
+6. Validar ausência de segredo TOTP, senha, chave Pix e códigos nos logs de aplicação.
