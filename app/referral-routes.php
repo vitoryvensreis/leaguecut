@@ -127,7 +127,7 @@ function lc_referral_routes(string $method,string $path): bool {
 <option value="fixed" <?=$rule['mode']==='fixed'?'selected':''?>>Valor fixo uma vez</option>
 <option value="percent" <?=$rule['mode']==='percent'?'selected':''?>>Percentual sobre evento elegível</option>
 </select></label>
-<label class="field"><span>Valor fixo (R$; máximo 500,00)</span><input type="text" name="fixed_value" value="<?=lc_e(number_format($rule['mode']==='fixed'?(int)$rule['value_int']/100:0,2,',','.'))?>"></label>
+<label class="field"><span>Valor fixo (R$; máximo 500,00)</span><input type="text" name="fixed_value" data-lc-mask="money" inputmode="decimal" value="<?=lc_e(number_format($rule['mode']==='fixed'?(int)$rule['value_int']/100:0,2,',','.'))?>"></label>
 <label class="field"><span>Percentual (0 a 50,00%)</span><input type="text" name="percent_value" value="<?=lc_e(number_format($rule['mode']==='percent'?(int)$rule['value_int']/100:0,2,',','.'))?>"></label>
 <label class="field"><span><input type="checkbox" name="enabled" value="1" <?=(int)$rule['enabled']===1?'checked':''?>> Regra ativa</span></label>
 <label class="field"><span>Senha do ADM</span><input type="password" name="admin_password" autocomplete="current-password" required></label>

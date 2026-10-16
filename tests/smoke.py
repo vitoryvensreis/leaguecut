@@ -119,6 +119,7 @@ def main():
     assert "Novas campanhas em breve" in get(creator,"/explorar"), "Catalog empty state"
     assert "Campanhas</a>" in home, "Catalog navigation"
     assert 'assets/landing.css' in home, "Landing stylesheet"
+    assert 'assets/b4b-arena-polish.css?v=1' in home, "B4b polish stylesheet loaded"
     assert 'assets/v2.css' in get(creator,"/")
     assert 'assets/icons.svg' in get(creator,"/")
     assert 'lc-icon' in get(creator,"/")
@@ -136,6 +137,12 @@ def main():
     assert 'Cadastrar novo bônus mensal' in bonus_page and 'name="bonus_name"' in bonus_page, "Multi-bonus form"
     assert 'name="bonus_amount"' in bonus_page and 'data-lc-mask="money"' in bonus_page, "Money mask"
     assert 'Fechar mês' in bonus_page, "Legacy monthly bonus preserved"
+    referral_admin=get(admin,"/admin/indicacoes")
+    assert 'name="fixed_value" data-lc-mask="money"' in referral_admin, "Fixed referral amount has BRL mask"
+    assert 'name="percent_value"' in referral_admin and 'name="percent_value" data-lc-mask="money"' not in referral_admin, "Percentage is not money"
+    package_admin=get(admin,"/admin/pacotes")
+    assert 'name="monthly_price"' in package_admin and 'data-lc-mask="money"' in package_admin, "Creator monthly price uses currency mask"
+
     assert "Google Drive" in integrations
     assert "Métricas Instagram" in integrations
     assert "Verificar token (sem cobrança)" in integrations
@@ -465,6 +472,10 @@ def main():
     assert "Ranking da campanha" in rank_page and "lc-podium" in rank_page
     assert re.search(r"@lc_\d+",rank_page) and "500 XP" in rank_page, "Five approved clips yield 500 XP with public nick"
     assert "5 clipes aprovados" in rank_page
+    assert 'data-arena-position="1"' in rank_page, "Campaign podium carries medal rank"
+    general_rank=get(make_client(),"/ranking")
+    assert 'data-arena-position="1"' in general_rank, "Public leaderboard top position styled"
+
     guest_campaign=get(make_client(),"/campanhas/"+slug.group(1))
     assert 'data-lc-private' not in guest_campaign, "Anonymous campaign rankings must remain public without personal data markers"
     assert re.search(r"@lc_\d+",guest_campaign) and "Criador T." not in guest_campaign, "Anonymous rankings only expose nicks"

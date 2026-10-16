@@ -35,7 +35,7 @@ function typeOf(input){
  if(kind==='phone'||kind==='cpf'||kind==='money')return kind;
  if(/^(whatsapp|telefone|phone|cellphone|mobile)$/i.test(input.name))return 'phone';
  if(/^(cpf|document_cpf)$/i.test(input.name))return 'cpf';
- if(/^(amount|bonus_amount|payment_per_video|milestone_bonus|monthly_leader_bonus)$/i.test(input.name))return 'money';
+ if(/^(amount|bonus_amount|payment_per_video|milestone_bonus|monthly_leader_bonus|monthly_price|fixed_value)$/i.test(input.name))return 'money';
  return null;
 }
 function decorate(input){
@@ -54,7 +54,8 @@ document.addEventListener('input',event=>{
  if(type==='phone'||type==='cpf'||type==='money')decorate(target);
 });
 document.querySelectorAll('input[name]').forEach(decorate);
-// Server-side CPF/phone validation receives digits. Visual masks are display only.
+// Submit localized money as 1234,56 so lc_cents() receives an unchanged cent value.
+// Percentual fields (percent_value) are intentionally excluded: 12,50 means 12.50%.
 document.addEventListener('submit',event=>{
  const form=event.target;
  if(!(form instanceof HTMLFormElement))return;
