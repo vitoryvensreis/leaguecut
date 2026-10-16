@@ -64,7 +64,9 @@ function lc_clipper_routes(string $method,string $path): bool {
      ['Clipes aprovados',(string)(int)$stats['approved'],'circle-check','Entregas já conferidas'],
      ['Views verificadas',number_format((int)$stats['views'],0,',','.'),'chart-column','Conferidas manualmente no momento']
     ] as $index=>[$name,$value,$icon,$help]):?>
-    <div class="ws-kpi"><div class="ws-kpi-top"><span><?=lc_e($name)?></span><span class="ws-kpi-icon"><?=lc_icon($icon)?></span></div><div class="ws-kpi-value" data-live="<?=lc_e(['available_cents','total_clips','approved_clips','verified_views'][$index])?>"><?=lc_e($value)?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
+    <div class="ws-kpi"><div class="ws-kpi-top"><span><?=lc_e($name)?></span><span class="ws-kpi-icon"><?=lc_icon($icon)?></span></div><div class="ws-kpi-value" <?=$index===0?'':'data-live="'.lc_e(['available_cents','total_clips','approved_clips','verified_views'][$index]).'"'?>>
+<?php if($index===0):?><span class="lc-private" data-lc-private><span class="lc-private-value" data-live="available_cents"><?=lc_e($value)?></span></span>
+<?php else:?><?=lc_e($value)?><?php endif;?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
   <?php endforeach;?>
   </div>
   <div class="ws-dual">
@@ -294,8 +296,8 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
         $channels=lc_mfa_enabled((int)$u['id'])?[]:lc_otp_available_channels($contact);
         lc_page('Financeiro',function()use($u,$balance,$entries,$withdrawals,$channels){?>
 <div class="container"><?php lc_heading('Suas recompensas','Financeiro','Veja seus créditos confirmados, saldo disponível e pedidos de saque.'); ?>
-<div class="stats-grid"><div class="metric"><small>Ganhos creditados</small><strong><?=lc_money($balance['earned'])?></strong></div><div class="metric"><small>Saldo disponível</small><strong><?=lc_money($balance['available'])?></strong></div>
-<div class="metric"><small>Reservado / já sacado</small><strong><?=lc_money($balance['reserved'])?></strong></div><div class="metric"><small>Chave Pix</small><strong style="font-size:1rem">Cadastrada <?=lc_icon('lock-keyhole')?></strong></div></div>
+<div class="stats-grid"><div class="metric"><small>Ganhos creditados</small><strong><?=lc_private(lc_money($balance['earned']))?></strong></div><div class="metric"><small>Saldo disponível</small><strong><?=lc_private(lc_money($balance['available']))?></strong></div>
+<div class="metric"><small>Reservado / já sacado</small><strong><?=lc_private(lc_money($balance['reserved']))?></strong></div><div class="metric"><small>Chave Pix</small><strong style="font-size:1rem">Cadastrada <?=lc_icon('lock-keyhole')?></strong></div></div>
 <div class="panel"><h2>Solicitar saque</h2><p>O saldo só considera recompensas liberadas. A transferência Pix é conferida e realizada manualmente até a homologação do provedor de pagamentos.</p>
 <form method="post" action="/financeiro/saques"><?=lc_csrf()?>
 <div class="form-inline"><?php lc_field('Valor (R$)','amount','text','',true,'Ex.: 35,00'); ?>
@@ -314,9 +316,9 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
 <?php endif;?>
 <?php endif;?></form></div>
 <div class="panel"><h2>Extrato de créditos</h2><?php if(!$entries):lc_empty('Nenhum crédito liberado','A aprovação e as metas semanais determinam quando os créditos entram no saldo.');else:?>
-<div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Data</th><th>Valor</th></tr></thead><tbody><?php foreach($entries as $e):?><tr><td><?=lc_e($e['description'])?><small><?=lc_e($e['kind'])?></small></td><td><?=date('d/m/Y',strtotime($e['created_at']))?></td><td><?=lc_money($e['amount_cents'])?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div>
+<div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Data</th><th>Valor</th></tr></thead><tbody><?php foreach($entries as $e):?><tr><td><?=lc_e($e['description'])?><small><?=lc_e($e['kind'])?></small></td><td><?=date('d/m/Y',strtotime($e['created_at']))?></td><td><?=lc_private(lc_money($e['amount_cents']))?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div>
 <div class="panel"><h2>Solicitações de saque</h2><?php if(!$withdrawals):lc_empty('Nenhuma solicitação','Quando tiver saldo disponível, você poderá solicitar um saque.');else:?>
-<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Valor</th><th>Data</th><th>Status</th></tr></thead><tbody><?php foreach($withdrawals as $w):?><tr><td>#<?=(int)$w['id']?></td><td><?=lc_money($w['amount_cents'])?></td><td><?=date('d/m/Y',strtotime($w['created_at']))?></td><td><span class="tag tag-<?=lc_e($w['status'])?>"><?=lc_e(lc_status_label($w['status']))?></span></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
+<div class="table-wrap"><table><thead><tr><th>Pedido</th><th>Valor</th><th>Data</th><th>Status</th></tr></thead><tbody><?php foreach($withdrawals as $w):?><tr><td>#<?=(int)$w['id']?></td><td><?=lc_private(lc_money($w['amount_cents']))?></td><td><?=date('d/m/Y',strtotime($w['created_at']))?></td><td><span class="tag tag-<?=lc_e($w['status'])?>"><?=lc_e(lc_status_label($w['status']))?></span></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'finance');return true;
     }
     if($method==='POST'&&$path==='/financeiro/saques'){
