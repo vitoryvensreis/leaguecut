@@ -386,3 +386,11 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - O workflow confirma apenas presença de par VAPID válido por marcador sem segredos. **As flags `PUSH_REGISTRATION_ENABLED` e `PUSH_SENDING_ENABLED` NÃO são alteradas por este bloco.** Sem ambas ativadas por operador no `.env`, não há cadastro nem envio real.
 - Teste opt-in em `/notificacoes`: botão dispara evento exclusivo do próprio usuário, após ele ter habilitado Push no navegador; throttle 5 minutos. Worker VAPID agenda envio do evento `push.test`, com payload genérico. Testes em CI usam transporte simulado e não comprovam recebimento visual.
 - Homologação restante: operador habilitar flags **somente após conferir segurança e chaves**, usuário autorizar no navegador/PWA, clicar em teste, aguardar e confirmar que recebeu; se falhar desligar flags. Recebimento real não pode ser afirmado apenas pela aprovação do GitHub Actions.
+
+### B7A–B7D: status comprovado em produção (16/10/2026)
+
+- B7A dispositivos: PR #101, SHA `7fe7ace`; CI, deploy (recuperado após timeout SSH) e probe aprovados.
+- B7B notificações privadas: PR #102, SHA `7936bfb`; CI, deploy e probe aprovados.
+- B7C responsáveis, SLA, relatórios: PR #103, SHA `f68d2f4`; CI, migração com backup, deploy e probe aprovados.
+- B7D VAPID e teste individual: PR #104, SHA `e712fd0`; deploy https://github.com/vitoryvensreis/leaguecut/actions/runs/38941056294 aprovado com LEAGUECUT_VAPID_CONFIGURED=1, probe https://github.com/vitoryvensreis/leaguecut/actions/runs/38941116112 aprovado.
+- **Pendente:** dois flags Web Push desligados e homologação no navegador real. Siga `ops/WEBPUSH_HOMOLOGACAO.md`; nunca anuncie recebimento em dispositivos sem confirmação.
