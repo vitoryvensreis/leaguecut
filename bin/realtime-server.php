@@ -69,7 +69,7 @@ final class LeagueCutHub implements \Ratchet\MessageComponentInterface {
                     $u=$info['user'];
                     if(!$u || (int)$row['id'] <= (int)($info['min_id']??0))continue;
                     $allowed=$row['scope']==='admin'?$u['role']==='admin':
-                        ($u['role']==='clipador' && $u['id']===(int)$row['user_id']);
+                        ($u['id']===(int)$row['user_id']);
                     if($allowed)$conn->send($message);
                 }
             }
