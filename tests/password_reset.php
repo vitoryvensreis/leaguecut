@@ -3,6 +3,7 @@ declare(strict_types=1);
 require dirname(__DIR__).'/app/core.php';
 require dirname(__DIR__).'/app/mfa.php';
 require dirname(__DIR__).'/app/otp-challenge.php';
+require dirname(__DIR__).'/app/remember-device.php';
 require dirname(__DIR__).'/app/password-recovery.php';
 function reset_assert(bool $ok,string $why):void{
     if(!$ok)throw new RuntimeException('B6_RESET_FAILED: '.$why);
