@@ -48,14 +48,14 @@
   }
   .lc-rank-trophy--silver .lc-icon{animation-delay:-1.7s}
   .lc-rank-trophy--bronze .lc-icon{animation-delay:-3.3s}
-  @media (hover:hover) and (pointer:fine){
-    .lc-rank-trophy:hover .lc-icon,
-    :is(.lc-home-ranking-player,.lc-rank-container .lc-leaderboard-row,.ws-rank-row,.lc-podium-player,.lc-rank-row,.lc-demo-detail .lc-leaderboard-row):hover .lc-rank-trophy .lc-icon{
-      transform:scale(1.18) rotate(-7deg);
-      stroke-width:2.35;
-      animation-play-state:paused;
-      filter:drop-shadow(0 0 5px currentColor);
-    }
+}
+@media (prefers-reduced-motion:no-preference) and (hover:hover) and (pointer:fine){
+  .lc-rank-trophy:hover .lc-icon,
+  :is(.lc-home-ranking-player,.lc-rank-container .lc-leaderboard-row,.ws-rank-row,.lc-podium-player,.lc-rank-row,.lc-demo-detail .lc-leaderboard-row):hover .lc-rank-trophy .lc-icon{
+    transform:scale(1.18) rotate(-7deg);
+    stroke-width:2.35;
+    animation-play-state:paused;
+    filter:drop-shadow(0 0 5px currentColor);
   }
 }
 @keyframes lc-trophy-soft-glow{
