@@ -1,0 +1,58 @@
+/* LeagueCut: scaled brand lockup, gentle neon treatment, restrained motion.
+   The underlying uploaded logo may contain transparent margins; keep object-fit contain. */
+@media(min-width:1121px){
+  .site-header:not(.workspace-header) .header-inner{max-width:1780px;min-height:116px}
+  .site-header:not(.workspace-header) .brand:has(.brand-image){
+     flex:0 0 640px;width:640px;min-width:640px;max-width:640px;min-height:116px
+  }
+  .site-header:not(.workspace-header) .brand-image{
+     width:640px;height:116px;max-width:640px;max-height:116px
+  }
+  .workspace-header .header-inner{height:106px;min-height:106px}
+  .workspace-header .brand:has(.brand-image){
+     flex:0 0 298px;width:298px;min-width:298px;max-width:298px;min-height:102px
+  }
+  .workspace-header .brand-image{
+     width:298px;height:105px;max-width:298px;max-height:105px
+  }
+  .workspace-header .workspace-breadcrumb{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+@media(min-width:701px) and (max-width:1120px){
+  .site-header:not(.workspace-header) .brand:has(.brand-image){
+    flex:0 1 400px;min-width:250px;width:400px;max-width:400px
+  }
+  .site-header:not(.workspace-header) .brand-image{
+    width:400px;height:96px;max-width:400px;max-height:96px
+  }
+  .workspace-header .brand:has(.brand-image){flex:0 0 235px;min-width:235px}
+  .workspace-header .brand-image{width:235px;height:88px;max-width:235px;max-height:88px}
+  .workspace-header .header-inner{height:92px}
+}
+@media(max-width:700px){
+  .site-header .brand:has(.brand-image){min-width:0;min-height:58px;max-width:39vw;flex:0 0 auto}
+  .site-header .brand-image{width:min(39vw,180px);height:58px;max-width:180px;max-height:58px}
+  .workspace-header .header-inner{height:75px;min-height:75px}
+}
+/* Subtle animated illumination; no overlays on text or actionable controls. */
+.workspace-page .workspace-body,.public-page main{background-image:
+  radial-gradient(ellipse at 92% 14%,rgba(227,29,60,.055),transparent 46%),
+  radial-gradient(ellipse at 15% 78%,rgba(230,43,72,.034),transparent 44%);
+  background-size:130% 130%;animation:lc-soft-glow 26s ease-in-out infinite alternate
+}
+.workspace-page :is(.panel,.ws-kpi,.ws-rank-panel,.ws-action-card),
+.public-page :is(.lp-feature,.campaign-card){
+  transition:border-color .28s,box-shadow .35s,transform .35s
+}
+.workspace-page :is(.panel,.ws-kpi,.ws-rank-panel,.ws-action-card):hover,
+.public-page :is(.lp-feature,.campaign-card):hover{
+  border-color:rgba(239,74,104,.31);
+  box-shadow:0 17px 48px rgba(0,0,0,.2),0 0 29px rgba(224,26,64,.055)
+}
+.lc-account-form-panel{margin-top:18px}
+.lc-account-admin .field input:focus-visible,.lc-account-admin .field select:focus-visible{
+  outline:2px solid rgba(255,91,112,.65);outline-offset:2px
+}
+@keyframes lc-soft-glow{0%{background-position:0 0,100% 100%}100%{background-position:100% 100%,0 0}}
+@media(prefers-reduced-motion:reduce){
+ .workspace-page .workspace-body,.public-page main{animation:none!important}
+}
