@@ -322,3 +322,14 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Production UX Probe: https://github.com/vitoryvensreis/leaguecut/actions/runs/38917338076 — aprovado.
 - **Atenção:** VAPID real não é gerado automaticamente no deploy; duas flags permanecem em 0. Não anunciar notificações em segundo plano em funcionamento até completar a geração manual das chaves privadas, ativação restrita e teste no dispositivo. Segredos não podem ir ao GitHub ou logs.
 - **Próximo passo operacional:** executar como usuário `leaguecut` o gerador seguro `php bin/push-vapid-setup.php mailto:contato@seudominio.com` a partir de `/home/leaguecut/current`, ajustar os flags em `/home/leaguecut/shared/.env` somente para homologação em navegador autorizado e confirmar entrega/revogação. Depois seguir com B6E chamados/suporte.
+
+
+### B6E1 — Suporte e triagem dos chamados (16/10/2026)
+
+- **Estado:** implementado em `feat/b6e1-support-intake-20261016`, aguardando CI, PR e deploy. Registrar SHA e Production UX Probe após publicação.
+- **Usuários autenticados e aprovados:** página `/suporte` com formulário e lista de protocolos. Criadores e clipadores enviam assunto (6–160), categoria e descrição (20–5000); abrem apenas chamados próprios, com limite de 5 por hora e até 20 ainda não encerrados. O primeiro texto é armazenado em tabela separada para permitir histórico completo no B6E2.
+- **ADM:** página `/admin/chamados`, filtros por situação e listagem de solicitantes; detalhes em `/admin/chamados/{id}`. Clipadores/criadores **não** podem consultar tickets de outros usuários, inclusive por ID direto. Acesso de ADM requer status aprovado.
+- **Privacidade/segurança:** toda criação exige CSRF; conteúdo exibido com `htmlspecialchars`, sem renderizar HTML enviado pelos usuários; mensagens não entram em URLs/logs; notificação realtime `support.ticket.created` destinada apenas aos administradores, sem texto do ticket no payload. Acesso não autorizado redireciona/nega sem divulgar conteúdo.
+- **Banco:** migração aditiva `support_tickets` e `support_messages`, com backup completo antes do DDL, idempotente e testada no MySQL descartável. Sem mudanças em financeiro, autenticação ou TaskEsc. UI responsiva em `support.css`.
+- **Testes:** `tests/support_tickets.php` verifica isolamento por proprietário, tentativa de XSS, limite de criação, persistência atômica e evento ADM. Smoke HTTP testa criação, visualização do solicitante e fila ADM.
+- **B6E2 pendente:** respostas dos dois lados, mudança de status e prioridade pelo ADM, trilha de histórico e notificações ao autor; ajustes do painel e testes de autorização/concorrência. Evitar alterações fora desses escopos até B6E1 estar em produção.
