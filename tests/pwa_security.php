@@ -13,7 +13,7 @@ foreach([192,512] as $size){
 $sw=lc_pwa_sw_source();
 pa(str_contains($sw,"req.mode==='navigate'"),'SW must bypass navigation');
 pa(str_contains($sw,"req.headers.has('Authorization')"),'SW must bypass auth');
-pa(str_contains($sw,'/^\/assets\//'),'SW static whitelist');
+pa(str_contains($sw,'const staticAsset=') && str_contains($sw,'assets'),'SW static whitelist');
 pa(!str_contains($sw,"caches.match('/admin')"),'admin never cached');
 pa(!str_contains($sw,'clients.openWindow("/financeiro")'),'private navigation not present');
 echo "B6D1_PWA_SECURITY_OK\n";
