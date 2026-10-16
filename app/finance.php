@@ -16,6 +16,9 @@ function lc_settle_week(int $campaignId, int $userId, string $submittedAt): void
         lc_query("INSERT IGNORE INTO ledger_entries(user_id,campaign_id,clip_id,kind,amount_cents,dedupe_key,description)
                   VALUES(?,?,?,'clip',?,?,'Valor por vídeo após meta semanal')",
                   [$userId,$campaignId,$clip['id'],$campaign['payment_per_video_cents'],'clip:' . $clip['id']]);
+        if(lc_db()->query('SELECT ROW_COUNT()')->fetchColumn()==1){
+            lc_referral_offer($userId,'clip_credit',(int)$clip['id'],(int)$campaign['payment_per_video_cents']);
+        }
     }
 }
 function lc_credit_views(int $clipId): void {
