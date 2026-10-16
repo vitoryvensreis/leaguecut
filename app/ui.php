@@ -282,6 +282,7 @@ function lc_auth_dialogs(string $path,?array $flash): void {
       <?php else:?>
         <div class="full"><?php lc_field('E-mail ou nickname','email','text','',true,'seunick ou voce@exemplo.com','autocomplete="username"'); ?></div>
         <div class="full"><?php lc_field('Senha','password','password','',true,'Sua senha','autocomplete="current-password"'); ?></div>
+        <div class="full lc-login-recovery"><a href="/recuperar-senha">Esqueci minha senha</a></div>
       <?php endif;?>
       </div>
       <div class="form-actions">
