@@ -49,7 +49,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | 2 | 2FA Google Authenticator para ADM, clipador e criador | **B2a implementado no código:** TOTP por chave manual no aplicativo, challenge de login, códigos de recuperação de uso único, rate limit e revogação das sessões antigas. QR local SVG incluído no B2b1; validação real de navegador pendente. | B2 |
 | 3 | Item não consta da lista original | N/A | — |
 | 4 | Logo 70% maior | Implementado no código B1: cabeçalhos com ajuste responsivo | B1 |
-| 5 | Indicações de clipadores/criadores e comissões fixas/percentuais editáveis | **B3b implementado no código, aguardando CI/deploy:** links pessoais para ambos os tipos, atribuição única no cadastro, regras por perfil (fixo/percentual), comissão pendente somente por evento financeiro comprovado, conferência e aprovação do ADM antes de entrar no saldo. Reversões após pagamento aprovado exigem processo financeiro manual. | B3 |
+| 5 | Indicações de clipadores/criadores e comissões fixas/percentuais editáveis | **B3b publicado (PR #79, deploy verde):** links pessoais para ambos os tipos, atribuição única no cadastro, regras por perfil (fixo/percentual), comissão pendente somente por evento financeiro comprovado, conferência e aprovação do ADM antes de entrar no saldo. Reversões após pagamento aprovado exigem processo financeiro manual. | B3 |
 | 6 | ADM editar todas as contas, acessos, senha, e-mail, telefone e Pix | Implementado no código B1: /admin/contas com confirmação da senha do operador; protege último ADM | B1 |
 | 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | Parcial B1: máscara JS de telefone e CPF. Valores monetários e auditoria de formulários pendentes | B4 |
 | 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. B2b1 adiciona trilha GET/POST de páginas e operações, sem payload nem query string; classificação detalhada e cron de retenção pendentes. | B2 |
@@ -57,8 +57,8 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | 10 | Muitos bônus mensais cadastráveis | Pendente: regras de bônus, limites e não duplicação | B4 |
 | 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **B2b2 em validação:** contas com TOTP confirmam no autenticador; sem TOTP, SMTP/WPPConnect configurado e autorizado permite código temporário de uso único antes de mudar dados ou criar saque. Se nenhum canal estiver operacional, mantém senha atual como fallback temporário. | B2 |
 | 12 | Neon animado sutil em todo o site | Parcial B1: fundo luminoso e hover discretos. Acabamento global pendente | B4 |
-| 13 | Nick único, login por nick/e-mail, ranking geral público de views com nick | **B3a implementado no código, aguardando testes/deploy:** nickname case-insensitive exclusivo, login com nickname ou e-mail, nicks provisórios para contas antigas, ranking /ranking e Top 5 na home somente com @nickname; métricas são views **observadas** pela Apify de clipes aprovados, não garantem verificação financeira. | B3 |
-| 14 | Ocultar/revelar dados sensíveis com botão olho | Pendente: interface e revisão de permissões no servidor | B3 |
+| 13 | Nick único, login por nick/e-mail, ranking geral público de views com nick | **B3a publicado (PR #78, deploy verde):** nickname case-insensitive exclusivo, login com nickname ou e-mail, nicks provisórios para contas antigas, ranking /ranking e Top 5 na home somente com @nickname; métricas são views **observadas** pela Apify de clipes aprovados, não garantem verificação financeira. | B3 |
+| 14 | Ocultar/revelar dados sensíveis com botão olho | **B3c em validação:** botão de olho em telas autenticadas com valores e dados pessoais; mostra/oculta nesta aba e oculta ao trocar de aba. Cobertura complementar de módulos legados permanece pendente. | B3 |
 | 15 | Cards gamificados e animações inspiradas em games | Pendente: pontuações, conquistas e movimento reduzido | B4 |
 
 ### Etapas e critérios de aceite
@@ -79,7 +79,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 2. Leia o último run de CI e do workflow de deploy. Se houver falha, não anuncie que chegou à VPS.
 3. Na VPS, confira /home/leaguecut/current, /health e logs sem revelar segredos; só então marque como verificado em produção.
 4. A cada bloco concluído, atualize esta tabela, testes, PR, data, pendências, alterações do banco e próximo bloco.
-5. B3a já publicado; B3b está em validação no GitHub. Após B3b, continuar B3c: ocultar/revelar dados sensíveis conforme permissões e revisar antifraude de indicações. Depois B4 (múltiplos bônus, gamificação e máscaras).
+5. B3a e B3b publicados. B3c em testes (privacidade visual, sem substituir permissão server-side). Depois B4: múltiplos bônus, máscaras monetárias e gamificação; antifraude avançada e estorno financeiro seguem pendentes.
 
 
 ### B2a — Implementação retomada após o B1 (16/10/2026)
@@ -133,7 +133,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B3a — Identidade pública e ranking geral (16/10/2026)
 
-- Estado: **implementado em branch**; só considerar publicado após CI e GitHub Actions do deploy confirmarem.
+- Estado: **publicado** no PR #78; CI e deploy confirmados no GitHub Actions.
 - `users.nickname` recebe índice único por collation MySQL case-insensitive. Cadastros legados ganham `lc_<id>` como nickname provisório sem trocar login ou senha. Novos cadastros clipador/criador podem escolher nick; a ausência no formulário legado gera `lc_<id>` para compatibilidade. Prefixo `lc_` reservado pelo sistema, nomes falsos de administração bloqueados.
 - Login aceita email ou nickname, mantendo senha, bloqueio de tentativas e 2FA existente. Página `/conta` permite editar nickname após confirmação pelo mecanismo já implementado (TOTP ou senha+OTP se disponível).
 - Ranking público `/ranking` e Top 5 da home mostram somente `@nickname`, clipes aprovados e a **última observação pública por clipe** (não somar snapshots de dias diferentes). O ranking por campanha deixa de mostrar nome real; ADM ainda vê nome real e nickname internamente.
@@ -144,7 +144,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B3b — Indicações e comissões configuráveis (16/10/2026)
 
-- Estado: **implementado em branch; confirmar CI e publicação antes de marcar como concluído na VPS**.
+- Estado: **publicado** no PR #79; CI, deploy e produção confirmados no GitHub Actions.
 - Um link de indicação por usuário é gerado com código aleatório de 16 caracteres hexadecimais; em `/indicacoes`, cada clipador/criador pode copiar seu convite separado para clipador e criador. Não expõe e-mail/telefone.
 - O cadastro clipador/criador com parâmetro `?ref=` atribui no MySQL um único indicador (sem poder trocar depois). Rejeita autoindicação e tentativas com o mesmo WhatsApp entre indicador e indicado; aprovações financeiras permanecem manuais para prevenção de fraude adicional.
 - `/admin/indicacoes`: regras separadas por tipo de indicado, inicialmente DESATIVADAS; valores fixos até R$ 500,00 uma única vez ou percentuais até 50,00% de cada evento elegível. Confirmação da senha e 2FA do ADM se ativo para alterações e liberações.
@@ -153,3 +153,14 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Aprovação verifica se o evento original ainda é válido e credita `ledger_entries.kind=adjustment` com chave deduplicada. Créditos já aprovados não podem ser aprovados novamente. Cancelamento/reembolso após crédito requer análise e ajuste financeiro manual; evitar reversões silenciosas.
 - Migration idempotente com backup: tabelas `referral_codes`, `referral_rules`, `referrals`, `referral_commissions`, regras padrão desativadas. Integração de teste cobre referência, autoindicação, limites e emissão única de crédito.
 - Próximo passo B3c: opção visual de ocultar/revelar dados pessoais e financeiros sem enviar dados não autorizados ao frontend; análise reforçada antifraude de múltiplas contas, fraude de IP/aparelhos, reversão de comissões após estorno e avisos nos eventos.
+
+
+### B3c — Ocultação visual de dados autenticados (16/10/2026)
+
+- Estado: **implementado em branch, aguardando CI e deploy**.
+- Botão de **olho** aparece onde há dados pessoais ou financeiros marcados, somente após a autorização normal do usuário. Na abertura, valores ocultos; a revelação não persiste no navegador e é revertida ao trocar de aba ou sair.
+- Cobertura inicial: nomes reais, e-mails, WhatsApp, chave Pix e saques do ADM; saldo/extrato/saques de clipador; comissões e relatórios de indicações; edição de conta; saldo em tempo real do clipador continua atualizando enquanto oculto.
+- Helper `lc_private()` escapa HTML contra XSS; CSS/JS/ícones são locais. O comportamento sem JavaScript permanece legível, e o botão funciona por teclado e leitor de tela.
+- **Atenção:** é uma camada de privacidade visual, NÃO substitui criptografia/controle de acesso. Dados na página continuam acessíveis no DOM para quem já pode ver a página. A autorização segue no PHP/MySQL; não enviar dados alheios a usuários comuns.
+- Cobertura de testes: helper escapando HTML, presença dos marcadores financeiros em páginas autenticadas e ausência na campanha pública. Revisão manual de Firefox/Safari e cobertura de módulos legados ainda pendentes.
+- Após B3c, próximo bloco prioritário: **B4** — bônus mensais múltiplos, máscaras R$ 0,00 e animação gamificada. Revisão reforçada de fraude nas indicações e estorno automático auditável continuam pendentes.
