@@ -19,7 +19,7 @@ require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/creator-platform.php';
 require __DIR__ . '/creator-billing.php';
 require __DIR__ . '/nick-ranking.php';
-require __DIR__ . '/referrals.php';
+require_once __DIR__ . '/referrals.php';
 require __DIR__ . '/referral-routes.php';
 require __DIR__ . '/routes-public.php';
 require __DIR__ . '/routes-legal.php';
