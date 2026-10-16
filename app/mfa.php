@@ -125,6 +125,10 @@ function lc_mfa_finish_login(int $uid): never {
     $_SESSION['mfa_version']=(int)(lc_mfa_state($uid)['session_version']??0);
     unset($_SESSION['mfa_pending_uid'],$_SESSION['mfa_pending_at']);
     lc_mfa_event('login.success',$uid);
+    if(!empty($_SESSION['remember_after_mfa'])){
+        try{lc_remember_issue($uid);}catch(Throwable $e){error_log('LEAGUECUT_REMEMBER_ISSUE_FAILED');}
+    }
+    unset($_SESSION['remember_after_mfa']);
     lc_redirect($user['role']==='criador'?'/criador':($user['role']==='admin'?'/admin':'/dashboard'));
 }
 /** A step-up challenge required for high-value operations. */
