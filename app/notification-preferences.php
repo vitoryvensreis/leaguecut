@@ -34,6 +34,12 @@ function lc_foreground_notices_routes(string $method,string $path): bool {
 <p data-background-status role="status" aria-live="polite">
 <?=$pushReady?'Web Push disponível; '.$deviceCount.' dispositivo(s) cadastrado(s) na conta.':'Web Push aguardando a ativação segura de VAPID na VPS. Os avisos com o site aberto continuam disponíveis.'?>
 </p>
+<?php if($pushReady): ?>
+<form method="post" action="/notificacoes/teste" style="margin-top:14px"><?=lc_csrf()?>
+<button class="btn btn-ghost" type="submit">Enviar Push de teste para minha conta</button>
+<p class="hint">Primeiro ative as notificações acima, depois clique em testar e minimize o navegador. Aguarde a execução da fila; somente um dispositivo real permite confirmar se apareceu. Um teste a cada cinco minutos.</p>
+</form>
+<?php endif; ?>
 <p class="hint">O navegador e o sistema operacional controlam som e apresentação dos avisos com o app fechado. No iPhone, instale o PWA pela Tela de Início antes de permitir o push. Nunca é solicitado consentimento automaticamente.</p>
 </section>
 </div>
