@@ -61,7 +61,7 @@ function lc_campaign_leaderboard(int $campaignId,?array $viewer): void {
   <div class="lc-podium" aria-label="Pódio de criadores">
     <?php foreach([1,0,2] as $positionIndex):if(!isset($ranking[$positionIndex]))continue;
       $p=$ranking[$positionIndex];$medal=$p['rank']===1?'Ouro':($p['rank']===2?'Prata':'Bronze');?>
-      <article class="lc-podium-player lc-podium-player-<?=$p['rank']?> <?=$own===(int)$p['user_id']?'is-me':''?>">
+      <article class="lc-podium-player lc-podium-player-<?=$p['rank']?> <?=$own===(int)$p['user_id']?'is-me':''?>" data-arena-position="<?=$p['rank']?>">
         <span class="lc-podium-place">#<?=$p['rank']?> · <?=lc_e($medal)?></span>
         <div class="lc-podium-avatar" aria-hidden="true"><?=lc_e(mb_strtoupper(mb_substr($p['nickname'],0,1)))?></div>
         <strong><?=lc_e('@'.(string)$p['nickname'])?></strong>
