@@ -200,7 +200,7 @@ def main():
     for dim in [192,512]:
         with creator.open(BASE+f"/app-icon/{dim}.png",timeout=12) as response:
             data=response.read()
-            assert response.headers.get("Content-Type")=="image/png" and data[:8]==b"\\x89PNG\\r\\n\\x1a\\n", "PWA real PNG icon"
+            assert response.headers.get("Content-Type")=="image/png" and data[:8]==b"\x89PNG\r\n\x1a\n", "PWA real PNG icon"
     assert '/assets/pwa.js?v=1' in home and 'data-pwa-install' in home, "PWA install button and script"
 
     assert '<meta name="robots" content="index, follow' in home and '<link rel="canonical" href="https://leaguecut.com/">' in home, "Public home SEO"
