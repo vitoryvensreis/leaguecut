@@ -58,18 +58,14 @@ function lc_public_ranking(int $limit=15): array {
 function lc_ranking_routes(string $method,string $path): bool {
     if($path!=='/ranking'||$method!=='GET')return false;
     $rank=lc_public_ranking(50);
-    lc_page('Ranking geral de views',function()use($rank){?>
+    lc_page('Ranking geral de clipadores',function()use($rank){?>
 <div class="container lc-rank-container">
 <?php lc_heading('Arena LeagueCut','Ranking geral de clipadores',
-   'As views exibidas são observações públicas dos clipes aprovados; não equivalem a saldo, pagamento ou audiência auditada financeiramente.'); ?>
-<div class="lc-rank-lead"><span class="eyebrow">Placar público</span>
-<h2>Seu nickname. Seu lugar no topo.</h2>
-<p>Somente nicknames são exibidos publicamente. Os nomes reais permanecem visíveis apenas à administração.</p>
-</div>
-<div class="panel"><div class="panel-head"><h2><?=lc_icon('trophy')?> Ranking de views observadas</h2>
+   'Confira os destaques da comunidade e acompanhe quem está no topo.'); ?>
+<div class="panel"><div class="panel-head"><h2><?=lc_icon('trophy')?> Ranking de visualizações</h2>
 <span class="tag">Top <?=count($rank)?></span></div>
 <?php if(!$rank):?>
-<p class="hint">O placar será atualizado quando houver clipes aprovados e leituras públicas disponíveis.</p>
+<p class="hint">Os primeiros destaques aparecerão por aqui em breve.</p>
 <?php else:?>
 <div class="lc-leaderboard" role="list">
 <?php foreach($rank as $pos=>$person):?>
@@ -78,7 +74,7 @@ function lc_ranking_routes(string $method,string $path): bool {
 <span class="lc-leaderboard-avatar" aria-hidden="true"><?=lc_e(strtoupper(substr($person['nickname'],0,1)))?></span>
 <span class="lc-leaderboard-player"><strong>@<?=lc_e($person['nickname'])?></strong>
 <small><?=(int)$person['clips']?> clipes aprovados</small></span>
-<span class="lc-leaderboard-views"><?=number_format((int)$person['views'],0,',','.')?><small>views observadas</small></span>
+<span class="lc-leaderboard-views"><?=number_format((int)$person['views'],0,',','.')?><small>visualizações</small></span>
 </div>
 <?php endforeach;?></div>
 <?php endif;?>
