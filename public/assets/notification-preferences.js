@@ -6,7 +6,6 @@
   const status=panel?.querySelector('[data-notify-status]');
   const soundBtn=document.querySelector('[data-notify-sound]');
   const soundStatus=document.querySelector('[data-notify-sound-status]');
-  if(!panel)return;
   const supported='Notification' in window && window.isSecureContext;
   const storageKey='leaguecut_foreground_notifications';
   const soundKey='leaguecut_notification_sound';
@@ -16,7 +15,7 @@
   let sound=read(soundKey);
   let ctx=null,received=0;
   function render(){
-    enable.disabled=!supported||Notification.permission==='denied';
+    if(enable)enable.disabled=!supported||Notification.permission==='denied';
     if(status)status.textContent=!supported?'Este navegador não permite notificações neste contexto.':
       Notification.permission==='denied'?'Permissão bloqueada pelo navegador. Modifique nas configurações do site.':
       notifications&&Notification.permission==='granted'?'Avisos ativados neste navegador, enquanto a aba estiver aberta.':'Avisos desativados neste navegador.';
@@ -40,7 +39,7 @@
       osc.connect(gain).connect(ctx.destination);osc.start(now);osc.stop(now+.2);
     }catch(_){}
   }
-  enable.addEventListener('click',async()=>{
+  enable?.addEventListener('click',async()=>{
     if(!supported)return;
     try{
       const permission=await Notification.requestPermission();
@@ -48,18 +47,18 @@
       save(storageKey,notifications);render();
     }catch(_){if(status)status.textContent='Não foi possível solicitar a permissão.';}
   });
-  disable.addEventListener('click',()=>{notifications=false;save(storageKey,false);render();});
+  disable?.addEventListener('click',()=>{notifications=false;save(storageKey,false);render();});
   soundBtn?.addEventListener('click',async()=>{
     sound=!sound;save(soundKey,sound);
     if(sound){try{await primeSound();ding();}catch(_){sound=false;save(soundKey,false);}}
     render();
   });
   window.addEventListener('leaguecut:live-event',(event)=>{
-    if(!event.isTrusted&&typeof event.detail?.type!=='string')return;
+    if(typeof event.detail?.type!=='string')return;
     received+=1;
     if(received>40)return; // avoid notification floods in a long-lived tab
     ding();
-    if(!notifications||Notification.permission!=='granted'||!document.hidden)return;
+    if(!notifications||!supported||Notification.permission!=='granted')return;
     try{const item=new Notification('LeagueCut',{body:'Uma informação da sua conta foi atualizada.',icon:'/app-icon/192.png',tag:'leaguecut-live'});item.onclick=()=>{window.focus();item.close();};}catch(_){}
   });
   render();
