@@ -91,17 +91,19 @@ function lc_otp_begin(array $user,string $purpose,array $payload,string $channel
     if(!$full||!lc_otp_channel_available($full,$channel))
         throw new InvalidArgumentException('Canal escolhido indisponível. Ative o Google Authenticator ou escolha outro canal.');
     $uid=(int)$user['id'];
-    $count=(int)(lc_one('SELECT COUNT(*) AS n FROM account_otp_challenges WHERE user_id=? AND created_at>=DATE_SUB(NOW(),INTERVAL 20 MINUTE)',[$uid])['n']??0);
-    if($count>=4)throw new InvalidArgumentException('Limite de envios atingido. Aguarde 20 minutos.');
-    $last=lc_one('SELECT created_at FROM account_otp_challenges WHERE user_id=? ORDER BY id DESC LIMIT 1',[$uid]);
-    if($last&&strtotime($last['created_at'])>time()-60)
-        throw new InvalidArgumentException('Aguarde 60 segundos antes de solicitar outro código.');
     $secret=lc_env('APP_KEY');
     if($secret==='')throw new RuntimeException('Segredo da aplicação não configurado.');
     $code=str_pad((string)random_int(0,999999),6,'0',STR_PAD_LEFT);
     $cipher=lc_encrypt(json_encode($payload,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE));
     $db=lc_db();$db->beginTransaction();
     try{
+        // User row lock serializes code issuance across multiple browser sessions.
+        lc_one('SELECT id FROM users WHERE id=? FOR UPDATE',[$uid]);
+        $count=(int)(lc_one('SELECT COUNT(*) AS n FROM account_otp_challenges WHERE user_id=? AND created_at>=DATE_SUB(NOW(),INTERVAL 20 MINUTE)',[$uid])['n']??0);
+        if($count>=4)throw new InvalidArgumentException('Limite de envios atingido. Aguarde 20 minutos.');
+        $last=lc_one('SELECT created_at FROM account_otp_challenges WHERE user_id=? ORDER BY id DESC LIMIT 1',[$uid]);
+        if($last&&strtotime($last['created_at'])>time()-60)
+            throw new InvalidArgumentException('Aguarde 60 segundos antes de solicitar outro código.');
         lc_query("UPDATE account_otp_challenges SET status='expired' WHERE user_id=? AND status IN ('sending','ready')",[$uid]);
         // Code hash depends on its generated DB id; no plaintext OTP in database.
         lc_query("INSERT INTO account_otp_challenges
