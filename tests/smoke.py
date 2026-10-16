@@ -222,7 +222,7 @@ def main():
     with creator.open(BASE+"/assets/leaguecut-share-clean-2026.jpg",timeout=15) as response:
         binary=response.read()
         assert response.headers.get("Content-Type","").startswith("image/jpeg"), "Social file is publicly cacheable JPEG"
-        assert binary[:3]==b"\\xff\\xd8\\xff", "Genuine JPEG signature"
+        assert binary[:3]==b"\xff\xd8\xff", "Genuine JPEG signature"
         assert len(binary)>30000, "Production preview artwork is not empty"
     for dim in [32,48,180,192,512]:
         with creator.open(BASE+f"/app-icon/{dim}.png",timeout=12) as response:
