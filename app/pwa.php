@@ -34,7 +34,7 @@ function lc_pwa_icon_png(int $size): string {
 function lc_pwa_sw_source(): string {
     return <<<'JS'
 'use strict';
-const CACHE='leaguecut-public-static-v1';
+const CACHE='leaguecut-public-static-v2';
 const STATIC=['/assets/app.css?v=10','/assets/v2.css?v=10','/assets/icons.svg','/app-icon/192.png'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(STATIC)).then(()=>self.skipWaiting()));
@@ -61,6 +61,33 @@ self.addEventListener('fetch',event=>{
       if(saved)return saved;
       throw err;
     }
+  }));
+});
+self.addEventListener('push',event=>{
+  let input={};
+  try{input=event.data?event.data.json():{};}catch(_){input={};}
+  const id=Number(input.id)||0;
+  const allowed=['/admin','/dashboard','/criador','/notificacoes'];
+  const target=allowed.includes(input.url)?input.url:'/notificacoes';
+  const body=typeof input.body==='string'&&input.body.length<150?input.body:
+    'Você tem uma nova atualização.';
+  event.waitUntil(self.registration.showNotification('LeagueCut',{
+    body,icon:'/app-icon/192.png',badge:'/app-icon/192.png',
+    tag:'leaguecut-event-'+id,
+    data:{target},renotify:false
+  }));
+});
+self.addEventListener('notificationclick',event=>{
+  event.notification.close();
+  const target=event.notification.data?.target||'/notificacoes';
+  event.waitUntil(self.clients.matchAll({type:'window',includeUncontrolled:true}).then(async windows=>{
+    for(const client of windows){
+      if(new URL(client.url).origin===self.location.origin){
+        await client.focus();
+        return client.navigate(target);
+      }
+    }
+    return self.clients.openWindow(target);
   }));
 });
 JS;
