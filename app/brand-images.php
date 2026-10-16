@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/brand-text-masks.php';
 
 /**
  * Deterministic LeagueCut branding images with no GD, Imagick, Node or external
@@ -45,10 +46,10 @@ function lc_brand_icon_pixel(float $u,float $v): array {
     if($u<0||$v<0||$u>=1||$v>=1)return $base;
     $dx=min($u,1-$u);$dy=min($v,1-$v);
     if($dx<.026||$dy<.026)$base=[13,10,17];
+    if(lc_brand_polygon($u,$v,$play))return [255,242,246];
     if(lc_brand_polygon($u,$v,$mark)){
         return [max(174,min(255,(int)(255-42*$v))),max(4,(int)(43-32*$v)),max(32,(int)(88-60*$v))];
     }
-    if(lc_brand_polygon($u,$v,$play))return [255,242,246];
     return $base;
 }
 function lc_brand_icon_png(int $size,bool $maskable=false): string {
@@ -83,8 +84,9 @@ function lc_brand_blend(array $behind,array $front,int $alpha):array {
 }
 /** Font shapes are raster masks rendered offline; no font binaries are shipped. */
 function lc_brand_mask_alpha(string $text,int $x,int $y): int {
-    if(!function_exists('lc_brand_masks'))return 0;
-    $masks=lc_brand_masks();$m=$masks[$text]??null;
+    static $masks=null;
+    if($masks===null)$masks=lc_brand_masks();
+    $m=$masks[$text]??null;
     if(!$m||$x<0||$y<0||$x>=$m['w']||$y>=$m['h'])return 0;
     return ord($m['mask'][$y*$m['w']+$x]);
 }
