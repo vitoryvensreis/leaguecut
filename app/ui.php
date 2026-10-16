@@ -134,6 +134,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
       <a class="<?=$active==='home'?'selected':''?>" <?=$active==='home'?'aria-current="page"':''?> href="/"><?=lc_icon("play")?> Início</a>
       <a class="<?=$active==='explore'?'selected':''?>" <?=$active==='explore'?'aria-current="page"':''?> href="/explorar"><?=lc_icon("compass")?> Campanhas</a>
+      <a class="<?=$active==='ranking'?'selected':''?>" href="/ranking"><?=lc_icon('trophy')?> Ranking</a>
       <?php if($u && $u['role']==='criador'): ?><a class="<?=$active==='creator'?'selected':''?>" href="/criador"><?=lc_icon('layout-dashboard')?> Minha área</a><?php endif; ?>
       <?php if ($u && $u['status']==='approved' && $u['role']!=='criador'): ?>
       <a class="<?=$active==='dashboard'?'selected':''?>" <?=$active==='dashboard'?'aria-current="page"':''?> href="/dashboard"><?=lc_icon("layout-dashboard")?> Minha área</a>
@@ -236,6 +237,7 @@ function lc_auth_dialogs(string $path,?array $flash): void {
       <div class="form-grid">
       <?php if($isSignup):?>
         <?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
+        <?php lc_field('Nickname público (opcional)','nickname','text','',false,'seunick','minlength="3" maxlength="24" pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" autocomplete="nickname"'); ?>
         <?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?>
         <?php lc_field('Senha (mínimo 10 caracteres)','password','password','',true,'Crie uma senha forte','minlength="10" autocomplete="new-password"'); ?>
         <?php lc_field('Instagram (seu @)','instagram','text','',true,'@seuperfil'); ?>
@@ -244,7 +246,7 @@ function lc_auth_dialogs(string $path,?array $flash): void {
         <div class="full"><?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?></div>
         <label class="field full lc-auth-consent"><span><input type="checkbox" name="consent_whatsapp" value="1"> Aceito receber avisos operacionais sobre meu cadastro por WhatsApp.</span></label>
       <?php else:?>
-        <div class="full"><?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?></div>
+        <div class="full"><?php lc_field('E-mail ou nickname','email','text','',true,'seunick ou voce@exemplo.com','autocomplete="username"'); ?></div>
         <div class="full"><?php lc_field('Senha','password','password','',true,'Sua senha','autocomplete="current-password"'); ?></div>
       <?php endif;?>
       </div>
