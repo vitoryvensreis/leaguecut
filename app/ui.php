@@ -282,6 +282,7 @@ function lc_auth_dialogs(string $path,?array $flash): void {
       <?php else:?>
         <div class="full"><?php lc_field('E-mail ou nickname','email','text','',true,'seunick ou voce@exemplo.com','autocomplete="username"'); ?></div>
         <div class="full"><?php lc_field('Senha','password','password','',true,'Sua senha','autocomplete="current-password"'); ?></div>
+        <label class="field full lc-login-remember"><span><input type="checkbox" name="remember_me" value="1"> Manter logado neste dispositivo por até 30 dias</span></label>
         <div class="full lc-login-recovery"><a href="/recuperar-senha">Esqueci minha senha</a></div>
       <?php endif;?>
       </div>
