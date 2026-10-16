@@ -339,6 +339,18 @@ try{
         $db->exec($resetSql);
     }
     echo "MIGRACAO_PASSWORD_RESET_OK\n";
+    // B6C2: opaque persistent browser devices, independent of PHP session files.
+    $hasRemember=(bool)lc_one("SELECT 1 FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='account_remember_tokens'");
+    if(!$hasRemember){
+        lc_migration_backup();
+        $rememberSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_remember_devices.sql'));
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS account_remember_tokens\\s*\\(/i',$rememberSql))
+            throw new RuntimeException('Migração de dispositivos inválida.');
+        $db->exec($rememberSql);
+    }
+    echo "MIGRACAO_REMEMBER_DEVICES_OK\n";
+
 
     // B3a: keep original account data untouched, assign reserved lc_ID nicknames
     // to legacy users, with a case-insensitive unique key.
