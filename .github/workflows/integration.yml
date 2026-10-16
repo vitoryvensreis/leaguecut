@@ -121,6 +121,7 @@ jobs:
           php tests/support_tickets.php
           php tests/support_actions.php
           php tests/support_listing.php
+          php tests/support_management.php
           node --check public/assets/background-push.js
           node --check public/assets/pwa.js
           node --check public/assets/notification-preferences.js
