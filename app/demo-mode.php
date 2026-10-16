@@ -163,7 +163,7 @@ function lc_demo_routes(string $method,string $path): bool {
   <div class="lc-leaderboard" role="list"><?php foreach($rank as $i=>$player):?>
     <div class="lc-leaderboard-row" role="listitem">
       <span class="lc-leaderboard-pos"><?=$i+1?>º</span>
-      <span class="lc-leaderboard-player">@<?=lc_e($player['nickname'])?></span>
+      <span class="lc-leaderboard-player">@<?=lc_e($player['nickname'])?> <?=lc_rank_trophy($i+1)?></span>
       <span class="lc-leaderboard-views"><?=number_format((int)$player['views'],0,',','.')?> <small>views fictícias</small></span>
     </div>
   <?php endforeach;?></div></div>
