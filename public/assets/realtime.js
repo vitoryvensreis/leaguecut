@@ -99,6 +99,7 @@
       if (announce) {
         if (!opener?.open) unread++;
         toastMessage(explanations[entry.type] || 'Uma informação foi atualizada');
+        window.dispatchEvent(new CustomEvent('leaguecut:live-event',{detail:{type:entry.type}}));
       }
     }
     if (seen.size > 250) {
