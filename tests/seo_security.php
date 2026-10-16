@@ -7,6 +7,7 @@ function seo_assert(bool $yes,string $why):void {
 }
 $base=['brand_name'=>'LeagueCut'];
 $home=lc_seo_meta('Início',$base,'/');
+seo_assert($home['image']==='https://leaguecut.com/share/leaguecut.png?v=3','default Open Graph image');
 seo_assert($home['public'] && $home['robots']==='index, follow, max-image-preview:large','public home indexable');
 seo_assert($home['canonical']==='https://leaguecut.com/','fixed canonical');
 $admin=lc_seo_meta('Gerenciar dados',$base,'/admin/contas');
@@ -21,6 +22,7 @@ seo_assert(!lc_seo_valid_asset('javascript:alert(1)','social'),'never allow scri
 seo_assert(!lc_seo_valid_asset('https://user:pass@example.com/a.png','social'),'reject userinfo URLs');
 seo_assert(!lc_seo_valid_asset('/media/brand/'.str_repeat('a',36),'social'),'reject foreign private media namespace');
 seo_assert(lc_seo_valid_asset('https://cdn.example.com/share.jpg','social'),'allow HTTPS images');
+seo_assert(lc_seo_meta('Início',['seo_social_image_url'=>'https://cdn.example.com/other.jpg'],'/')['image']==='https://cdn.example.com/other.jpg','SEO custom social overrides default');
 seo_assert(lc_seo_text('<script>alert(1)</script>Olá',100)==='alert(1)Olá','remove HTML tags');
 $injected=lc_seo_meta('Início',[
     'seo_home_title'=>'Campanha "><script>alert(1)</script>',
@@ -34,6 +36,7 @@ seo_assert(str_contains($html,'&quot;'),'escape HTML attributes');
 seo_assert(str_contains($html,'application/ld+json')&&
     str_contains($html,'https://schema.org'),'structured website metadata');
 seo_assert(str_contains($html,'property="og:title"'),'Open Graph rendered');
+seo_assert(str_contains($html,'og:image:width') && str_contains($html,'1200'),'social dimensions');
 seo_assert(str_contains($html,'name="twitter:card"'),'Twitter card rendered');
 ob_start();lc_seo_head($admin);$privateHead=(string)ob_get_clean();
 seo_assert(!str_contains($privateHead,'og:title')&&!str_contains($privateHead,'canonical'),'no share metadata on private panel');
