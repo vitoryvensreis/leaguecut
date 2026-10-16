@@ -316,12 +316,52 @@ function lc_admin_routes(string $method,string $path): bool {
     }
     if($method==='GET'&&$path==='/admin/bonus-mensal'){
         $campaigns=lc_all('SELECT id,title,monthly_leader_bonus_cents FROM campaigns WHERE monthly_leader_bonus_cents>0 ORDER BY id DESC');
-        lc_page('Bônus mensal',function()use($campaigns){?><div class="container container-md"><?php lc_heading('Fechamento','Bônus mensal','Premie a maior soma de views verificadas no mês para cada campanha.'); ?>
+        $allCampaigns=lc_all('SELECT id,title FROM campaigns ORDER BY id DESC LIMIT 300');
+        $programs=lc_all('SELECT b.*,c.title AS campaign_title FROM monthly_bonus_programs b
+                 JOIN campaigns c ON c.id=b.campaign_id ORDER BY b.id DESC LIMIT 100');
+        $admin=lc_admin();
+        lc_page('Bônus mensal',function()use($campaigns,$allCampaigns,$programs,$admin){?><div class="container container-md"><?php lc_heading('Fechamento','Bônus mensal','Premie a maior soma de views verificadas no mês para cada campanha.'); ?>
 <div class="panel"><h2>Fechar mês</h2><p>Este processo só aceita meses finalizados. Em empate, vence o menor ID de usuário (critério provisório). A operação é idempotente.</p>
 <form method="post" action="/admin/bonus-mensal"><?=lc_csrf()?><div class="form-inline">
-<label class="field"><span>Campanha</span><select name="campaign_id"><?php foreach($campaigns as $c):?><option value="<?=(int)$c['id']?>"><?=lc_e($c['title'])?> · <?=lc_private(lc_money($c['monthly_leader_bonus_cents']))?></option><?php endforeach;?></select></label>
+<label class="field"><span>Campanha</span><select name="campaign_id"><?php foreach($campaigns as $c):?><option value="<?=(int)$c['id']?>"><?=lc_e($c['title'])?> · <?=lc_money($c['monthly_leader_bonus_cents'])?></option><?php endforeach;?></select></label>
 <label class="field"><span>Mês encerrado</span><input type="month" name="month" max="<?=date('Y-m',strtotime('first day of previous month'))?>" required></label>
-<button class="btn" type="submit">Apurar vencedor →</button></div></form></div></div>
+<button class="btn" type="submit">Apurar vencedor →</button></div></form></div>
+<div class="panel">
+<div class="panel-head"><div><span class="eyebrow">Bônus independentes</span><h2>Cadastrar novo bônus mensal</h2></div><span class="tag"><?=count($programs)?> programas</span></div>
+<p class="hint">Cadastre quantos bônus quiser para a mesma campanha. Cada um tem regra e pagamento próprios. O fechamento é manual e só considera meses concluídos.</p>
+<form action="/admin/bonus-mensal/criar" method="post"><?=lc_csrf()?>
+<div class="form-grid">
+<label class="field"><span>Nome do bônus</span><input name="bonus_name" maxlength="120" minlength="3" placeholder="Ex.: Rei das views" required></label>
+<label class="field"><span>Campanha</span><select name="campaign_id" required><?php foreach($allCampaigns as $c):?><option value="<?=(int)$c['id']?>"><?=lc_e($c['title'])?></option><?php endforeach;?></select></label>
+<label class="field"><span>Critério de classificação</span><select name="metric"><option value="verified_views">Maior soma de views verificadas</option><option value="approved_clips">Mais clipes aprovados</option></select></label>
+<label class="field"><span>Prêmio (R$)</span><input name="bonus_amount" type="text" inputmode="decimal" data-lc-mask="money" placeholder="Ex.: 100,00" required></label>
+<label class="field"><span>Confirme a senha do administrador</span><input name="admin_password" type="password" autocomplete="current-password" required></label>
+<?php if(lc_mfa_enabled((int)$admin['id'])):?><label class="field"><span>Código Google Authenticator</span><input name="mfa_code" autocomplete="one-time-code" required></label><?php endif;?>
+</div><div class="form-actions"><button class="btn" type="submit">Cadastrar bônus →</button></div></form>
+</div>
+<div class="panel"><div class="panel-head"><h2>Programas mensais cadastrados</h2><span class="tag"><?=count($programs)?> registrados</span></div>
+<?php if(!$programs):lc_empty('Nenhum bônus extra ainda','Cadastre acima o primeiro programa de bonificação mensal.');else:?>
+<div class="lc-monthly-program-list">
+<?php foreach($programs as $b):?>
+<section class="lc-monthly-program">
+<div><span class="eyebrow">#<?=(int)$b['id']?> · <?=lc_e($b['campaign_title'])?></span>
+<h3><?=lc_e($b['name'])?></h3>
+<p><?=lc_e($b['metric']==='approved_clips'?'Maior quantidade de clipes aprovados':'Maior soma de views verificadas')?> · prêmio <?=lc_private(lc_money($b['amount_cents']))?></p>
+<span class="tag <?=$b['enabled']?'tag-approved':'tag-pending'?>"><?=$b['enabled']?'Ativo':'Pausado'?></span></div>
+<div class="lc-monthly-program-actions">
+<?php if((int)$b['enabled']===1):?><form method="post" action="/admin/bonus-mensal/<?=(int)$b['id']?>/apurar"><?=lc_csrf()?>
+<label class="field"><span>Mês encerrado</span><input name="month" type="month" max="<?=date('Y-m',strtotime('first day of previous month'))?>" required></label>
+<label class="field"><span>Senha do ADM</span><input name="admin_password" type="password" autocomplete="current-password" required></label>
+<?php if(lc_mfa_enabled((int)$admin['id'])):?><label class="field"><span>2FA</span><input name="mfa_code" required autocomplete="one-time-code"></label><?php endif;?>
+<button class="btn btn-sm" type="submit">Apurar bônus</button></form><?php endif;?>
+<form method="post" action="/admin/bonus-mensal/<?=(int)$b['id']?>/estado"><?=lc_csrf()?>
+<?php if(!(int)$b['enabled']):?><input type="hidden" name="enabled" value="1"><?php endif;?>
+<label class="field"><span>Senha do ADM</span><input name="admin_password" type="password" autocomplete="current-password" required></label>
+<?php if(lc_mfa_enabled((int)$admin['id'])):?><label class="field"><span>2FA</span><input name="mfa_code" required autocomplete="one-time-code"></label><?php endif;?>
+<button class="btn btn-ghost btn-sm" type="submit"><?=$b['enabled']?'Pausar':'Reativar'?></button></form></div>
+</section><?php endforeach;?></div>
+<?php endif;?></div>
+</div>
 <?php },'admin');return true;
     }
     if($method==='POST'&&$path==='/admin/bonus-mensal'){

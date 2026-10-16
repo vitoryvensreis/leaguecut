@@ -106,6 +106,7 @@ jobs:
           php tests/creator_billing_cycles.php
           php tests/nickname_ranking.php
           php tests/referrals.php
+          php tests/multiple_monthly_bonus.php
           php tests/privacy_ui.php
           php tests/campaign_ranking.php || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           php tests/automation_rules.php
@@ -115,6 +116,7 @@ jobs:
           php tests/mfa_qr_audit.php
           php tests/otp_security.php
           php tests/wpp_status.php
+          node --check public/assets/input-masks.js
           node --check public/assets/flow-editor.js
           node --check public/assets/flow-canvas-v2.js
           python3 tests/ux_smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }

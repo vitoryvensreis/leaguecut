@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/finance.php';
+require __DIR__ . '/monthly-bonus.php';
 require __DIR__ . '/realtime.php';
 require __DIR__ . '/automation-engine.php';
 require __DIR__ . '/automation-console.php';
@@ -70,6 +71,7 @@ if(lc_mfa_routes($method,$path))return;
 if(lc_otp_routes($method,$path))return;
 if(lc_account_self_routes($method,$path))return;
 if(lc_account_admin_routes($method,$path))return;
+if(lc_monthly_bonus_routes($method,$path))return;
 if(lc_admin_routes($method,$path))return;
 if(lc_creator_routes($method,$path))return;
 if(lc_clipper_routes($method,$path))return;

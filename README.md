@@ -51,10 +51,10 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | 4 | Logo 70% maior | Implementado no código B1: cabeçalhos com ajuste responsivo | B1 |
 | 5 | Indicações de clipadores/criadores e comissões fixas/percentuais editáveis | **B3b publicado (PR #79, deploy verde):** links pessoais para ambos os tipos, atribuição única no cadastro, regras por perfil (fixo/percentual), comissão pendente somente por evento financeiro comprovado, conferência e aprovação do ADM antes de entrar no saldo. Reversões após pagamento aprovado exigem processo financeiro manual. | B3 |
 | 6 | ADM editar todas as contas, acessos, senha, e-mail, telefone e Pix | Implementado no código B1: /admin/contas com confirmação da senha do operador; protege último ADM | B1 |
-| 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | Parcial B1: máscara JS de telefone e CPF. Valores monetários e auditoria de formulários pendentes | B4 |
+| 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | **B4a parcial:** preservadas máscaras JS de CPF/telefone, acrescentada máscara BRL visual que envia valor centavo-compatível. Revisão integral dos campos ainda pendente. | B4 |
 | 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. B2b1 adiciona trilha GET/POST de páginas e operações, sem payload nem query string; classificação detalhada e cron de retenção pendentes. | B2 |
 | 9 | SEO gerenciado pelo ADM (ícones, OG, keywords, metadata, imagem, sitemap) | Pendente: editor e testes de compartilhamento/indexação | B5 |
-| 10 | Muitos bônus mensais cadastráveis | Pendente: regras de bônus, limites e não duplicação | B4 |
+| 10 | Muitos bônus mensais cadastráveis | **B4a implementado no código, aguardando CI/deploy:** programas independentes por campanha e critério (views verificadas ou quantidade de clipes aprovados), valores por programa, ativar/pausar e apuração manual por mês com crédito único. Bônus mensal antigo permanece disponível. | B4 |
 | 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **B2b2 em validação:** contas com TOTP confirmam no autenticador; sem TOTP, SMTP/WPPConnect configurado e autorizado permite código temporário de uso único antes de mudar dados ou criar saque. Se nenhum canal estiver operacional, mantém senha atual como fallback temporário. | B2 |
 | 12 | Neon animado sutil em todo o site | Parcial B1: fundo luminoso e hover discretos. Acabamento global pendente | B4 |
 | 13 | Nick único, login por nick/e-mail, ranking geral público de views com nick | **B3a publicado (PR #78, deploy verde):** nickname case-insensitive exclusivo, login com nickname ou e-mail, nicks provisórios para contas antigas, ranking /ranking e Top 5 na home somente com @nickname; métricas são views **observadas** pela Apify de clipes aprovados, não garantem verificação financeira. | B3 |
@@ -164,3 +164,15 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - **Atenção:** é uma camada de privacidade visual, NÃO substitui criptografia/controle de acesso. Dados na página continuam acessíveis no DOM para quem já pode ver a página. A autorização segue no PHP/MySQL; não enviar dados alheios a usuários comuns.
 - Cobertura de testes: helper escapando HTML, presença dos marcadores financeiros em páginas autenticadas e ausência na campanha pública. Revisão manual de Firefox/Safari e cobertura de módulos legados ainda pendentes.
 - Após B3c, próximo bloco prioritário: **B4** — bônus mensais múltiplos, máscaras R$ 0,00 e animação gamificada. Revisão reforçada de fraude nas indicações e estorno automático auditável continuam pendentes.
+
+
+### B4a — Múltiplos bônus mensais e máscara BRL (16/10/2026)
+
+- Estado: **implementado em branch; aguarda CI, PR e deploy**.
+- Na tela `/admin/bonus-mensal`, os programas extras permitem criar vários bônus (inclusive na mesma campanha), nomear cada prêmio, escolher classificação por maior soma de views **verificadas** ou mais clipes **aprovados** e definir valor em reais. O programa pode ser pausado/reativado sem apagar lançamentos anteriores.
+- Cada prêmio/mês encerrado exige apuração manual do ADM e confirmação de senha + 2FA quando ativo; desempate por menor ID para estabilidade. A recompensa entra no `ledger_entries.kind=adjustment`, `dedupe_key=monthly_bonus:<program_id>:<YYYY-MM>`, impedindo pagamento duplicado. Só inclui usuários ativos/clipadores e clipes aprovados enviados no período.
+- **Compatibilidade:** o fechamento do bônus legado da campanha segue disponível; programas extras não modificam automaticamente bônus já existentes nem distribuem créditos durante a migração.
+- Migração idempotente com backup MySQL cria `monthly_bonus_programs`; novos sites recebem a tabela em `database/schema.sql`.
+- Máscara JS BRL formata como `R$ 0,00`, sem dependência externa, e converte para `0,00` ao enviar; o parser PHP `lc_cents` continua validando centavos. A máscara não cria créditos nem altera valores persistidos.
+- Testes incluem dois programas na mesma campanha/mês, idempotência, rejeição de mês aberto e de programa pausado, além de presença do formulário na tela do ADM e validação sintática do JS.
+- Próxima fase do B4: edição avançada dos programas, critérios por intervalo e múltiplas colocações, animações de gamificação, revisão de todas as máscaras, acessibilidade e prevenção de pagamentos indevidos em casos de reversões.

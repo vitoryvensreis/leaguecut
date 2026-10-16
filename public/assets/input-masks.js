@@ -17,20 +17,33 @@ const cpf=d=>{
  if(d.length<=9)return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6);
  return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
 };
+const moneyDigits=value=>(value||'').replace(/\D/g,'').slice(0,10);
+const brl=digits=>{
+ if(!digits)return '';
+ const cents=Number(digits);
+ return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(cents/100);
+};
+const toRawMoney=value=>{
+ const digits=moneyDigits(value);
+ if(!digits)return '';
+ const cents=Number(digits);
+ return String(Math.floor(cents/100))+','+String(cents%100).padStart(2,'0');
+};
 function typeOf(input){
  if(!(input instanceof HTMLInputElement)||!input.name)return null;
  const kind=input.dataset.lcMask;
- if(kind==='phone'||kind==='cpf')return kind;
+ if(kind==='phone'||kind==='cpf'||kind==='money')return kind;
  if(/^(whatsapp|telefone|phone|cellphone|mobile)$/i.test(input.name))return 'phone';
  if(/^(cpf|document_cpf)$/i.test(input.name))return 'cpf';
+ if(/^(amount|bonus_amount|payment_per_video|milestone_bonus|monthly_leader_bonus)$/i.test(input.name))return 'money';
  return null;
 }
 function decorate(input){
  const type=typeOf(input);
  if(!type)return;
- input.inputMode='numeric';
+ input.inputMode=type==='money'?'decimal':'numeric';
  const digits=(input.value||'').replace(/\D/g,'');
- const formatted=type==='cpf'?cpf(digits):phone(digits);
+ const formatted=type==='money'?brl(moneyDigits(input.value)):type==='cpf'?cpf(digits):phone(digits);
  if(input.value!==formatted)input.value=formatted;
 }
 // Event delegation supports dynamically opened signup/login forms.
@@ -38,7 +51,7 @@ document.addEventListener('input',event=>{
  const target=event.target;
  if(!(target instanceof HTMLInputElement))return;
  const type=typeOf(target);
- if(type==='phone'||type==='cpf')decorate(target);
+ if(type==='phone'||type==='cpf'||type==='money')decorate(target);
 });
 document.querySelectorAll('input[name]').forEach(decorate);
 // Server-side CPF/phone validation receives digits. Visual masks are display only.
@@ -46,7 +59,9 @@ document.addEventListener('submit',event=>{
  const form=event.target;
  if(!(form instanceof HTMLFormElement))return;
  form.querySelectorAll('input[name]').forEach(input=>{
-   if(typeOf(input))input.value=input.value.replace(/\D/g,'');
+   const kind=typeOf(input);
+   if(kind==='phone'||kind==='cpf')input.value=input.value.replace(/\D/g,'');
+   if(kind==='money')input.value=toRawMoney(input.value);
  });
 },true);
 })();
