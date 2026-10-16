@@ -37,7 +37,7 @@ function lc_realtime_authorize(string $ticket): ?array {
     $data=json_decode($input,true);
     $now=time();
     if(!is_array($data)||!is_int($data['uid']??null)||$data['uid']<1||
-       !in_array($data['role']??null,['admin','clipador'],true)||
+       !in_array($data['role']??null,['admin','clipador','criador'],true)||
        !is_int($data['iat']??null)||!is_int($data['exp']??null)||
        $data['iat']>$now+5||$data['iat']<$now-70||$data['exp']<$now||$data['exp']>$now+70)return null;
     return ['id'=>$data['uid'],'role'=>$data['role']];
@@ -65,21 +65,30 @@ function lc_realtime_state(array $user): array {
     ];
 }
 function lc_realtime_events(array $user,int $since=0): array {
-    $filter=$user['role']==='admin'?"scope='admin'":"scope='user' AND user_id=?";
-    $params=$user['role']==='admin'?[]:[(int)$user['id']];
+    $filter=$user['role']==='admin'?"(scope='admin' OR (scope='user' AND user_id=?))":"scope='user' AND user_id=?";
+    $params=[(int)$user['id']];
     if($since>0){
-        $sql="SELECT id,event_type,entity_type,entity_id,created_at FROM realtime_events WHERE $filter AND id>? ORDER BY id ASC LIMIT 50";
+        $sql="SELECT id,event_type,entity_type,entity_id,payload_json,created_at FROM realtime_events WHERE $filter AND id>? ORDER BY id ASC LIMIT 50";
         $params[]=$since;
     }else{
-        $sql="SELECT id,event_type,entity_type,entity_id,created_at FROM realtime_events WHERE $filter ORDER BY id DESC LIMIT 10";
+        $sql="SELECT id,event_type,entity_type,entity_id,payload_json,created_at FROM realtime_events WHERE $filter ORDER BY id DESC LIMIT 10";
     }
     $events=lc_all($sql,$params);
     if($since===0)$events=array_reverse($events);
-    return array_map(static fn($e)=>[
-        'id'=>(int)$e['id'],'type'=>$e['event_type'],'entity'=>$e['entity_type'],
-        'entity_id'=>$e['entity_id']===null?null:(int)$e['entity_id'],
-        'created_at'=>$e['created_at']
-    ],$events);
+    return array_map(static function($e):array {
+        $entry=['id'=>(int)$e['id'],'type'=>$e['event_type'],'entity'=>$e['entity_type'],
+          'entity_id'=>$e['entity_id']===null?null:(int)$e['entity_id'],
+          'created_at'=>$e['created_at']];
+        // Private payload is surfaced ONLY after the SQL owner/admin filter above.
+        if($e['event_type']==='notice.direct'&&$e['entity_type']==='admin_notice'){
+            $data=json_decode((string)$e['payload_json'],true);
+            if(is_array($data)){
+                $entry['title']=(string)($data['title']??'Atualização');
+                $entry['message']=(string)($data['message']??'');
+            }
+        }
+        return $entry;
+    },$events);
 }
 function lc_realtime_route(string $method,string $path): bool {
     if(!in_array($path,['/api/realtime/snapshot','/api/realtime/token'],true))return false;
