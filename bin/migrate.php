@@ -328,6 +328,18 @@ try{
         $db->exec($otpSql);
     }
     echo "MIGRACAO_ACCOUNT_OTP_OK\n";
+    // B6C1: recovery requests must be one-use and fully auditable.
+    $hasRecovery=(bool)lc_one("SELECT 1 FROM information_schema.TABLES
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='password_reset_challenges'");
+    if(!$hasRecovery){
+        lc_migration_backup();
+        $resetSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_password_reset.sql'));
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS password_reset_challenges\\s*\\(/i',$resetSql))
+           throw new RuntimeException('Migração de recuperação de senha inválida.');
+        $db->exec($resetSql);
+    }
+    echo "MIGRACAO_PASSWORD_RESET_OK\n";
+
     // B3a: keep original account data untouched, assign reserved lc_ID nicknames
     // to legacy users, with a case-insensitive unique key.
     $nickCol=lc_one("SELECT COLUMN_NAME FROM information_schema.COLUMNS

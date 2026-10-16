@@ -242,6 +242,17 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Nenhuma migration MySQL, nem alteração em pagamentos. CSS `/assets/b6-layout.css` carregado após o design anterior para evitar regras antigas de escala da logo. Testes de integração para links sociais e documentos legais; validação visual Chrome desktop/tablet/mobile recomendada após deploy.
 
 ### Próximos blocos
-- **B6C:** recuperação de senha por e-mail e WhatsApp com verificação de titularidade, token temporário e anti-abuso; sessão persistente `Manter logado` com token opaco rotativo, expiração e revogação por dispositivo. Não usar sessão PHP sem expiração como login permanente.
+- **B6C1 implementado em branch, aguardando CI/deploy:** recuperação de senha por contato previamente cadastrado com código temporário de uso único, limite por conta e sessão, resposta genérica e revogação de sessões ao concluir. **B6C2 pendente:** manter logado com tokens opacos revogáveis e integração com 2FA.
 - **B6D:** PWA com manifesto, ícones, service worker restrito a recursos estáticos e páginas públicas; implementação de Web Push com opt-in, VAPID, armazenamento protegido de subscriptions, respeitar permissão do navegador e controle de sons/alertas. Não armazenar HTML privado em cache offline.
 - **B6E:** suporte via formulário de chamados para clipadores/criadores, fila ADM com status/prioridades/respostas e notificações de atualização; permissão por autor e trilha de auditoria.
+
+
+### B6C1 — Recuperação de senha com e-mail/WhatsApp (16/10/2026)
+
+- Estado: **implementado na branch `feat/b6c1-password-recovery-20261016`, aguardando testes/deploy**. Separado do login persistente por segurança.
+- Rotas públicas `/recuperar-senha` e `/recuperar-senha/confirmar`. O modal de login exibe **Esqueci minha senha**. Digitar e-mail ou nickname, selecionar o canal; a LeagueCut usa somente o contato existente no banco. Mensagem é genérica inclusive para contas desconhecidas ou canais sem configuração.
+- Integração reaproveita `lc_otp_send` com SMTP configurado ou WPPConnect ativo/consentido. Não afirmar entrega confirmada ao destinatário — somente aceite do provedor. Se SMTP/WPP indisponíveis, nenhum código é emitido como válido; administrador deve configurar o provedor.
+- Código aleatório de **8 dígitos**, armazenado apenas como HMAC no MySQL, vinculado à sessão HTTP e com validade de **10 minutos**, cinco tentativas máximas, no máximo 4 solicitações por usuário em 20 minutos (e 60 segundos entre emissões), throttle de 45 segundos por navegador. Senha nova de 12–128 caracteres; nenhuma senha é enviada em e-mail/WhatsApp.
+- Atualização da senha é atômica com consumo do código e rotação de `account_mfa.session_version`, encerrando sessões anteriores, inclusive com Google Authenticator. O código não pode ser usado novamente; MFA continua habilitado e necessário para próximos logins.
+- Migração aditiva `password_reset_challenges` com backup antes do DDL, sem alterar o resto do banco. Testes verificam conta desconhecida, código errado, senha curta, mudança com hash e replay. Validar envio real em contas de teste antes de divulgação; não alterar senha real no teste.
+- **B6C2 permanece pendente:** login persistente revogável com cookie opaco Secure/HttpOnly e verificação de 2FA, botão para sair de todos os dispositivos.

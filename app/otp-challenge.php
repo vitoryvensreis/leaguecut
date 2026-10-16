@@ -57,9 +57,10 @@ function lc_otp_email_send(array $user,string $code,string $purpose): void {
     $mailer->setFrom(lc_env('MAIL_FROM'),lc_env('MAIL_FROM_NAME','LeagueCut'));
     $mailer->addAddress((string)$user['email']);
     $mailer->Subject='LeagueCut — confirme sua operação';
-    $label=$purpose==='withdrawal'?'solicitação de saque':'alteração de dados';
+    $label=$purpose==='password_reset'?'recuperação de senha':($purpose==='withdrawal'?'solicitação de saque':'alteração de dados');
+    $minutes=$purpose==='password_reset'?10:5;
     $mailer->Body="Código para confirmar sua {$label} na LeagueCut: {$code}\n".
-        "Válido por 5 minutos, para uso único. Não compartilhe este código.\n".
+        "Válido por {$minutes} minutos, para uso único. Não compartilhe este código.\n".
         "Se não solicitou, ignore esta mensagem e proteja sua conta.";
     $mailer->send();
 }
@@ -68,10 +69,11 @@ function lc_otp_send(array $user,string $channel,string $code,string $purpose): 
     if(!lc_otp_channel_available($user,$channel))
         throw new RuntimeException('Canal de verificação indisponível.');
     if($channel==='email'){lc_otp_email_send($user,$code,$purpose);return;}
-    $kind=$purpose==='withdrawal'?'saque':'alteração de dados';
+    $kind=$purpose==='password_reset'?'recuperação de senha':($purpose==='withdrawal'?'saque':'alteração de dados');
+    $minutes=$purpose==='password_reset'?10:5;
     lc_wpp_send((string)$user['whatsapp'],
        "LeagueCut: código de confirmação para {$kind}: {$code}. ".
-       "Válido por 5 minutos e uso único. Nunca compartilhe.");
+       "Válido por {$minutes} minutos e uso único. Nunca compartilhe.");
 }
 /** Validate original password before requesting a code (defense-in-depth). */
 function lc_otp_require_password(array $user,string $password): bool {
