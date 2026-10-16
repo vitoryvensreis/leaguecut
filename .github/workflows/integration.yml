@@ -135,6 +135,7 @@ jobs:
           php tests/automation_rules.php
           php tests/automation_visual.php
           php tests/account_admin.php
+          php tests/demo_mode.php
           php tests/mfa_security.php
           php tests/mfa_qr_audit.php
           php tests/otp_security.php
