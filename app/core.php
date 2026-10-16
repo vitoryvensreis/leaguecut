@@ -75,7 +75,7 @@ function lc_login_required(bool $approved = true): array {
 }
 function lc_admin(): array {
     $u = lc_login_required(false);
-    if ($u['role'] !== 'admin') { http_response_code(403); exit('Acesso restrito.'); }
+    if ($u['role'] !== 'admin' || $u['status'] !== 'approved') { http_response_code(403); exit('Acesso restrito.'); }
     return $u;
 }
 function lc_settings(): array {

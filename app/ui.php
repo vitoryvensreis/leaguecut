@@ -34,7 +34,9 @@ function lc_workspace_links(array $u): array {
           ['Banner da Home','/admin/home','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['Integrações','/admin/integracoes','settings-2'],
-          ['Administradores','/admin/administradores','shield-check']
+          ['Administradores','/admin/administradores','shield-check'],
+          ['Gerenciar contas','/admin/contas','user-round-cog'],
+          ['Auditoria de contas','/admin/atividades','activity']
         ];
     }
     if($u['role']==='criador'){
@@ -108,6 +110,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <link rel="stylesheet" href="/assets/ux-upgrade.css?v=2">
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
+<link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><link rel="stylesheet" href="/assets/flow-editor.css?v=2">
 <?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><link rel="stylesheet" href="/assets/flow-canvas-v2.css?v=1"><?php endif; ?><?php endif; ?>
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
@@ -176,6 +179,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <script src="/assets/flow-editor.js?v=2" defer></script><?php endif; ?>
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
+<script src="/assets/input-masks.js?v=1" defer></script>
 </body></html><?php
 }
 function lc_tile(array $c): void {

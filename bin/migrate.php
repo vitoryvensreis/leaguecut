@@ -274,6 +274,18 @@ try{
 
     echo "MIGRACAO_AUTOMACOES_OK\n";
 
+    // Administrative account activity log, before enabling the new admin screens.
+    $auditExists=(bool)lc_one("SELECT 1 AS present FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='account_admin_audit'");
+    if(!$auditExists){
+        lc_migration_backup();
+        $sql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_account_admin_audit.sql'));
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS account_admin_audit\s*\(/i',$sql))
+            throw new RuntimeException('Arquivo da migração administrativa inválido.');
+        $db->exec($sql);
+    }
+    echo "MIGRACAO_ADMIN_AUDIT_OK\n";
+
     echo "MIGRACAO_CRIADOR_ASSINATURAS_OK\n";
 
 
