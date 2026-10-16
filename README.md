@@ -303,7 +303,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B6D2b2 — Web Push VAPID e entrega em segundo plano (16/10/2026)
 
-- **Estado:** implementado na branch `feat/b6d2b2-vapid-delivery-20261016`, sujeito a CI/deploy. Não ativar os flags até a validação num dispositivo real; push aceito pelo provedor não comprova exibição no navegador.
+- **Estado: publicado na VPS, flags desativadas.** PR #94, SHA `b4f3f598ea8356d25d808be04be23cbf23a404e9`, CI, deploy e Production UX Probe verdes. Não ativar os flags até validar num dispositivo real; push aceito pelo provedor não comprova exibição no navegador.
 - Biblioteca `minishlink/web-push:^11.0` (PHP >=8.2), instalada pelo Composer. Envio ocorre no cron existente `bin/automation-worker.php`, sob flock; nenhum serviço do TaskEsc é alterado.
 - **Fail closed:** `PUSH_REGISTRATION_ENABLED=0` e `PUSH_SENDING_ENABLED=0` inicialmente. Ambos devem estar em 1, com VAPID completo e biblioteca instalada, para permitir inscrições e envio. A chave privada permanece exclusivamente no .env da VPS.
 - Configurar no terminal SSH, depois do deploy, usando a conta leaguecut: `cd /home/leaguecut/current && php bin/push-vapid-setup.php mailto:contato@seu-dominio.com` (usar e-mail real). Este comando gera a chave pública/privada direto em `/home/leaguecut/shared/.env` com backup e permissão 0600, sem imprimi-las nem ativar os flags. Não colocar segredo em chat ou GitHub.
@@ -312,3 +312,13 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - O service worker abre avisos com a plataforma em segundo plano. Sons/tipo de alerta são controlados pelo navegador e sistema. iOS exige PWA instalado na tela inicial e versão compatível.
 - Testes: `tests/push_vapid_queue.php` (VAPID, dupla trava, fila/aceite simulados), `tests/smoke.py` (interface e SW), `node --check` do JS. Validar entrega real em Chrome, Firefox e iOS; não afirmar entrega ao aparelho baseada só no aceite da API.
 - **Próximo B6E:** suporte/chamados para usuários/ADM, após homologar o B6D2b2.
+
+
+### Registro de deploy B6D2b2 (16/10/2026)
+
+- Implementação: https://github.com/vitoryvensreis/leaguecut/pull/94 (SHA em produção `b4f3f598ea8356d25d808be04be23cbf23a404e9`).
+- CI integrado: https://github.com/vitoryvensreis/leaguecut/actions/runs/38917093724 — aprovado, incluindo VAPID e transporte simulado.
+- Publicação: https://github.com/vitoryvensreis/leaguecut/actions/runs/38917281533 — aprovada.
+- Production UX Probe: https://github.com/vitoryvensreis/leaguecut/actions/runs/38917338076 — aprovado.
+- **Atenção:** VAPID real não é gerado automaticamente no deploy; duas flags permanecem em 0. Não anunciar notificações em segundo plano em funcionamento até completar a geração manual das chaves privadas, ativação restrita e teste no dispositivo. Segredos não podem ir ao GitHub ou logs.
+- **Próximo passo operacional:** executar como usuário `leaguecut` o gerador seguro `php bin/push-vapid-setup.php mailto:contato@seudominio.com` a partir de `/home/leaguecut/current`, ajustar os flags em `/home/leaguecut/shared/.env` somente para homologação em navegador autorizado e confirmar entrega/revogação. Depois seguir com B6E chamados/suporte.
