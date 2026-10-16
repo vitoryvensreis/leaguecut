@@ -145,8 +145,18 @@ function lc_public_routes(string $method,string $path): bool {
             lc_query('INSERT INTO login_attempts(ip_hash) VALUES(?)',[$hash]);
             lc_flash('E-mail ou senha inválidos.','error');lc_redirect('/entrar');
         }
-        session_regenerate_id(true);$_SESSION['uid']=(int)$user['id'];
-        $role=lc_one('SELECT role FROM users WHERE id=?',[(int)$user['id']])['role']??'clipador';
+        $id=(int)$user['id'];
+        if(lc_mfa_enabled($id)){
+            lc_mfa_login_pending($id);
+            lc_redirect('/seguranca/verificar');
+        }
+        session_regenerate_id(true);
+        unset($_SESSION['mfa_pending_uid'],$_SESSION['mfa_pending_at']);
+        $_SESSION['uid']=$id;
+        $_SESSION['mfa_verified']=false;
+        $_SESSION['mfa_version']=(int)(lc_mfa_state($id)['session_version']??0);
+        lc_mfa_event('login.success',$id);
+        $role=lc_one('SELECT role FROM users WHERE id=?',[$id])['role']??'clipador';
         lc_redirect($role==='criador'?'/criador':'/dashboard');
     }
     if ($method==='POST' && $path==='/sair') {
