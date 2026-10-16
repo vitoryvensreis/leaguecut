@@ -457,12 +457,12 @@ def main():
     assert 'lc-private-value' in finance, "Authorized amounts are marked for masking"
     admin_finance=get(admin,"/admin/financeiro")
     assert 'data-lc-private' in admin_finance, "Admin Pix and withdrawal amounts must be visually concealable"
-    assert 'data-lc-private' not in guest_campaign, "Anonymous campaign rankings must remain public without personal data markers"
     rank_page=get(creator,"/campanhas/"+slug.group(1))
     assert "Ranking da campanha" in rank_page and "lc-podium" in rank_page
     assert re.search(r"@lc_\d+",rank_page) and "500 XP" in rank_page, "Five approved clips yield 500 XP with public nick"
     assert "5 clipes aprovados" in rank_page
     guest_campaign=get(make_client(),"/campanhas/"+slug.group(1))
+    assert 'data-lc-private' not in guest_campaign, "Anonymous campaign rankings must remain public without personal data markers"
     assert re.search(r"@lc_\d+",guest_campaign) and "Criador T." not in guest_campaign, "Anonymous rankings only expose nicks"
     # Once a weekly payment is credited, review/delete must require an audited
     # financial reversal rather than silently corrupting the user's balance.
