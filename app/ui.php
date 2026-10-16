@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/legal-entity.php';
 
 function lc_icon(string $name, string $class = ''): string {
     static $allowed = ["play","compass","layout-dashboard","library","wallet","share-2","shield-check","log-out","users-round","user-round-cog","clapperboard","chart-column","hand-coins","trophy","palette","chevron-right","arrow-right","external-link","lock-keyhole","check","circle-check","sparkles","folder-open","clock-3","plus","upload-cloud","settings-2","bell","activity","clipboard-check","layers","circle-dollar-sign","menu","video","globe","shield"];
@@ -221,7 +222,10 @@ function lc_page(string $title, callable $body, string $active = ''): void {
   <?php $body(); ?>
 </main>
 <?php if($workspace): ?></div></div><?php endif; ?>
-<footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span>
+<footer class="site-footer"><div class="lc-footer-company">
+<span><?=lc_e($brand)?> © <?=date('Y')?></span>
+<small>Um produto da <?=lc_e(lc_legal_controller()['business_name'])?> · CNPJ <?=lc_e(lc_legal_controller()['cnpj'])?></small>
+</div>
 <button type="button" class="btn btn-ghost btn-sm" data-pwa-install hidden>Instalar LeagueCut</button>
 <nav class="lc-footer-nav" aria-label="Informações legais">
 <a href="/planos">Planos para criadores</a><a href="/politica-de-privacidade">Privacidade</a>
