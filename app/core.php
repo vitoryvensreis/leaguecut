@@ -65,11 +65,18 @@ function lc_take_flash(): ?array { $f = $_SESSION['flash'] ?? null; unset($_SESS
 function lc_redirect(string $path): never { header('Location: ' . $path, true, 303); exit; }
 function lc_user(): ?array {
     if (empty($_SESSION['uid'])) return null;
-    return lc_one('SELECT id,full_name,email,whatsapp,instagram,portfolio_url,role,status FROM users WHERE id=?', [(int)$_SESSION['uid']]);
+    $uid=(int)$_SESSION['uid'];
+    // Versions invalidate other browser sessions after MFA enrollment/revocation.
+    // Before MFA exists, legacy sessions remain available without disruption.
+    if (function_exists('lc_mfa_session_is_valid') && !lc_mfa_session_is_valid($uid)) {
+        unset($_SESSION['uid'],$_SESSION['mfa_verified'],$_SESSION['mfa_version']);
+        return null;
+    }
+    return lc_one('SELECT id,full_name,email,whatsapp,instagram,portfolio_url,role,status FROM users WHERE id=?',[$uid]);
 }
 function lc_login_required(bool $approved = true): array {
     $u = lc_user();
-    if (!$u) lc_redirect('/entrar');
+    if (!$u) lc_redirect(!empty($_SESSION['mfa_pending_uid'])?'/seguranca/verificar':'/entrar');
     if ($approved && $u['role'] !== 'admin' && $u['status'] !== 'approved') lc_redirect('/aguardando');
     return $u;
 }
