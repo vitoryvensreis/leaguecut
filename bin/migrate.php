@@ -382,6 +382,17 @@ try{
         }
     }
     echo "MIGRACAO_B6E1_SUPPORT_OK\n";
+    $hasSupportAudit=(bool)lc_one("SELECT 1 FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='support_ticket_activity'");
+    if(!$hasSupportAudit){
+        lc_migration_backup();
+        $sql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_support_ticket_activity.sql'));
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS support_ticket_activity\\s*\\(/i',$sql))
+            throw new RuntimeException('Migração de auditoria de suporte inválida.');
+        $db->exec($sql);
+    }
+    echo "MIGRACAO_B6E2_SUPPORT_AUDIT_OK\n";
+
 
 
 
