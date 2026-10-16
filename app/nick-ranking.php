@@ -54,7 +54,8 @@ function lc_public_ranking(int $limit=15): array {
          AND u.nickname IS NOT NULL
       GROUP BY u.id,u.nickname
       ORDER BY views DESC,clips DESC,u.id ASC LIMIT ".(int)$limit);
-    return lc_demo_merge_ranking($real,$limit);
+    // Unit tests and lightweight CLI consumers load ranking without the router.
+    return function_exists('lc_demo_merge_ranking')?lc_demo_merge_ranking($real,$limit):$real;
 }
 function lc_ranking_routes(string $method,string $path): bool {
     if($path!=='/ranking'||$method!=='GET')return false;
