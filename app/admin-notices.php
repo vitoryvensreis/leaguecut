@@ -99,10 +99,13 @@ function lc_admin_notice_routes(string $method,string $path): bool {
 <form method="get" action="/admin/notificacoes"><label class="field"><span>Pesquisar nickname ou e-mail</span>
 <input name="q" value="<?=lc_e($q)?>" maxlength="50" placeholder="Buscar usuários"></label>
 <button class="btn btn-ghost" type="submit">Pesquisar</button></form>
+<p class="hint">Clique em Selecionar para incluir uma conta no aviso. Até 30 usuários específicos por envio.</p>
+<p data-notice-selection aria-live="polite">Nenhuma conta selecionada.</p>
 <div class="lc-ticket-table" style="margin-top:14px">
-<?php foreach($users as $u): ?><div class="lc-ticket-row" style="grid-template-columns:80px minmax(0,1fr) 110px">
+<?php foreach($users as $u): ?><div class="lc-ticket-row" style="grid-template-columns:65px minmax(0,1fr) 100px auto">
 <strong>#<?=lc_e($u['id'])?></strong><span><?=lc_e($u['nickname']??'Conta')?> <small><?=lc_e($u['email'])?></small></span>
-<span><?=lc_e($u['role'])?></span></div><?php endforeach; ?></div>
+<span><?=lc_e($u['role'])?></span>
+<button type="button" class="btn btn-ghost" data-add-notice-user="<?=lc_e($u['id'])?>">Selecionar</button></div><?php endforeach; ?></div>
 </section>
 <section class="panel"><h2>Últimos avisos registrados</h2>
 <?php foreach($sent as $item): $data=json_decode((string)$item['payload_json'],true)?:[]; ?>

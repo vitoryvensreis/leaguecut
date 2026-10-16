@@ -155,7 +155,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b6-layout.css?v=1">
-<?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados")): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
+<?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
@@ -232,6 +232,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
 <script src="/assets/pwa.js?v=1" defer></script>
 <?php if($path==="/notificacoes" && $u): ?><script src="/assets/background-push.js?v=1" defer></script><?php endif; ?>
+<?php if($path==="/admin/notificacoes" && $u && $u['role']==='admin'): ?><script src="/assets/admin-notices.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/notification-preferences.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/input-masks.js?v=1" defer></script>
 <?php if($u): ?><script src="/assets/privacy-toggle.js?v=1" defer></script><?php endif; ?>
