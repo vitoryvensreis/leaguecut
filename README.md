@@ -337,10 +337,19 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B6E2 — Respostas, status, prioridade e histórico dos chamados (16/10/2026)
 
-- **Estado:** implementação em branch `feat/b6e2-ticket-conversations-20261016`; aguarda validação de CI, PR e deploy.
+- **Estado: publicado na VPS.** PR #97, commit `ea8f595a7c802e604950056529e5fb02efd0a5bb`, CI, deploy e Production UX Probe aprovados.
 - ADM pode responder a qualquer protocolo em `/admin/chamados/{id}`, alterar situação entre Aberto, Em atendimento, Respondido e Encerrado e definir prioridade Normal/Alta. Usuários respondem somente aos próprios tickets em `/suporte/{id}`; protocolos fechados só podem ser respondidos/reabertos pelo ADM. Se usuário responde a um ticket respondido, ele volta a Aberto.
 - Operações são transacionais, com auditoria em `support_ticket_activity` (mensagens e alterações de status/prioridade, responsável e momento), proteção contra envio duplicado nos primeiros 10 segundos, limite de 3–3.000 caracteres por resposta e escopo por usuário. Dados privados de mensagens não são incluídos em push/realtime.
 - Realtime do ADM: `support.ticket.created` e `support.ticket.replied`; usuário: `support.ticket.answered` e `support.ticket.updated`. Fila push existente inclui somente avisos genéricos e continua desligada até VAPID ser configurado e homologado na VPS.
 - Migração adicional e idempotente `support_ticket_activity` com backup, chaves estrangeiras e índices. Nada de alterações em créditos, saques, boletos, TaskEsc ou serviços do servidor.
 - Testes `tests/support_actions.php` e smoke HTTP confirmam escopo de resposta por proprietário, acesso ADM, idempotência, prioridade, status, fechamento e histórico, além de notificações sem vazamento entre contas.
 - **Próximos aprimoramentos opcionais:** anexos com verificação de conteúdo, SLA/atribuição de atendente, buscas/paginação e relatórios de atendimento. Não criar automações de disparo em massa por padrão.
+
+
+### Registro de publicação B6E — Suporte e chamados (16/10/2026)
+
+- **B6E1:** https://github.com/vitoryvensreis/leaguecut/pull/96 — SHA implantado `e91d5b9412a8989b9ce7721589c73ff4608de8d8`. Testes, deploy e Production UX Probe aprovados; deploy https://github.com/vitoryvensreis/leaguecut/actions/runs/38933208710; probe https://github.com/vitoryvensreis/leaguecut/actions/runs/38933259335.
+- **B6E2:** https://github.com/vitoryvensreis/leaguecut/pull/97 — SHA implantado `ea8f595a7c802e604950056529e5fb02efd0a5bb`. Testes, deploy e Production UX Probe aprovados; deploy https://github.com/vitoryvensreis/leaguecut/actions/runs/38934457970; probe https://github.com/vitoryvensreis/leaguecut/actions/runs/38934521837.
+- **Rota do usuário:** `/suporte` para abrir chamados e consultar o próprio histórico; `/suporte/{id}` para responder. **Rota ADM:** `/admin/chamados` e `/admin/chamados/{id}` para triagem, respostas, status, prioridade e auditoria. Acesso de outros usuários aos protocolos é proibido. O formulário só aceita texto (anexos não foram implementados neste bloco).
+- **Operacional pendente fora do B6E:** Web Push B6D2b2 está implantado com `PUSH_REGISTRATION_ENABLED=0` e `PUSH_SENDING_ENABLED=0` até configurar VAPID no `.env` privado e verificar recebimento/revogação em dispositivo real autorizado. CI de envio simulado não equivale a entrega efetiva ao aparelho.
+- **Opcionais futuros:** SLA e atribuição de responsável no ADM, anexos com armazenamento/verificação seguros, pesquisa/paginação no histórico de tickets, alertas por WhatsApp/e-mail via automações do sistema com consentimento. Não iniciar automaticamente.
