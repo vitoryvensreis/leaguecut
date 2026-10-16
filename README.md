@@ -57,7 +57,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | 10 | Muitos bônus mensais cadastráveis | Pendente: regras de bônus, limites e não duplicação | B4 |
 | 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **B2b2 em validação:** contas com TOTP confirmam no autenticador; sem TOTP, SMTP/WPPConnect configurado e autorizado permite código temporário de uso único antes de mudar dados ou criar saque. Se nenhum canal estiver operacional, mantém senha atual como fallback temporário. | B2 |
 | 12 | Neon animado sutil em todo o site | Parcial B1: fundo luminoso e hover discretos. Acabamento global pendente | B4 |
-| 13 | Nick único, login por nick/e-mail, ranking geral público de views com nick | Pendente: índice único, privacidade, views verificadas | B3 |
+| 13 | Nick único, login por nick/e-mail, ranking geral público de views com nick | **B3a implementado no código, aguardando testes/deploy:** nickname case-insensitive exclusivo, login com nickname ou e-mail, nicks provisórios para contas antigas, ranking /ranking e Top 5 na home somente com @nickname; métricas são views **observadas** pela Apify de clipes aprovados, não garantem verificação financeira. | B3 |
 | 14 | Ocultar/revelar dados sensíveis com botão olho | Pendente: interface e revisão de permissões no servidor | B3 |
 | 15 | Cards gamificados e animações inspiradas em games | Pendente: pontuações, conquistas e movimento reduzido | B4 |
 
@@ -79,7 +79,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 2. Leia o último run de CI e do workflow de deploy. Se houver falha, não anuncie que chegou à VPS.
 3. Na VPS, confira /home/leaguecut/current, /health e logs sem revelar segredos; só então marque como verificado em produção.
 4. A cada bloco concluído, atualize esta tabela, testes, PR, data, pendências, alterações do banco e próximo bloco.
-5. Próximo passo após aprovação do PR B2b2: **B3** indicações, nickname único e ranking; verificar no navegador os canais OTP antes de exigir segunda etapa universalmente.
+5. B3a: nickname e ranking público; **B3b:** indicação de clipadores/criadores, comissão fixa ou percentual configurável, antifraude e liquidação segura. Verificar canais OTP no navegador.
 
 
 ### B2a — Implementação retomada após o B1 (16/10/2026)
@@ -129,3 +129,14 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - **Teste de integração:** `tests/otp_security.php` testa código incorreto, replay, desafio ainda sem aceite, expiração e alteração atômica sem realizar envios reais no CI.
 - **Pendente fora de B2b2:** prova de entrega/leitura de WhatsApp (não suportada por mera resposta síncrona), verificação manual de contas reais no navegador, políticas de recuperação caso se perca TOTP e códigos, garantia de consistência de contatos verificados, login/social, restante dos itens B3–B5.
 - **Próximo bloco: B3**, começando por nickname único, ranking público só com nicks e programa de indicação/comissões com regras antifraude.
+
+
+### B3a — Identidade pública e ranking geral (16/10/2026)
+
+- Estado: **implementado em branch**; só considerar publicado após CI e GitHub Actions do deploy confirmarem.
+- `users.nickname` recebe índice único por collation MySQL case-insensitive. Cadastros legados ganham `lc_<id>` como nickname provisório sem trocar login ou senha. Novos cadastros clipador/criador podem escolher nick; a ausência no formulário legado gera `lc_<id>` para compatibilidade. Prefixo `lc_` reservado pelo sistema, nomes falsos de administração bloqueados.
+- Login aceita email ou nickname, mantendo senha, bloqueio de tentativas e 2FA existente. Página `/conta` permite editar nickname após confirmação pelo mecanismo já implementado (TOTP ou senha+OTP se disponível).
+- Ranking público `/ranking` e Top 5 da home mostram somente `@nickname`, clipes aprovados e a **última observação pública por clipe** (não somar snapshots de dias diferentes). O ranking por campanha deixa de mostrar nome real; ADM ainda vê nome real e nickname internamente.
+- Contas suspensas ou clipes não aprovados não aparecem no ranking público. Métricas Apify de views são observadas, **não** são recibos/validação financeira; resultados não acionam créditos.
+- Testes e2e: cadastro legado, ranking de campanha sem nomes reais, rank da home, migração idempotente e uniqueness da nickname.
+- **Próxima entrega: B3b** com links de indicação clipador/criador, regras do ADM e comissões somente após eventos financeiros elegíveis, sem pagar por cadastro falso.

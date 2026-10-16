@@ -60,6 +60,7 @@ function lc_account_admin_routes(string $method,string $path): bool {
                 [$fields['name'],$fields['email'],password_hash($fields['password'],PASSWORD_DEFAULT),
                  $fields['whatsapp'],$fields['instagram'],lc_encrypt(''),(int)$actor['id']]);
             $id=(int)lc_db()->lastInsertId();
+            lc_nickname_complete($id);
             lc_account_admin_audit((int)$actor['id'],'admin.created',$id,['fields'=>['full_name','email','role','status']]);
             lc_db()->commit();
             lc_flash('Conta administrativa criada. A senha não é exibida nem enviada por mensagem.');

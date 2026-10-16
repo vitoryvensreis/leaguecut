@@ -328,6 +328,28 @@ try{
         $db->exec($otpSql);
     }
     echo "MIGRACAO_ACCOUNT_OTP_OK\n";
+    // B3a: keep original account data untouched, assign reserved lc_ID nicknames
+    // to legacy users, with a case-insensitive unique key.
+    $nickCol=lc_one("SELECT COLUMN_NAME FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='nickname'");
+    if(!$nickCol){
+        lc_migration_backup();
+        $db->exec("ALTER TABLE users ADD COLUMN nickname VARCHAR(32) NULL AFTER full_name");
+    }
+    // A reserved prefix prevents collisions with manually picked nicknames.
+    $db->exec("UPDATE users SET nickname=CONCAT('lc_',id) WHERE nickname IS NULL OR nickname=''");
+    $nickIndex=lc_one("SELECT INDEX_NAME FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users'
+          AND INDEX_NAME='uq_users_nickname'");
+    if(!$nickIndex){
+        lc_migration_backup();
+        $db->exec('CREATE UNIQUE INDEX uq_users_nickname ON users (nickname)');
+    }
+    // Keep column nullable for legacy insert scripts/seeders. All signup routes
+    // assign lc_ID or chosen nick in their transaction; the unique index
+    // ensures every non-NULL nickname is globally unique.
+    echo "MIGRACAO_NICKNAME_OK\n";
+
 
 
 

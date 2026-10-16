@@ -169,6 +169,7 @@ function lc_creator_routes(string $method,string $path): bool {
 <div class="panel"><form method="post" action="/cadastrar/criador"><?=lc_csrf()?>
 <div class="form-grid">
 <?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
+<?php lc_field('Nickname público','nickname','text','',false,'seunick','minlength="3" maxlength="24"'); ?>
 <?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?>
 <?php lc_field('Senha (mínimo 10 caracteres)','password','password','',true,'Crie uma senha','minlength="10" autocomplete="new-password"'); ?>
 <?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'85999999999'); ?>
@@ -188,16 +189,23 @@ function lc_creator_routes(string $method,string $path): bool {
             lc_flash('Este e-mail já está cadastrado. Faça login.','error');lc_redirect('/entrar');
         }
         try{
+            $candidate=trim((string)($_POST['nickname']??''));
+            if($candidate!=='')lc_nickname_validate($candidate);
+            $db=lc_db();$db->beginTransaction();
             lc_query("INSERT INTO users(full_name,email,password_hash,whatsapp,instagram,pix_key_enc,role,status,consent_whatsapp,approved_at)
                        VALUES(?,?,?,?,? ,?,'criador','approved',?,UTC_TIMESTAMP())",
                 [$name,$email,password_hash($password,PASSWORD_DEFAULT),$whatsapp,'','',
                  lc_bool('consent_whatsapp')?1:0]);
-        }catch(PDOException $e){
-            if($e->getCode()==='23000'){lc_flash('Este e-mail já está cadastrado.','error');lc_redirect('/entrar');}
-            throw $e;
+            $created=(int)$db->lastInsertId();
+            lc_nickname_complete($created,$candidate);
+            $db->commit();
+        }catch(PDOException|InvalidArgumentException $e){
+            if(lc_db()->inTransaction())lc_db()->rollBack();
+            lc_flash($e instanceof InvalidArgumentException?$e->getMessage():'E-mail ou nickname já está em uso.','error');
+            lc_redirect('/cadastrar/criador');
         }
         session_regenerate_id(true);
-        $_SESSION['uid']=(int)lc_db()->lastInsertId();
+        $_SESSION['uid']=$created;
         lc_flash('Conta de criador criada. Você já pode solicitar um pacote mensal.');
         lc_redirect('/criador');
     }

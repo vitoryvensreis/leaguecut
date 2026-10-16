@@ -7,19 +7,21 @@ function lc_account_validate_input(array $source): array {
     $phone=preg_replace('/\D/','',(string)($source['whatsapp']??''))??'';
     $newPass=(string)($source['new_password']??'');
     $pix=trim((string)($source['new_pix_key']??''));
+    $nickname=trim((string)($source['nickname']??''));
+    if($nickname!=='')$nickname=lc_nickname_validate($nickname);
     if(mb_strlen($name)<3||mb_strlen($name)>160||!filter_var($email,FILTER_VALIDATE_EMAIL)||
        strlen($email)>190||!in_array(strlen($phone),[10,11,12,13],true)||
        ($newPass!==''&&(strlen($newPass)<12||strlen($newPass)>128))||
        mb_strlen($pix)>150)
         throw new InvalidArgumentException('Confira os dados. Senhas novas exigem ao menos 12 caracteres.');
-    return ['full_name'=>$name,'email'=>$email,'whatsapp'=>$phone,
+    return ['nickname'=>$nickname,'full_name'=>$name,'email'=>$email,'whatsapp'=>$phone,
        'new_password'=>$newPass,'new_pix_key'=>$pix];
 }
 /** Caller owns a DB transaction; used both after direct TOTP and confirmed remote code. */
 function lc_account_apply_update(array $u,array $data): bool {
     $data=lc_account_validate_input($data);
     $uid=(int)$u['id'];
-    $existing=lc_one('SELECT id,full_name,email,whatsapp FROM users WHERE id=? FOR UPDATE',[$uid]);
+    $existing=lc_one('SELECT id,full_name,nickname,email,whatsapp FROM users WHERE id=? FOR UPDATE',[$uid]);
     if(!$existing)throw new InvalidArgumentException('Conta não encontrada.');
     if($data['new_pix_key']!==''){
         $pending=(int)(lc_one("SELECT COUNT(*) AS n FROM withdrawals
@@ -30,13 +32,15 @@ function lc_account_apply_update(array $u,array $data): bool {
     foreach(['full_name','email','whatsapp'] as $field){
         if((string)$existing[$field]!==$data[$field])$changed[]=$field;
     }
+    if($data['nickname']!=='' && $existing['nickname']!==$data['nickname'])$changed[]='nickname';
     if($data['new_pix_key']!=='')$changed[]='pix_key_enc';
     if($data['new_password']!=='')$changed[]='password_hash';
     if(!$changed)return false;
     lc_query('UPDATE users SET full_name=?,email=?,whatsapp=?,
-       pix_key_enc=COALESCE(?,pix_key_enc),password_hash=COALESCE(?,password_hash)
+       nickname=COALESCE(?,nickname),pix_key_enc=COALESCE(?,pix_key_enc),password_hash=COALESCE(?,password_hash)
        WHERE id=?',[
        $data['full_name'],$data['email'],$data['whatsapp'],
+       $data['nickname']!==''?$data['nickname']:null,
        $data['new_pix_key']!==''?lc_encrypt($data['new_pix_key']):null,
        $data['new_password']!==''?password_hash($data['new_password'],PASSWORD_DEFAULT):null,
        $uid
@@ -86,6 +90,7 @@ function lc_account_self_routes(string $method,string $path): bool {
 <form action="/conta" method="post" autocomplete="off"><?=lc_csrf()?>
 <div class="form-grid">
 <label class="field"><span>Nome completo</span><input name="full_name" value="<?=lc_e($u['full_name'])?>" minlength="3" maxlength="160" required></label>
+<label class="field"><span>Seu nickname público</span><input name="nickname" value="<?=lc_e($u['nickname']??'')?>" minlength="3" maxlength="24" pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" required></label>
 <label class="field"><span>E-mail de acesso</span><input type="email" name="email" value="<?=lc_e($u['email'])?>" required maxlength="190"></label>
 <label class="field"><span>WhatsApp</span><input name="whatsapp" data-lc-mask="phone" value="<?=lc_e($u['whatsapp'])?>" required maxlength="19"></label>
 <label class="field"><span>Nova senha (opcional)</span><input type="password" name="new_password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Mantenha em branco para não alterar"></label>
