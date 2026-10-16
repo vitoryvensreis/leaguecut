@@ -116,6 +116,7 @@ jobs:
           php tests/devices.php
           php tests/notice_targeting.php
           php tests/pwa_security.php
+          php -r 'require "app/brand-images.php"; $mask=lc_brand_masks(); foreach($mask as $entry){if(strlen($entry["mask"])!==$entry["w"]*$entry["h"])exit(1);} echo "BRAND_MASK_OK\\n";'
           php tests/push_storage.php
           php tests/push_vapid_queue.php
           php tests/push_selftest.php

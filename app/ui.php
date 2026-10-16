@@ -119,10 +119,16 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="<?=lc_e($primary)?>">
-<link rel="manifest" href="/manifest.webmanifest">
+<link rel="manifest" href="/manifest.webmanifest?v=3">
+<meta name="application-name" content="LeagueCut">
+<meta name="apple-mobile-web-app-title" content="LeagueCut">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<link rel="apple-touch-icon" href="/app-icon/192.png">
+<link rel="icon" type="image/svg+xml" href="/assets/leaguecut-icon.svg?v=3">
+<link rel="icon" type="image/png" sizes="32x32" href="/app-icon/32.png?v=3">
+<link rel="icon" type="image/png" sizes="48x48" href="/app-icon/48.png?v=3">
+<link rel="shortcut icon" href="/favicon.ico?v=3" type="image/x-icon">
+<link rel="apple-touch-icon" sizes="180x180" href="/app-icon/180.png?v=3">
 <title><?=lc_e($seo['title'])?></title>
 <?php lc_seo_head($seo); ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">

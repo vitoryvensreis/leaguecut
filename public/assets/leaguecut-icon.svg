@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title">
+<title id="title">LeagueCut</title>
+<defs><linearGradient id="lc-red" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF3457"/><stop offset=".48" stop-color="#F70C38"/><stop offset="1" stop-color="#BF0028"/></linearGradient><linearGradient id="lc-play" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#FFE4EC"/></linearGradient></defs>
+<rect width="512" height="512" rx="108" fill="#090B10"/>
+<rect x="13" y="13" width="486" height="486" rx="98" fill="none" stroke="#FF2746" stroke-opacity=".22" stroke-width="2"/>
+<path d="M155 109 L211 83 L183 330 L369 230 L350 326 L181 414 Q135 401 120 372 Q113 358 120 324 Z" fill="url(#lc-red)"/>
+<path d="M239 182 Q237 177 243 176 Q246 176 251 180 L320 225 Q327 230 320 236 L244 283 Q237 286 237 278 Z" fill="url(#lc-play)"/>
+</svg>

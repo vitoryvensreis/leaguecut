@@ -187,7 +187,7 @@ def main():
     home=get(creator,"/")
     assert "Seu talento." in home, "Landing hero"
     import json
-    assert '<link rel="manifest" href="/manifest.webmanifest">' in home, "PWA discoverable"
+    assert re.search(r'<link rel="manifest" href="/manifest\.webmanifest(?:\?v=\d+)?">', home), "PWA discoverable"
     with creator.open(BASE+"/manifest.webmanifest",timeout=12) as response:
         manifest=json.loads(response.read())
         assert response.headers.get("Content-Type","").startswith("application/manifest+json")
@@ -197,10 +197,17 @@ def main():
         worker=response.read().decode("utf-8")
         assert "javascript" in response.headers.get("Content-Type","")
     assert "req.mode==='navigate'" in worker and "const staticAsset=" in worker, "Service worker never caches private HTML"
-    for dim in [192,512]:
+    assert len(manifest["icons"])==4 and {"any","maskable"}==set(i["purpose"] for i in manifest["icons"]), "PWA safe-zone icons"
+    assert 'rel="apple-touch-icon" sizes="180x180"' in home, "iPhone home-screen artwork"
+    assert 'rel="icon" type="image/svg+xml"' in home, "Browser vector favicon"
+    assert 'https://leaguecut.com/share/leaguecut.png?v=3' in home, "Default social card"
+    for dim in [32,48,180,192,512]:
         with creator.open(BASE+f"/app-icon/{dim}.png",timeout=12) as response:
             data=response.read()
             assert response.headers.get("Content-Type")=="image/png" and data[:8]==b"\x89PNG\r\n\x1a\n", "PWA real PNG icon"
+    with creator.open(BASE+"/share/leaguecut.png",timeout=12) as response:
+        image=response.read()
+        assert response.headers.get("Content-Type")=="image/png" and image[:8]==b"\x89PNG\r\n\x1a\n", "Real social PNG"
     assert '/assets/pwa.js?v=1' in home and 'data-pwa-install' in home, "PWA install button and script"
 
     assert '<meta name="robots" content="index, follow' in home and '<link rel="canonical" href="https://leaguecut.com/">' in home, "Public home SEO"
