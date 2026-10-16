@@ -392,6 +392,26 @@ try{
         $db->exec($sql);
     }
     echo "MIGRACAO_B6E2_SUPPORT_AUDIT_OK\n";
+    // B7C: additive ticket assignment/SLA + immutable management audit.
+    $supportManagementTables=['support_ticket_tracking','support_ticket_management_audit'];
+    $supportManagementMissing=false;
+    foreach($supportManagementTables as $table){
+        if(!lc_one('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?',[$table]))
+            $supportManagementMissing=true;
+    }
+    if($supportManagementMissing){
+        lc_migration_backup();
+        $stmts=array_values(array_filter(array_map('trim',explode(';',
+           (string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_support_management.sql')))));
+        if(count($stmts)!==2)throw new RuntimeException('Migração B7C incompleta.');
+        foreach($stmts as $i=>$statement){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($supportManagementTables[$i],'/').'\\s*\\(/i',$statement))
+                throw new RuntimeException('Migração B7C contém tabela não autorizada.');
+            $db->exec($statement);
+        }
+    }
+    echo "MIGRACAO_B7C_SUPPORT_MANAGEMENT_OK\n";
+
 
 
 
