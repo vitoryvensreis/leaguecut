@@ -31,3 +31,10 @@ background:#10151e;transition:background .18s,border-color .18s}
 .lc-ticket-status,.lc-ticket-row time{grid-row:2}.lc-ticket-status{grid-column:2}
 .lc-ticket-row time{grid-column:1;font-size:.73rem}}
 @media(prefers-reduced-motion:reduce){.lc-ticket-row{transition:none}}
+
+.lc-support-page .form-actions{margin-top:18px}
+.lc-ticket-activity{display:grid;gap:0}
+.lc-ticket-activity-row{padding:12px 0;border-bottom:1px solid #ffffff1d;display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.lc-ticket-activity-row:last-child{border-bottom:0}
+.lc-ticket-activity-row small{color:#afb8ca;font-size:.78rem}
+.lc-ticket-message:has(+ .lc-ticket-message){margin-bottom:0}
