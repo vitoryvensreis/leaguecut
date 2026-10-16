@@ -92,6 +92,8 @@ function lc_creator_confirm_payment(int $subscriptionId,int $adminId,bool $renew
            (subscription_id,cycle_start,cycle_end,clips_included,clips_used,payment_status)
            VALUES(?,?,?,?,0,'confirmed')",
            [$subscriptionId,$start,$end,$s['monthly_clips_snapshot']]);
+        $cycleId=(int)$db->lastInsertId();
+        lc_referral_offer((int)$s['creator_id'],'creator_cycle',$cycleId,(int)$s['price_cents_snapshot']);
         lc_query("UPDATE creator_subscriptions SET status='active',
              started_at=COALESCE(started_at,UTC_TIMESTAMP()),next_renewal_at=? WHERE id=?",
              [$end.' 00:00:00',$subscriptionId]);
