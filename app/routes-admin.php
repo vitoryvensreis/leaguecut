@@ -68,8 +68,8 @@ function lc_admin_routes(string $method,string $path): bool {
         $viewsAll=lc_one("SELECT COALESCE(SUM(COALESCE((SELECT d.views FROM clip_daily_views d WHERE d.clip_id=c.id ORDER BY d.snapshot_date DESC LIMIT 1),0)),0) AS views,
           COUNT(*) AS clips,COUNT(DISTINCT c.user_id) AS players FROM clips c WHERE c.status='approved'")??[];
         $lastObservation=lc_one("SELECT MAX(observed_at) AS date FROM clip_daily_views")['date']??null;
-        $rankUsers=lc_all("SELECT u.full_name,COUNT(c.id) AS clips,COALESCE(SUM(COALESCE((SELECT d.views FROM clip_daily_views d WHERE d.clip_id=c.id ORDER BY d.snapshot_date DESC LIMIT 1),0)),0) AS views
-          FROM clips c JOIN users u ON u.id=c.user_id WHERE c.status='approved' AND u.role='clipador' GROUP BY u.id,u.full_name ORDER BY views DESC,clips DESC,u.id ASC LIMIT 8");
+        $rankUsers=lc_all("SELECT u.full_name,u.nickname,COUNT(c.id) AS clips,COALESCE(SUM(COALESCE((SELECT d.views FROM clip_daily_views d WHERE d.clip_id=c.id ORDER BY d.snapshot_date DESC LIMIT 1),0)),0) AS views
+          FROM clips c JOIN users u ON u.id=c.user_id WHERE c.status='approved' AND u.role='clipador' GROUP BY u.id,u.full_name,u.nickname ORDER BY views DESC,clips DESC,u.id ASC LIMIT 8");
         $rankCampaigns=lc_all("SELECT p.slug,p.title,COUNT(c.id) AS clips,COALESCE(SUM(COALESCE((SELECT d.views FROM clip_daily_views d WHERE d.clip_id=c.id ORDER BY d.snapshot_date DESC LIMIT 1),0)),0) AS views
           FROM campaigns p LEFT JOIN clips c ON c.campaign_id=p.id AND c.status='approved' GROUP BY p.id,p.slug,p.title ORDER BY views DESC,clips DESC,p.id ASC LIMIT 8");
         lc_page('Administração',function()use($admin,$pending,$total,$campaigns,$clips,$withdrawals,$recent,$viewsAll,$lastObservation,$rankUsers,$rankCampaigns){?>
@@ -98,7 +98,7 @@ function lc_admin_routes(string $method,string $path): bool {
   <div class="ws-rank-dashboard">
     <section class="ws-rank-panel"><h2><?=lc_icon('trophy')?> Top clipadores</h2>
     <?php if(!$rankUsers):?><p class="ws-rank-empty">Aguardando clipes aprovados.</p><?php else:foreach($rankUsers as $i=>$p):?>
-    <div class="ws-rank-row"><span class="ws-rank-number"><?=$i+1?>º</span><span><strong><?=lc_e($p['full_name'])?></strong>
+    <div class="ws-rank-row"><span class="ws-rank-number"><?=$i+1?>º</span><span><strong><?=lc_e($p['full_name'])?></strong><small>@<?=lc_e($p['nickname']??'sem-nick')?></small>
     <small><?=(int)$p['clips']?> clipes · <?=number_format((int)$p['clips']*100+intdiv((int)$p['views'],100),0,',','.')?> XP ilustrativo</small></span>
     <span class="ws-rank-count"><?=number_format((int)$p['views'],0,',','.')?><small>views</small></span></div>
     <?php endforeach;endif;?></section>
