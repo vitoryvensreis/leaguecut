@@ -1,6 +1,38 @@
 <?php
 declare(strict_types=1);
 
+/** B6B — official footer links, never fetched server-side and never accepts foreign hosts. */
+function lc_social_footer_specs(): array {
+    return [
+        'social_instagram'=>['label'=>'Instagram','hosts'=>['instagram.com','www.instagram.com']],
+        'social_tiktok'=>['label'=>'TikTok','hosts'=>['tiktok.com','www.tiktok.com']],
+        'social_youtube'=>['label'=>'YouTube','hosts'=>['youtube.com','www.youtube.com','youtu.be']],
+        'social_facebook'=>['label'=>'Facebook','hosts'=>['facebook.com','www.facebook.com','m.facebook.com']],
+        'social_x'=>['label'=>'X / Twitter','hosts'=>['x.com','www.x.com','twitter.com','www.twitter.com']],
+        'social_linkedin'=>['label'=>'LinkedIn','hosts'=>['linkedin.com','www.linkedin.com']]
+    ];
+}
+function lc_social_footer_valid(string $key,string $url): bool {
+    $spec=lc_social_footer_specs()[$key]??null;
+    if(!$spec || strlen($url)>500)return false;
+    if($url==='')return true;
+    if(!lc_valid_https($url) || preg_match('/[\\x00-\\x20\\x7f]/',$url))return false;
+    $parts=parse_url($url);
+    if(!is_array($parts) || isset($parts['user']) || isset($parts['pass']) || isset($parts['port']))return false;
+    if(isset($parts['fragment']))return false;
+    $host=strtolower((string)($parts['host']??''));
+    return in_array($host,$spec['hosts'],true);
+}
+function lc_social_footer_links(array $s): array {
+    $out=[];
+    foreach(lc_social_footer_specs() as $key=>$spec){
+        $url=trim((string)($s[$key]??''));
+        if($url!=='' && lc_social_footer_valid($key,$url))
+            $out[]=['label'=>$spec['label'],'url'=>$url];
+    }
+    return $out;
+}
+
 /** Public SEO never derives a canonical host from the Host header or a query string. */
 function lc_seo_origin(): string { return 'https://leaguecut.com'; }
 function lc_seo_public_path(string $path): bool {
