@@ -12,7 +12,11 @@ function lc_account_admin_password(array $actor): bool {
     $provided=(string)($_POST['admin_password']??'');
     if($provided===''||strlen($provided)>200)return false;
     $row=lc_one('SELECT password_hash FROM users WHERE id=?',[(int)$actor['id']]);
-    return $row && password_verify($provided,$row['password_hash']);
+    if(!$row||!password_verify($provided,$row['password_hash']))return false;
+    // Enabled accounts require a fresh one-use authenticator value for changes.
+    if(function_exists('lc_mfa_enabled')&&lc_mfa_enabled((int)$actor['id']))
+        return lc_mfa_consume((int)$actor['id'],lc_post('mfa_code',60));
+    return true;
 }
 function lc_account_admin_validate(array $payload,bool $isCreate=false): array {
     $name=trim((string)($payload['full_name']??''));
@@ -82,6 +86,9 @@ function lc_account_admin_routes(string $method,string $path): bool {
 <label class="field"><span>WhatsApp (opcional)</span><input name="whatsapp" data-lc-mask="phone" inputmode="tel" placeholder="(85) 99999-9999" maxlength="18"></label>
 <label class="field"><span>Senha inicial (mínimo 12 caracteres)</span><input type="password" name="new_password" autocomplete="new-password" minlength="12" maxlength="128" required></label>
 <label class="field full"><span>Confirme sua senha de administrador</span><input type="password" name="admin_password" autocomplete="current-password" required></label>
+<?php if(lc_mfa_enabled((int)lc_admin()['id'])):?>
+<label class="field full"><span>Código Google Authenticator</span><input name="mfa_code" maxlength="60" required autocomplete="one-time-code"></label>
+<?php endif;?>
 </div><div class="form-actions"><button class="btn" type="submit">Criar administrador →</button></div>
 </form></div><a class="btn btn-ghost" href="/admin/contas">Gerenciar todas as contas</a>
 </div>
@@ -130,11 +137,18 @@ function lc_account_admin_routes(string $method,string $path): bool {
                       [$f['name'],$f['email'],$f['whatsapp'],$f['instagram'],$f['role'],$f['status'],
                        $password,$f['pix']!==''?lc_encrypt($f['pix']):null,$f['status'],$f['status'],
                        (int)$actor['id'],$id]);
+                    // Force other browser sessions of the edited account to sign in again.
+                    $newVersion=lc_mfa_rotate_sessions($id);
                     lc_account_admin_audit((int)$actor['id'],'account.updated',$id,
                         ['fields'=>$changed,'role_from'=>$existing['role'],'role_to'=>$f['role'],
                          'status_from'=>$existing['status'],'status_to'=>$f['status']]);
                 }
-                $db->commit();lc_flash($changed?'Conta atualizada e alteração registrada.':'Nenhuma alteração necessária.');
+                $db->commit();
+                if($changed && $id===(int)$actor['id']){
+                    $_SESSION['mfa_version']=$newVersion;
+                    session_regenerate_id(true);
+                }
+                lc_flash($changed?'Conta atualizada e alteração registrada.':'Nenhuma alteração necessária.');
             }catch(Throwable $e){
                 if(lc_db()->inTransaction())lc_db()->rollBack();
                 lc_flash($e instanceof InvalidArgumentException?$e->getMessage():'Não foi possível atualizar a conta; verifique e-mail e dados.','error');
@@ -159,6 +173,9 @@ function lc_account_admin_routes(string $method,string $path): bool {
 <label class="field"><span>Nova senha (deixe vazio para manter)</span><input name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="128"></label>
 <label class="field"><span>Substituir chave Pix (opcional)</span><input name="new_pix_key" autocomplete="off" maxlength="150" placeholder="Nunca exibimos a chave Pix atual"></label>
 <label class="field full"><span>Confirme sua senha administrativa</span><input name="admin_password" type="password" autocomplete="current-password" required></label>
+<?php if(lc_mfa_enabled((int)lc_admin()['id'])):?>
+<label class="field full"><span>Código Google Authenticator</span><input name="mfa_code" maxlength="60" required autocomplete="one-time-code"></label>
+<?php endif;?>
 </div><div class="form-actions"><button class="btn" type="submit">Salvar alterações →</button><a href="/admin/contas">Voltar</a></div>
 </form></div></div><?php },'admin');return true;
         }
