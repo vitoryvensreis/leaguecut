@@ -230,7 +230,6 @@ def main():
     settings_page=get(creator,"/notificacoes")
     assert "Notificações e sons" in settings_page and 'data-notify-enable' in settings_page, "Signed-in foreground notification controls"
     assert 'data-notify-sound' in settings_page and '/assets/notification-preferences.js?v=1' in settings_page, "Sound UI wired"
-    assert 'Manter' not in settings_page or 'notificações' in settings_page.lower(), "Settings page available to pending user"
     assert '/assets/notification-preferences.js?v=1' not in home, "No private notification scripts required for public guests"
 
     register(admin,"admin@leaguecut.test","Admin Teste")
