@@ -1,0 +1,32 @@
+/* LeagueCut LGPD: accessible consent banner + subject request cards. */
+.lc-cookie-banner{
+ position:fixed;z-index:110;right:clamp(12px,2.5vw,32px);bottom:clamp(12px,2vw,24px);
+ width:min(550px,calc(100vw - 24px));max-height:min(85dvh,690px);overflow-y:auto;
+ background:#171a23;border:1px solid #ffffff3b;border-top:3px solid var(--accent);
+ border-radius:16px;box-shadow:0 22px 76px #000c;padding:clamp(16px,2vw,24px);
+ color:#f7f8fb;overscroll-behavior:contain;
+}
+.lc-cookie-header{display:flex;gap:12px;align-items:baseline;justify-content:space-between;flex-wrap:wrap}
+.lc-cookie-header strong{font-size:1.13rem}
+.lc-cookie-header a{font-size:.79rem;text-decoration:underline;color:#ffb7c3}
+.lc-cookie-form>p{font-size:.87rem;color:#d3d7e0;margin:12px 0}
+.lc-cookie-actions{display:flex;align-items:center;flex-wrap:wrap;gap:10px;margin-top:14px}
+.lc-cookie-actions>.btn{flex:1 1 140px;min-width:0;min-height:42px}
+.lc-cookie-details{margin-top:14px;border:1px solid #ffffff25;border-radius:9px;padding:11px 13px}
+.lc-cookie-details summary{cursor:pointer;font-weight:750;min-height:23px}
+.lc-cookie-details[open] summary{margin-bottom:11px}
+.lc-cookie-details p{font-size:.8rem;color:#bac4d4;margin:9px 0}
+.lc-cookie-details label{display:flex;gap:10px;align-items:flex-start;padding:10px 0;color:#e8ecf4;font-size:.81rem}
+.lc-cookie-details input[type=checkbox]{flex:0 0 18px!important;width:18px!important;height:18px!important;min-height:18px!important;max-height:18px!important;margin:1px 0 0!important;padding:0!important;accent-color:var(--accent)}
+.lc-cookie-form :is(button,a,input,summary):focus-visible{outline:2px solid #fff;outline-offset:3px}
+.lc-cookie-form .lc-cookie-note{font-size:.75rem;color:#adb7c6}
+.lc-privacy-request-card{padding:16px 0;border-bottom:1px solid #ffffff25;overflow-wrap:anywhere}
+.lc-privacy-request-card:last-child{border-bottom:0}
+.lc-privacy-request-card p{margin:8px 0}
+.lc-privacy-request-card form{display:grid;gap:11px}
+.lc-privacy-request-card h2{font-size:1.14rem}
+@media(max-width:620px){
+ .lc-cookie-banner{left:8px;right:8px;bottom:max(8px,env(safe-area-inset-bottom));width:auto;max-height:80dvh}
+ .lc-cookie-actions{flex-direction:column}
+ .lc-cookie-actions>.btn{width:100%;flex:0 0 auto}
+}
