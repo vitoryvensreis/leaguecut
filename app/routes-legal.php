@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/legal-entity.php';
 /**
  * Public informational pages required for app-review compliance.
  * Editorial copy must be approved by the operator before publishing.
@@ -13,15 +14,16 @@ function lc_legal_routes(string $method,string $path):bool {
     ];
     if($method!=='GET'||!isset($titles[$path]))return false;
     $title=$titles[$path];
+    $controller=lc_legal_controller();
     header('Cache-Control: public, max-age=300');
-    lc_page($title,static function()use($path,$title){ ?>
+    lc_page($title,static function()use($path,$title,$controller){ ?>
 <main class="container container-md" style="max-width:900px;padding:clamp(24px,5vw,64px) 16px;">
  <div class="page-heading"><span class="eyebrow">Transparência e proteção de dados</span><h1><?=lc_e($title)?></h1>
- <p>League Cut — informação pública sobre o uso da plataforma.</p></div>
+ <p><?=lc_e($controller['product'])?> — um produto da <?=lc_e($controller['business_name'])?>.</p></div>
  <div class="panel" style="padding:clamp(20px,4vw,40px);line-height:1.8">
  <p><small>Atualizado em 16 de outubro de 2026.</small></p>
  <?php if($path==='/politica-de-privacidade'): ?>
- <h2>1. Quem somos</h2><p>O League Cut é uma plataforma de campanhas e clipes, usada por clipadores, criadores e administradores. Esta política explica as informações necessárias à operação do serviço e ao uso opcional das integrações sociais.</p>
+ <h2>1. Quem somos e quem trata os dados</h2><p>O LeagueCut é um produto da <?=lc_e($controller['business_name'])?>, inscrita no CNPJ sob o nº <?=lc_e($controller['cnpj'])?>. A empresa atua como controladora dos dados pessoais tratados no âmbito do LeagueCut quando define as finalidades e os meios desse tratamento. A identificação e o contato completos constam no final desta página. Esta política descreve o tratamento necessário à operação do serviço e ao uso opcional de integrações sociais.</p>
  <h2>2. Informações tratadas</h2><p>Conforme a funcionalidade utilizada, podemos tratar dados cadastrais e de contato, perfis de redes sociais cadastrados, links de publicações, vídeos enviados, registros de campanhas, visualizações e resultados, dados de pagamento e registros técnicos de segurança e acesso.</p>
  <h2>3. Perfis e métricas sociais</h2><p>Os perfis de Instagram são cadastrados manualmente. Enquanto a integração oficial da Meta aguarda aprovação, consultamos visualizações públicas de publicações elegíveis usando a Apify, um prestador externo; o cadastro do perfil não comprova sua titularidade. Em outras redes, onde houver conexão autorizada, podemos tratar identificadores, permissões e tokens necessários à integração. Os tokens não são exibidos publicamente.</p>
  <h2>4. Finalidades e fundamentos</h2><p>Os dados são usados para cadastro e acesso, gestão e verificação de clipes, execução de campanhas, atendimento, prevenção de fraude, segurança, obrigações legais e financeiras e integrações autorizadas. O tratamento deve observar as bases legais aplicáveis da LGPD, conforme cada finalidade.</p>
@@ -38,7 +40,7 @@ function lc_legal_routes(string $method,string $path):bool {
  <h2>Como gerenciar</h2><p>Ao entrar, você pode aceitar, rejeitar ou personalizar a escolha. Uma identificação aleatória e protegida é armazenada no navegador por até 180 dias para lembrar a opção; o servidor mantém histórico de escolhas por navegador para fins de prestação de contas, sem registrar endereço IP neste histórico. Você pode alterá-la em <a href="/preferencias-de-privacidade">Preferências de Privacidade</a> a qualquer momento.</p>
  <h2>Conteúdo externo e plataformas</h2><p>Ao acessar mídias, links e integrações externas autorizadas, terceiros podem tratar dados conforme suas respectivas políticas. A proteção desses fluxos demanda verificação específica dos serviços e contratos usados pela operação.</p>
  <?php elseif($path==='/termos-de-uso'): ?>
- <h2>1. Uso da plataforma</h2><p>O League Cut organiza campanhas, publicações e clipes. Ao se cadastrar, o usuário deve fornecer informações verdadeiras, manter a segurança de sua conta e respeitar as regras das campanhas e das redes sociais utilizadas.</p>
+ <h2>1. Uso da plataforma</h2><p>O LeagueCut, produto da <?=lc_e($controller['business_name'])?>, organiza campanhas, publicações e clipes. Ao se cadastrar, o usuário deve fornecer informações verdadeiras, manter a segurança de sua conta e respeitar as regras das campanhas e das redes sociais utilizadas.</p>
  <h2>2. Conteúdos e direitos</h2><p>O usuário declara possuir os direitos e autorizações necessários sobre os vídeos, marcas, imagens e materiais enviados, respeitando direitos de terceiros. O envio permite o tratamento do conteúdo para análise, organização e execução da campanha, observadas suas condições específicas.</p>
  <h2>3. Aprovação, métricas e remuneração</h2><p>Envios podem passar por revisão. A existência de visualizações observadas não implica aprovação nem pagamento automático. Metas, elegibilidade, prazos, valores e eventuais bônus dependem das regras expressas de cada campanha ou contratação.</p>
  <h2>4. Condutas proibidas</h2><p>São vedados fraudes de métricas, uso de contas de terceiros sem autorização, manipulação de resultados, violações de propriedade intelectual e tentativas de comprometer a segurança da plataforma.</p>
@@ -52,6 +54,13 @@ function lc_legal_routes(string $method,string $path):bool {
  <h2>Revogar acesso às redes sociais</h2><p>Você também pode revogar a autorização concedida ao League Cut nas configurações de aplicativos conectados do Instagram ou TikTok. A revogação impede novos acessos autorizados, mas não substitui a solicitação de exclusão dos dados já armazenados.</p>
  <h2>Outras informações</h2><p>Consulte nossa <a href="/politica-de-privacidade">Política de Privacidade</a> e os <a href="/termos-de-uso">Termos de Uso</a>. Esta página é pública e não exige login.</p>
  <?php endif; ?>
+ <section class="lc-legal-controller" aria-labelledby="lc-legal-company-heading">
+ <h2 id="lc-legal-company-heading">Empresa responsável pelo LeagueCut</h2>
+ <p><strong><?=lc_e($controller['business_name'])?></strong> — CNPJ <?=lc_e($controller['cnpj'])?>.</p>
+ <p><strong>Endereço cadastral:</strong> <?=lc_e($controller['address'])?>.</p>
+ <p><strong>Contato para assuntos de privacidade:</strong>
+ <a href="mailto:<?=lc_e($controller['privacy_email'])?>"><?=lc_e($controller['privacy_email'])?></a>.</p>
+ </section>
  </div>
  <nav aria-label="Documentos legais" style="display:flex;gap:18px;flex-wrap:wrap;margin-top:20px;">
  <a href="/politica-de-privacidade">Privacidade</a>
