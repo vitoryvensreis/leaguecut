@@ -373,3 +373,9 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Envio em `/admin/notificacoes`, somente ADM aprovado com confirmação de senha: destinatários específicos (IDs, até 30), todos os aprovados, clipadores ou criadores. Até 5.000 destinatários por operação, intervalo mínimo de dois minutos por operador.
 - Cada destinatário recebe evento privado `scope=user`; a interface mostra título e mensagem apenas para quem recebeu. WebSocket e consulta HTTP respeitam papel e ID, incluindo criadores; Web Push inclui evento com payload genérico, respeitando VAPID e opt-in.
 - Registros de envio persistem como eventos; nenhum envio em massa via WhatsApp/e-mail foi habilitado. Teste em `tests/notice_targeting.php`. **Aguardar CI/deploy e homologação VAPID real.**
+
+### B7C — Responsáveis, SLA e relatórios de chamados
+
+- ADM define responsável aprovado e prazo em horas a partir da abertura; defaults de interface: alta 8 horas, normal 48 horas (editáveis por chamado). Alterações auditadas em `support_ticket_management_audit` e estado corrente em `support_ticket_tracking`.
+- Página `/admin/chamados/relatorios`: volumes por status, vencidos, sem SLA, divisão por ADM, chamados vencidos; privativa para ADM. Nenhum pagamento automático ou notificação em massa do SLA.
+- Migração aditiva de duas tabelas com backup antes do DDL e idempotência. `tests/support_management.php`. **Status: aguardando CI, merge e deploy.**

@@ -49,3 +49,8 @@ background:#10151e;transition:background .18s,border-color .18s}
 .lc-ticket-pager a{border:1px solid #ffffff2b;border-radius:8px;padding:9px 13px;color:#f1d5db;text-decoration:none}
 .lc-ticket-pager a:hover{border-color:#ff7180;background:#df26451a}
 .lc-ticket-pager span{color:#b9c4d5;font-size:.88rem}
+
+.lc-support-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px}
+.lc-support-kpis>div{border:1px solid #ffffff25;border-radius:10px;padding:16px;background:#10151e}
+.lc-support-kpis strong{display:block;font-size:1.6rem;font-variant-numeric:tabular-nums}
+.lc-support-kpis span{color:#a9b6c6;font-size:.84rem}
