@@ -403,3 +403,11 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Manifest atualizado para ícone normal e maskable, Apple Touch 180x180, cache/versionamento de SW e splash, e Web Push com ícone atualizado.
 - Compartilhamento usa card `https://leaguecut.com/share/leaguecut.png?v=3` de 1200x630 (Open Graph e Twitter); imagem social customizada do ADM prevalece quando definida. URLs privadas não recebem OG público.
 - Após deploy, ao instalar no iPhone via Safari, remova e instale novamente se o sistema mantiver ícone antigo em cache. Não altera as chaves VAPID nem o banco.
+
+### B8.3 — Compartilhamento premium (16/10/2026)
+
+- Arte aprovada em `public/assets/leaguecut-share-clean-2026.jpg`, JPG 1200×630, ~62 KB. URL HTTPS estática e única para caches de compartilhamento.
+- Metadata OG para WhatsApp e Twitter usam a arte atual (ou imagem personalizada no ADM), com descrição, dimensões e MIME image/jpeg.
+- A página `/admin/seo` já permite personalizar título, descrição e imagem, via upload ou URL HTTPS; a prévia foi corrigida para sempre mostrar a imagem efetiva.
+- Script idempotente `bin/activate-social-share.php` ativa a arte uma única vez, após deploy saudável, preserva a configuração anterior e não altera escolhas futuras do administrador.
+- WhatsApp pode manter cache por URL de compartilhamento; após deploy testar em conversa usando URL com parâmetro opcional `?share=20261016`.
