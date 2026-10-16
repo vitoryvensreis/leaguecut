@@ -60,7 +60,6 @@ function lc_legal_routes(string $method,string $path):bool {
  <p><strong>Endereço cadastral:</strong> <?=lc_e($controller['address'])?>.</p>
  <p><strong>Contato para assuntos de privacidade:</strong>
  <a href="mailto:<?=lc_e($controller['privacy_email'])?>"><?=lc_e($controller['privacy_email'])?></a>.</p>
- <p class="hint">Este endereço eletrônico é um canal de contato. A divulgação dele não constitui, por si só, designação formal de encarregado pelo tratamento de dados (DPO).</p>
  </section>
  </div>
  <nav aria-label="Documentos legais" style="display:flex;gap:18px;flex-wrap:wrap;margin-top:20px;">
