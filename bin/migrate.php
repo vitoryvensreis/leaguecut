@@ -317,6 +317,18 @@ try{
         $db->exec($auditSql);
     }
     echo "MIGRACAO_REQUEST_AUDIT_OK\n";
+    // B2b2: encrypted transactional codes; backup before any schema addition.
+    $otpTable=(bool)lc_one("SELECT 1 AS present FROM information_schema.TABLES
+       WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='account_otp_challenges'");
+    if(!$otpTable){
+        lc_migration_backup();
+        $otpSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_account_otp.sql'));
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS account_otp_challenges\s*\(/i',$otpSql))
+            throw new RuntimeException('Migração de confirmação OTP inválida.');
+        $db->exec($otpSql);
+    }
+    echo "MIGRACAO_ACCOUNT_OTP_OK\n";
+
 
 
 
