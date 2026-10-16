@@ -74,7 +74,7 @@ function lc_ranking_routes(string $method,string $path): bool {
 <div class="lc-leaderboard-row <?=$pos<3?'is-podium':''?>" data-arena-position="<?=$pos+1?>" role="listitem">
 <span class="lc-leaderboard-pos"><?=$pos+1?>º</span>
 <span class="lc-leaderboard-avatar" aria-hidden="true"><?=lc_e(strtoupper(substr($person['nickname'],0,1)))?></span>
-<span class="lc-leaderboard-player"><strong>@<?=lc_e($person['nickname'])?></strong>
+<span class="lc-leaderboard-player"><strong>@<?=lc_e($person['nickname'])?> <?=lc_rank_trophy($pos+1)?></strong>
 <small><?=(int)$person['clips']?> <?=!empty($person['is_demo'])?'clipes simulados':'clipes aprovados'?></small></span>
 <span class="lc-leaderboard-views"><?=number_format((int)$person['views'],0,',','.')?><small><?=!empty($person['is_demo'])?'views fictícias':'visualizações'?></small></span>
 </div>

@@ -9,6 +9,25 @@ function lc_icon(string $name, string $class = ''): string {
     return '<svg class="lc-icon ' . lc_e($class) . '" aria-hidden="true" focusable="false"><use href="/assets/icons.svg#' . lc_e($name) . '"></use></svg>';
 }
 
+
+/**
+ * One small, accessible trophy for podium positions only.
+ * No changes to ranking, rewards, profile information or calculation.
+ */
+function lc_rank_trophy(int $position): string {
+    $medals=[
+        1=>['gold','ouro'],
+        2=>['silver','prata'],
+        3=>['bronze','bronze']
+    ];
+    if(!isset($medals[$position]))return '';
+    [$tone,$label]=$medals[$position];
+    $title=$position.'º lugar · Troféu de '.$label;
+    return '<span class="lc-rank-trophy lc-rank-trophy--'.$tone.'" data-rank-medal="'.$position.'" '.
+        'role="img" aria-label="'.lc_e($title).'" title="'.lc_e($title).'">'.
+        lc_icon('trophy','lc-rank-trophy-icon').'</span>';
+}
+
 /** Portuguese, accessible status labels without changing persisted enum values. */
 /** Escape sensitive display content and enable the page-wide visual privacy toggle. */
 function lc_private(mixed $value): string {
@@ -154,6 +173,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/arena.css?v=1">
 <?php if($path==='/admin/seo'): ?><link rel="stylesheet" href="/assets/seo-admin.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b4b-arena-polish.css?v=1">
+<link rel="stylesheet" href="/assets/rank-trophies.css?v=1">
 <?php if($path==='/admin/bonus-mensal'): ?><link rel="stylesheet" href="/assets/monthly-bonuses.css?v=1"><?php endif; ?>
 <?php if($u): ?><link rel="stylesheet" href="/assets/privacy-toggle.css?v=1"><?php endif; ?>
 <?php if(in_array($path,['/indicacoes','/admin/indicacoes'],true)): ?><link rel="stylesheet" href="/assets/referrals.css?v=1"><?php endif; ?>
