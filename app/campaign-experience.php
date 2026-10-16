@@ -62,7 +62,7 @@ function lc_campaign_leaderboard(int $campaignId,?array $viewer): void {
     <?php foreach([1,0,2] as $positionIndex):if(!isset($ranking[$positionIndex]))continue;
       $p=$ranking[$positionIndex];$medal=$p['rank']===1?'Ouro':($p['rank']===2?'Prata':'Bronze');?>
       <article class="lc-podium-player lc-podium-player-<?=$p['rank']?> <?=$own===(int)$p['user_id']?'is-me':''?>" data-arena-position="<?=$p['rank']?>">
-        <span class="lc-podium-place">#<?=$p['rank']?> · <?=lc_e($medal)?></span>
+        <span class="lc-podium-place">#<?=$p['rank']?> <?=lc_rank_trophy((int)$p['rank'])?> · <?=lc_e($medal)?></span>
         <div class="lc-podium-avatar" aria-hidden="true"><?=lc_e(mb_strtoupper(mb_substr($p['nickname'],0,1)))?></div>
         <strong><?=lc_e('@'.(string)$p['nickname'])?></strong>
         <span class="lc-podium-level">Nível <?=$p['level']?></span>
@@ -78,7 +78,7 @@ function lc_campaign_leaderboard(int $campaignId,?array $viewer): void {
       <span class="lc-rank-number">#<?=$p['rank']?></span>
       <span class="lc-rank-row-user">
         <span class="lc-rank-row-avatar"><?=lc_e(mb_strtoupper(mb_substr($p['nickname'],0,1)))?></span>
-        <span><strong><?=lc_e('@'.(string)$p['nickname'])?><?=$own===(int)$p['user_id']?' · Você':''?></strong><small>Nível <?=$p['level']?> · <?=$p['approved_clips']?> <?=$p['approved_clips']===1?'clipe aprovado':'clipes aprovados'?></small></span>
+        <span><strong><?=lc_e('@'.(string)$p['nickname'])?> <?=lc_rank_trophy((int)$p['rank'])?><?=$own===(int)$p['user_id']?' · Você':''?></strong><small>Nível <?=$p['level']?> · <?=$p['approved_clips']?> <?=$p['approved_clips']===1?'clipe aprovado':'clipes aprovados'?></small></span>
       </span>
       <span class="lc-rank-row-view"><?=number_format($p['public_views'],0,',','.')?><small>views</small></span>
       <span class="lc-rank-row-xp"><?=number_format($p['xp'],0,',','.')?> XP<small><?=$p['next_xp']>0?'Faltam '.$p['next_xp'].' XP':'Nível máximo'?></small></span>
