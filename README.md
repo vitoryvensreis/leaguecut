@@ -379,3 +379,10 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - ADM define responsável aprovado e prazo em horas a partir da abertura; defaults de interface: alta 8 horas, normal 48 horas (editáveis por chamado). Alterações auditadas em `support_ticket_management_audit` e estado corrente em `support_ticket_tracking`.
 - Página `/admin/chamados/relatorios`: volumes por status, vencidos, sem SLA, divisão por ADM, chamados vencidos; privativa para ADM. Nenhum pagamento automático ou notificação em massa do SLA.
 - Migração aditiva de duas tabelas com backup antes do DDL e idempotência. `tests/support_management.php`. **Status: aguardando CI, merge e deploy.**
+
+### B7D — VAPID privado e teste individual de Web Push
+
+- Após `composer install`, workflow de deploy invoca gerador de VAPID na conta isolada LeagueCut, usando e-mail de contato público já documentado na política de privacidade. Chaves são mantidas apenas em `/home/leaguecut/shared/.env` com backup privado e modo 0600, sem divulgá-las. Reexecutar não altera par existente.
+- O workflow confirma apenas presença de par VAPID válido por marcador sem segredos. **As flags `PUSH_REGISTRATION_ENABLED` e `PUSH_SENDING_ENABLED` NÃO são alteradas por este bloco.** Sem ambas ativadas por operador no `.env`, não há cadastro nem envio real.
+- Teste opt-in em `/notificacoes`: botão dispara evento exclusivo do próprio usuário, após ele ter habilitado Push no navegador; throttle 5 minutos. Worker VAPID agenda envio do evento `push.test`, com payload genérico. Testes em CI usam transporte simulado e não comprovam recebimento visual.
+- Homologação restante: operador habilitar flags **somente após conferir segurança e chaves**, usuário autorizar no navegador/PWA, clicar em teste, aguardar e confirmar que recebeu; se falhar desligar flags. Recebimento real não pode ser afirmado apenas pela aprovação do GitHub Actions.
