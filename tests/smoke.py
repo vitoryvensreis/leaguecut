@@ -418,11 +418,8 @@ def main():
     assert support_id and "Problema no envio de clipes" in created, "User ticket created"
     assert f'href="/admin/chamados/{support_id.group(1)}"' in get(admin,"/admin/chamados"), "Admin ticket queue"
     assert "Solicitação de teste" in get(admin,"/admin/chamados/"+support_id.group(1)), "Admin ticket detail"
-    try:
-        get(make_client(),"/suporte/"+support_id.group(1))
-        raise AssertionError("Guest should not access a private ticket")
-    except Exception as exc:
-        assert "login" in str(exc).lower() or "http" in str(exc).lower() or "redirect" in str(exc).lower() or isinstance(exc,AssertionError)==False
+    guest_ticket=get(make_client(),"/suporte/"+support_id.group(1))
+    assert "Problema no envio de clipes" not in guest_ticket, "Guest cannot read ticket"
     creator_dashboard=get(creator,"/dashboard")
     assert "Olá," in creator_dashboard
     assert "Seu próximo passo" in creator_dashboard
