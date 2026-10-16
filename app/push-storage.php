@@ -74,7 +74,7 @@ function lc_push_subscription_routes(string $method,string $path): bool {
     $uid=(int)$user['id'];
     header('Content-Type: application/json; charset=UTF-8');
     header('Cache-Control: private, no-store');
-    if(!lc_push_registration_enabled()){
+    if(!lc_push_send_ready()){
         http_response_code(503);
         echo '{"ok":false,"message":"Notificações em segundo plano ainda não estão disponíveis."}';
         return true;

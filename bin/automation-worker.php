@@ -71,3 +71,14 @@ foreach($pending as $job){
         fwrite(STDERR,"AUTOMATION_FAILED #".$job['id']." (".$channel.")\n");
     }
 }
+
+/* B6D2b2: uses existing single-instance, flock-protected LeagueCut cron.
+   Fail closed unless both opt-in registration and sender flags plus VAPID exist. */
+require_once dirname(__DIR__).'/app/push-storage.php';
+require_once dirname(__DIR__).'/app/push-sender.php';
+try {
+    $stats=lc_push_send_batch();
+    if($stats['accepted']>0)echo "PUSH_PROVIDER_ACCEPTED=".$stats['accepted']."\n";
+} catch(Throwable $e) {
+    error_log('LEAGUECUT_PUSH_WORKER_ERROR');
+}

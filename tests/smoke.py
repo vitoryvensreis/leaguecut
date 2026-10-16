@@ -230,6 +230,15 @@ def main():
     settings_page=get(creator,"/notificacoes")
     assert "Notificações e sons" in settings_page and 'data-notify-enable' in settings_page, "Signed-in foreground notification controls"
     assert 'data-notify-sound' in settings_page and '/assets/notification-preferences.js?v=1' in settings_page, "Sound UI wired"
+    assert 'id="lc-push-background"' in settings_page, "Background push settings available"
+    assert 'data-background-on' in settings_page and 'data-background-off' in settings_page, "Subscribe and revoke per device"
+    assert '/assets/background-push.js?v=1' in settings_page, "Background push browser registration JS"
+    assert 'data-vapid=""' in settings_page, "VAPID unavailable by default; disabled until configured"
+    assert 'Web Push aguardando' in settings_page, "Fail-closed push interface explains unavailability"
+    with creator.open(BASE+"/sw.js",timeout=12) as response:
+        worker=response.read().decode("utf-8")
+    assert "self.addEventListener('push'" in worker and "self.addEventListener('notificationclick'" in worker, "PWA handles background messages"
+
     assert '/assets/notification-preferences.js?v=1' not in home, "No private notification scripts required for public guests"
 
     register(admin,"admin@leaguecut.test","Admin Teste")
