@@ -114,6 +114,7 @@ def main():
     home=get(creator,"/")
     assert "Seu talento." in home, "Landing hero"
     assert "Perguntas frequentes" in home, "FAQ section"
+    assert 'href="/ranking"' in home, "Public nickname ranking linked from home"
     assert 'href="/explorar"' in home, "Catalog link"
     assert "Novas campanhas em breve" in get(creator,"/explorar"), "Catalog empty state"
     assert "Campanhas</a>" in home, "Catalog navigation"
@@ -453,7 +454,7 @@ def main():
     assert "R$ 75,00" in finance, "Five clips (R$75); public views do not auto-credit"
     rank_page=get(creator,"/campanhas/"+slug.group(1))
     assert "Ranking da campanha" in rank_page and "lc-podium" in rank_page
-    assert "Criador T." in rank_page and "500 XP" in rank_page, "Five approved clips yield 500 XP"
+    assert re.search(r"@lc_\\d+",rank_page) and "500 XP" in rank_page, "Five approved clips yield 500 XP with public nick"
     assert "5 clipes aprovados" in rank_page
     guest_campaign=get(make_client(),"/campanhas/"+slug.group(1))
     assert "Clipador #" in guest_campaign and "Criador T." not in guest_campaign, "Anonymous rankings mask names"
