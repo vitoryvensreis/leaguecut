@@ -228,7 +228,11 @@ function lc_clip_preview_modal(): void { ?>
 <script defer src="/assets/clip-preview.js?v=8"></script>
 <?php }
 function lc_field(string $label, string $name, string $type = 'text', string $value = '', bool $required = false, string $placeholder = '', string $extra = ''): void {
-?><label class="field"><span><?=lc_e($label)?></span><input name="<?=lc_e($name)?>" type="<?=lc_e($type)?>" value="<?=lc_e($value)?>" placeholder="<?=lc_e($placeholder)?>" <?=$required?'required':''?> <?=$extra?>></label><?php
+    // Whitelist currency fields. Never apply currency formatting to percent inputs.
+    $isMoney=$type==='text'&&in_array($name,['amount','bonus_amount','payment_per_video','milestone_bonus','monthly_leader_bonus','monthly_price','fixed_value'],true);
+    $mask=$isMoney?'data-lc-mask="money"':'';
+    $inputMode=$isMoney&&!str_contains($extra,'inputmode=')?'inputmode="decimal"':'';
+?><label class="field"><span><?=lc_e($label)?></span><input name="<?=lc_e($name)?>" type="<?=lc_e($type)?>" value="<?=lc_e($value)?>" placeholder="<?=lc_e($placeholder)?>" <?=$required?'required':''?> <?=$mask?> <?=$inputMode?> <?=$extra?>></label><?php
 }
 function lc_empty(string $title, string $details): void {
 ?><div class="empty"><span class="empty-icon"><?=lc_icon("sparkles")?></span><h3><?=lc_e($title)?></h3><p><?=lc_e($details)?></p></div><?php
