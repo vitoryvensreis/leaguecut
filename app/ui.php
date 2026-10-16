@@ -110,6 +110,10 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <html lang="pt-BR"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="<?=lc_e($primary)?>">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="/app-icon/192.png">
 <title><?=lc_e($seo['title'])?></title>
 <?php lc_seo_head($seo); ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -201,6 +205,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 </main>
 <?php if($workspace): ?></div></div><?php endif; ?>
 <footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span>
+<button type="button" class="btn btn-ghost btn-sm" data-pwa-install hidden>Instalar LeagueCut</button>
 <nav class="lc-footer-nav" aria-label="Informações legais">
 <a href="/planos">Planos para criadores</a><a href="/politica-de-privacidade">Privacidade</a>
 <a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a></nav>
@@ -215,6 +220,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <script src="/assets/flow-editor.js?v=2" defer></script><?php endif; ?>
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
+<script src="/assets/pwa.js?v=1" defer></script>
 <script src="/assets/input-masks.js?v=1" defer></script>
 <?php if($u): ?><script src="/assets/privacy-toggle.js?v=1" defer></script><?php endif; ?>
 </body></html><?php
