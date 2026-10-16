@@ -161,3 +161,21 @@ function lc_mfa_session_is_valid(int $uid): bool {
     }
     return true;
 }
+
+
+/** Create otpauth QR entirely on the LeagueCut server; no remote image URL or API. */
+function lc_mfa_setup_qr(string $secret,string $email): string {
+    if(lc_mfa_base32_decode($secret)==='' || !filter_var($email,FILTER_VALIDATE_EMAIL))
+        throw new InvalidArgumentException('Dados inválidos para cadastro do autenticador.');
+    if(!class_exists(\chillerlan\QRCode\QRCode::class))
+        throw new RuntimeException('Gerador de QR local ainda não está instalado.');
+    $label=rawurlencode('LeagueCut:'.$email);
+    $uri='otpauth://totp/'.$label.'?secret='.$secret.
+        '&issuer=LeagueCut&algorithm=SHA1&digits=6&period=30';
+    $options=new \chillerlan\QRCode\QROptions;
+    $options->outputBase64=true;
+    $uriImage=(new \chillerlan\QRCode\QRCode($options))->render($uri);
+    if(!str_starts_with($uriImage,'data:image/svg+xml;base64,'))
+        throw new RuntimeException('Formato de QR inesperado.');
+    return $uriImage;
+}

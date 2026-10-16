@@ -108,10 +108,11 @@ function lc_mfa_routes(string $method,string $path): bool {
            (int)($_SESSION['mfa_setup_expires']??0)>=time()
           ?lc_decrypt((string)$_SESSION['mfa_setup_secret_enc']):'';
         if($enabled)$setupSecret='';
+        $setupQr=$setupSecret!==''?lc_mfa_setup_qr($setupSecret,(string)$u['email']):'';
         $recovery=$_SESSION['mfa_recovery_once']??[];
         unset($_SESSION['mfa_recovery_once']);
         $events=lc_all('SELECT action,created_at FROM account_security_events WHERE user_id=? ORDER BY id DESC LIMIT 12',[$uid]);
-        lc_page('Autenticação em duas etapas',function()use($u,$enabled,$setupSecret,$recovery,$events){?>
+        lc_page('Autenticação em duas etapas',function()use($u,$enabled,$setupSecret,$setupQr,$recovery,$events){?>
 <div class="container container-md lc-security">
 <?php lc_heading('Proteção da conta','Autenticação em duas etapas','Compatível com Google Authenticator e outros aplicativos TOTP.'); ?>
 <?php if($recovery):?>
@@ -131,7 +132,8 @@ function lc_mfa_routes(string $method,string $path): bool {
 <label class="field"><span>Código do aplicativo ou recuperação</span><input name="mfa_code" autocomplete="one-time-code" required></label>
 <div class="form-actions"><button type="submit" class="btn btn-ghost">Desativar 2FA</button></div></form>
 <?php elseif($setupSecret!==''):?>
-<p>No Google Authenticator, toque em <strong>Adicionar código → Inserir chave de configuração</strong>. Escolha <strong>Baseado em tempo</strong>.</p>
+<p>Abra o Google Authenticator, toque em <strong>Adicionar → Ler QR Code</strong> e escaneie a imagem. Se preferir, use a chave manual abaixo.</p>
+<div class="lc-mfa-qr-frame"><img src="<?=lc_e($setupQr)?>" width="240" height="240" alt="QR Code privado para ativação do Google Authenticator" loading="eager" referrerpolicy="no-referrer"></div>
 <p class="hint">Nome da conta: <?=lc_e($u['email'])?> | Emissor: LeagueCut</p>
 <label class="field"><span>Chave secreta (copie no seu aplicativo; não compartilhe)</span>
 <input readonly value="<?=lc_e($setupSecret)?>" spellcheck="false" autocomplete="off"></label>

@@ -1,0 +1,5 @@
+/* Private setup QR: generated on server, not loaded from a third-party host. */
+.lc-mfa-qr-frame{display:flex;justify-content:center;align-items:center;width:max-content;
+max-width:100%;padding:16px;margin:16px 0;border-radius:14px;background:#fff;
+border:1px solid #d6d6d6;box-shadow:0 12px 34px rgba(0,0,0,.2)}
+.lc-mfa-qr-frame img{display:block;width:240px;max-width:min(240px,75vw);height:auto;aspect-ratio:1}
