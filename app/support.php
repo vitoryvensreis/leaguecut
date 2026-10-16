@@ -180,6 +180,7 @@ function lc_support_routes(string $method,string $path): bool {
         lc_page('Chamados',function()use($list,$filter){?>
 <div class="container lc-support-page">
 <?php lc_heading('Atendimento','Chamados dos usuários','Acompanhe solicitações recebidas de clipadores e criadores.'); ?>
+<p><a href="/admin/chamados/relatorios">Ver relatórios de atendimento e SLA →</a></p>
 <section class="panel"><nav class="lc-ticket-filters" aria-label="Filtrar chamados">
 <?php foreach(['all'=>'Todos','open'=>'Abertos','in_progress'=>'Em atendimento','answered'=>'Respondidos','closed'=>'Encerrados'] as $value=>$label):
 $link=lc_support_list_url(true,$value,(string)$list['q'],1);?>
@@ -199,12 +200,14 @@ $link=lc_support_list_url(true,$value,(string)$list['q'],1);?>
     $id=(int)substr($path,strrpos($path,'/')+1);
     $ticket=lc_support_get($id,$viewer);
     if(!$ticket){http_response_code(404);lc_page('Chamado não encontrado',function(){?><div class="container"><h1>Chamado não encontrado</h1><p>Confira o número do protocolo.</p></div><?php },$adminView?'admin':'dashboard');return true;}
+    $tracking=lc_support_tracking($id);
+    $admins=$adminView?lc_all("SELECT id,nickname FROM users WHERE role='admin' AND status='approved' ORDER BY nickname ASC LIMIT 100"):[];
     $messages=lc_all('SELECT m.body,m.created_at,u.nickname,u.role FROM support_messages m
         JOIN users u ON u.id=m.author_id WHERE m.ticket_id=? ORDER BY m.id ASC LIMIT 200',[$id]);
     $activity=lc_all("SELECT a.action,a.old_value,a.new_value,a.created_at,u.nickname
        FROM support_ticket_activity a JOIN users u ON u.id=a.actor_id
        WHERE a.ticket_id=? ORDER BY a.id ASC LIMIT 200",[$id]);
-    lc_page('Chamado #'.$id,function()use($ticket,$messages,$activity,$adminView,$id){?>
+    lc_page('Chamado #'.$id,function()use($ticket,$messages,$activity,$tracking,$admins,$adminView,$id){?>
 <div class="container lc-support-page">
 <a href="<?=$adminView?'/admin/chamados':'/suporte'?>">← Voltar aos chamados</a>
 <?php lc_heading('Protocolo #'.$id,(string)$ticket['subject'],
@@ -221,6 +224,25 @@ $link=lc_support_list_url(true,$value,(string)$list['q'],1);?>
 <?php endforeach; ?></div>
 </section>
 <?php if($adminView): ?>
+<section class="panel">
+<h2>Responsável e prazo SLA</h2>
+<p class="hint">O prazo é contado a partir da abertura do chamado. Padrão sugerido: 8 h (alta), 48 h (normal); você pode editar para 1–720 h. Mudanças ficam auditadas.</p>
+<?php if($tracking && $tracking['target_at']): ?>
+<p><strong>Prazo atual:</strong> <?=lc_e(date('d/m/Y H:i',strtotime($tracking['target_at'])))?>
+ · <?=lc_e($tracking['assigned_name']??'Sem responsável')?>
+ <?php if($ticket['status']!=='closed' && strtotime($tracking['target_at'])<time()): ?><strong>· SLA vencido</strong><?php endif; ?></p>
+<?php endif; ?>
+<form method="post" action="/admin/chamados/<?=$id?>/gestao"><?=lc_csrf()?>
+<div class="lc-support-grid">
+<label class="field"><span>Responsável</span><select name="assigned_admin_id">
+<option value="0">Não atribuído</option>
+<?php foreach($admins as $adm): ?><option value="<?=lc_e($adm['id'])?>" <?=(int)($tracking['assigned_admin_id']??0)===(int)$adm['id']?'selected':''?>>@<?=lc_e($adm['nickname']??'Administrador')?></option><?php endforeach; ?>
+</select></label>
+<label class="field"><span>Prazo SLA (horas após abertura)</span><input type="number" name="sla_hours" min="1" max="720" required
+value="<?=lc_e($tracking&&$tracking['target_at']?max(1,(int)round((strtotime($tracking['target_at'])-strtotime($ticket['created_at']))/3600)):($ticket['priority']==='high'?8:48))?>"></label>
+</div>
+<div class="form-actions"><button class="btn btn-ghost" type="submit">Salvar responsável e SLA</button></div>
+</form></section>
 <section class="panel">
 <h2>Gerenciar atendimento</h2>
 <form method="post" action="/admin/chamados/<?=$id?>/atualizar"><?=lc_csrf()?>
