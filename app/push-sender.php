@@ -47,7 +47,9 @@ function lc_push_queue_new(): int {
         AND e.event_type IN
           ('creator.registered','creator.approved','creator.reviewed',
            'clip.submitted','clip.reviewed','withdrawal.requested',
-           'withdrawal.updated','campaign.updated','automation.notice')
+           'withdrawal.updated','campaign.updated','automation.notice',
+           'support.ticket.created','support.ticket.replied',
+           'support.ticket.answered','support.ticket.updated')
       ORDER BY e.id ASC LIMIT 120")->rowCount();
 }
 function lc_push_sender_instance(): \Minishlink\WebPush\WebPush {
