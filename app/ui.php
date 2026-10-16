@@ -61,6 +61,7 @@ function lc_workspace_links(array $u): array {
           ['Indicações','/indicacoes','users-round'],
           ['Notificações','/notificacoes','bell'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check'],
+          ['Dispositivos conectados','/seguranca/dispositivos','shield-check'],
         ];
     }
     return [

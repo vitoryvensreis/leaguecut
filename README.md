@@ -361,3 +361,9 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Busca SQL parametrizada com escopo obrigatório de proprietário, limite de tamanho, escaping de curingas e paginação no servidor. Sem migração de banco ou mudanças financeiras.
 - Teste novo tests/support_listing.php cobre isolamento entre contas, filtro, paginação, pesquisa literal e URLs. CI integrado aprovado (https://github.com/vitoryvensreis/leaguecut/actions/runs/38936851206). Revisão manual de busca no navegador permanece recomendada.
 - **Operacional independente:** Web Push VAPID ainda exige chaves privadas no .env da VPS e homologação real; não ativar flags automaticamente.
+
+### B7A — Painel de dispositivos persistentes
+
+- Rota `/seguranca/dispositivos` mostra somente tokens de login persistente do próprio usuário, com datas e ação de revogação por POST/CSRF. Não expõe segredos.
+- Revogar impede futuras restaurações pelo cookie; sessões PHP já abertas permanecem ativas até logout/expiração, e trocar a senha invalida todas.
+- Teste `tests/devices.php`. Nenhuma nova migração. Aguardar CI, deploy e teste da interface antes de marcar publicado.
