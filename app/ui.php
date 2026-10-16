@@ -141,6 +141,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><link rel="stylesheet" href="/assets/flow-canvas-v2.css?v=1"><?php endif; ?><?php endif; ?>
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
+<link rel="stylesheet" href="/assets/b6-layout.css?v=1">
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
@@ -199,7 +200,14 @@ function lc_page(string $title, callable $body, string $active = ''): void {
   <?php $body(); ?>
 </main>
 <?php if($workspace): ?></div></div><?php endif; ?>
-<footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span><nav aria-label="Informações legais" style="display:flex;gap:14px;flex-wrap:wrap"><a href="/planos">Planos para criadores</a><a href="/politica-de-privacidade">Privacidade</a><a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a></nav></footer>
+<footer class="site-footer"><span><?=lc_e($brand)?> © <?=date('Y')?></span>
+<nav class="lc-footer-nav" aria-label="Informações legais">
+<a href="/planos">Planos para criadores</a><a href="/politica-de-privacidade">Privacidade</a>
+<a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a></nav>
+<?php $footerSocials=lc_social_footer_links($s); if($footerSocials): ?>
+<nav class="lc-footer-socials" aria-label="Redes sociais oficiais">
+<?php foreach($footerSocials as $social): ?><a href="<?=lc_e($social['url'])?>" target="_blank" rel="noopener noreferrer external"><?=lc_icon('external-link')?> <?=lc_e($social['label'])?></a><?php endforeach;?></nav>
+<?php endif; ?></footer>
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <script src="/assets/ux-upgrade.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>

@@ -132,6 +132,8 @@ def seo_upload_and_save(admin):
         "seo_canonical_base":"https://leaguecut.com",
         "seo_twitter_handle":"@leaguecut",
         "seo_index_enabled":"1","seo_favicon_url":"","seo_social_image_url":"",
+        "social_instagram":"https://www.instagram.com/leaguecut/",
+        "social_tiktok":"https://www.tiktok.com/@leaguecut",
         "admin_password":"This-Is-A-Test-Password-123"
     }
     boundary="leaguecut-ci-seo-upload"
@@ -149,7 +151,16 @@ def seo_upload_and_save(admin):
     with admin.open(req,timeout=18) as response:
         panel=response.read().decode('utf-8')
     assert "SEO atualizado" in panel, "Successful authenticated SEO update"
+    assert 'name="social_instagram"' in panel and 'name="social_tiktok"' in panel, "Admin SEO has official social settings"
+
     homepage=get(make_client(),"/")
+    assert '/assets/b6-layout.css?v=1' in homepage, "Responsive logo/sidebar/header stylesheet"
+    assert 'href="https://www.instagram.com/leaguecut/"' in homepage and 'href="https://www.tiktok.com/@leaguecut"' in homepage, "Configured footer social links"
+    assert '/politica-de-privacidade' in homepage and '/exclusao-de-dados' in homepage and '/termos-de-uso' in homepage, "Legal footer pages linked"
+    for legal in ['/politica-de-privacidade','/exclusao-de-dados','/termos-de-uso']:
+        legal_html=get(make_client(),legal)
+        assert '<h1>' in legal_html, "Legal pages readable without login"
+
     assert 'LeagueCut — Campanhas e conquistas' in homepage, "Home meta title editable"
     assert '<meta property="og:title"' in homepage and '<meta name="twitter:card" content="summary_large_image">' in homepage
     assert 'href="https://leaguecut.com/"' in homepage, "Fixed canonical URL"

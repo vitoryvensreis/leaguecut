@@ -32,6 +32,12 @@ function lc_seo_admin_routes(string $method,string $path): bool {
                 throw new InvalidArgumentException('O usuário X/Twitter deve ter até 15 caracteres, sem links.');
             $next['seo_twitter_handle']=$handle!==''?'@'.ltrim($handle,'@'):'';
             $next['seo_index_enabled']=isset($_POST['seo_index_enabled'])?'1':'0';
+            foreach(lc_social_footer_specs() as $key=>$spec){
+                $url=trim((string)($_POST[$key]??''));
+                if(!lc_social_footer_valid($key,$url))
+                    throw new InvalidArgumentException('Confira o link HTTPS do '.$spec['label'].'. É necessário usar a rede social correspondente.');
+                $next[$key]=$url;
+            }
             foreach(['seo_favicon_url'=>'icon','seo_social_image_url'=>'social'] as $key=>$kind){
                 $url=trim((string)($_POST[$key]??$old[$key]??''));
                 if(!lc_seo_valid_asset($url,$kind))
@@ -118,6 +124,15 @@ function lc_seo_admin_routes(string $method,string $path): bool {
 <a href="/robots.txt" target="_blank" rel="noopener">Conferir robots.txt ↗</a>
 <a href="/sitemap.xml" target="_blank" rel="noopener">Conferir sitemap.xml ↗</a>
 <a href="/" target="_blank" rel="noopener">Ver página inicial ↗</a>
+</div></section>
+<section><h2>Redes sociais oficiais no rodapé</h2>
+<p class="hint">Adicione os links completos dos perfis oficiais. Deixe em branco para ocultar a rede no rodapé. Somente URLs HTTPS da respectiva plataforma são aceitas.</p>
+<div class="form-grid">
+<?php foreach(lc_social_footer_specs() as $key=>$spec): ?>
+<label class="field"><span><?=lc_e($spec['label'])?></span>
+<input type="url" name="<?=lc_e($key)?>" value="<?=lc_e($cfg[$key]??'')?>" placeholder="https://..." maxlength="500" autocomplete="url">
+</label>
+<?php endforeach; ?>
 </div></section>
 <section><h2>Confirmar alteração</h2>
 <p class="hint">Por segurança, a alteração dos metadados exige sua senha e um código 2FA quando habilitado.</p>
