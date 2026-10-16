@@ -48,6 +48,7 @@ function lc_workspace_links(array $u): array {
           ['Acessos e operações','/admin/auditoria','list-checks'],
           ['Meus dados','/conta','user-round-cog'],
           ['Indicações','/indicacoes','users-round'],
+          ['Notificações','/notificacoes','bell'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check']
         ];
     }
@@ -56,6 +57,7 @@ function lc_workspace_links(array $u): array {
           ['Minha área','/criador','layout-dashboard'],
           ['Pacotes mensais','/planos','layers'],
           ['Indicações','/indicacoes','users-round'],
+          ['Notificações','/notificacoes','bell'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check'],
         ];
     }
@@ -67,6 +69,7 @@ function lc_workspace_links(array $u): array {
       ['Minhas redes','/redes','share-2'],
       ['Financeiro','/financeiro','wallet'],
       ['Indicações','/indicacoes','users-round'],
+          ['Notificações','/notificacoes','bell'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check']
     ];
 }
@@ -221,6 +224,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
 <script src="/assets/pwa.js?v=1" defer></script>
+<?php if($u): ?><script src="/assets/pwa-push.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/input-masks.js?v=1" defer></script>
 <?php if($u): ?><script src="/assets/privacy-toggle.js?v=1" defer></script><?php endif; ?>
 </body></html><?php
