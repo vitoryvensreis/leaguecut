@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/referrals.php';
 
 /**
  * Bloco 2: request -> admin-confirmed receipt -> paid monthly cycle.
