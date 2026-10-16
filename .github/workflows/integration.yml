@@ -107,6 +107,7 @@ jobs:
           php tests/campaign_ranking.php || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           php tests/automation_rules.php
           php tests/automation_visual.php
+          php tests/account_admin.php
           php tests/wpp_status.php
           node --check public/assets/flow-editor.js
           node --check public/assets/flow-canvas-v2.js
