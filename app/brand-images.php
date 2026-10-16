@@ -92,7 +92,7 @@ function lc_brand_mask_alpha(string $text,int $x,int $y): int {
 }
 function lc_brand_social_png():string {
     return lc_brand_png(1200,630,static function(int $x,int $y):array {
-        $fade=($x/$1200+$y/630)*.5;
+        $fade=($x/1200+$y/630)*.5;
         $rgb=[max(5,(int)(16-7*$fade)),max(6,(int)(18-8*$fade)),max(9,(int)(27-18*$fade))];
         if($x>925-($y*.42))$rgb=[max(7,$rgb[0]+8),max(6,$rgb[1]-2),max(10,$rgb[2]+1)];
         if($x>=72&&$x<454&&$y>=125&&$y<507){
