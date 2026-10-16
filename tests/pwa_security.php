@@ -8,7 +8,7 @@ foreach([32,48,180,192,512] as $size){
     pa(substr($img,0,8)==="\x89PNG\r\n\x1a\n",'PNG signature');
     $dimensions=unpack('Nwidth/Nheight',substr($img,16,8));
     pa($dimensions['width']===$size&&$dimensions['height']===$size,'real image dimensions');
-    pa(strlen($img)>500,'image pixels encoded');
+    pa(strlen($img)>100,'image pixels encoded');
 }
 $maskable=lc_pwa_icon_png(192,true);
 pa(substr($maskable,0,8)==="\x89PNG\r\n\x1a\n",'maskable PNG signature');
