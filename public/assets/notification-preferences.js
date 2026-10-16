@@ -61,5 +61,8 @@
     if(!notifications||!supported||Notification.permission!=='granted')return;
     try{const item=new Notification('LeagueCut',{body:'Uma informação da sua conta foi atualizada.',icon:'/app-icon/192.png',tag:'leaguecut-live'});item.onclick=()=>{window.focus();item.close();};}catch(_){}
   });
+  document.addEventListener('pointerdown',()=>{
+    if(sound&&!ctx)primeSound().catch(()=>{});
+  },{once:true,passive:true});
   render();
 })();
