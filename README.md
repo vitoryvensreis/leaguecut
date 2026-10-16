@@ -46,7 +46,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | # | Requisito | Situação | Bloco |
 |---|---|---|---|
 | 1 | Cadastrar ADM no painel | Implementado no código B1: formulário em /admin/administradores, confirmação da senha do operador e auditoria | B1 |
-| 2 | 2FA Google Authenticator para ADM, clipador e criador | **B2a implementado no código:** TOTP por chave manual no aplicativo, challenge de login, códigos de recuperação de uso único, rate limit e revogação das sessões antigas. QR local SVG incluído no B2b1; validação real de navegador pendente. | B2 |
+| 2 | 2FA Google Authenticator para ADM, clipador e criador | **B2a publicado:** TOTP por chave manual no aplicativo, challenge de login, códigos de recuperação de uso único, rate limit e revogação das sessões antigas. QR local SVG incluído no B2b1; validação real de navegador pendente. | B2 |
 | 3 | Item não consta da lista original | N/A | — |
 | 4 | Logo 70% maior | Implementado no código B1: cabeçalhos com ajuste responsivo | B1 |
 | 5 | Indicações de clipadores/criadores e comissões fixas/percentuais editáveis | **B3b publicado (PR #79, deploy verde):** links pessoais para ambos os tipos, atribuição única no cadastro, regras por perfil (fixo/percentual), comissão pendente somente por evento financeiro comprovado, conferência e aprovação do ADM antes de entrar no saldo. Reversões após pagamento aprovado exigem processo financeiro manual. | B3 |
@@ -54,11 +54,11 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | **B4a parcial:** preservadas máscaras JS de CPF/telefone, acrescentada máscara BRL visual que envia valor centavo-compatível. Revisão integral dos campos ainda pendente. | B4 |
 | 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. B2b1 adiciona trilha GET/POST de páginas e operações, sem payload nem query string; classificação detalhada e cron de retenção pendentes. | B2 |
 | 9 | SEO gerenciado pelo ADM (ícones, OG, keywords, metadata, imagem, sitemap) | Pendente: editor e testes de compartilhamento/indexação | B5 |
-| 10 | Muitos bônus mensais cadastráveis | **B4a implementado no código, aguardando CI/deploy:** programas independentes por campanha e critério (views verificadas ou quantidade de clipes aprovados), valores por programa, ativar/pausar e apuração manual por mês com crédito único. Bônus mensal antigo permanece disponível. | B4 |
-| 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **B2b2 em validação:** contas com TOTP confirmam no autenticador; sem TOTP, SMTP/WPPConnect configurado e autorizado permite código temporário de uso único antes de mudar dados ou criar saque. Se nenhum canal estiver operacional, mantém senha atual como fallback temporário. | B2 |
+| 10 | Muitos bônus mensais cadastráveis | **B4a publicado (PR #81, migração e deploy aprovados):** programas independentes por campanha e critério (views verificadas ou quantidade de clipes aprovados), valores por programa, ativar/pausar e apuração manual por mês com crédito único. Bônus mensal antigo permanece disponível. | B4 |
+| 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **B2b2 publicado (PR #77; entrega real de canais ainda requer homologação):** contas com TOTP confirmam no autenticador; sem TOTP, SMTP/WPPConnect configurado e autorizado permite código temporário de uso único antes de mudar dados ou criar saque. Se nenhum canal estiver operacional, mantém senha atual como fallback temporário. | B2 |
 | 12 | Neon animado sutil em todo o site | Parcial B1: fundo luminoso e hover discretos. Acabamento global pendente | B4 |
 | 13 | Nick único, login por nick/e-mail, ranking geral público de views com nick | **B3a publicado (PR #78, deploy verde):** nickname case-insensitive exclusivo, login com nickname ou e-mail, nicks provisórios para contas antigas, ranking /ranking e Top 5 na home somente com @nickname; métricas são views **observadas** pela Apify de clipes aprovados, não garantem verificação financeira. | B3 |
-| 14 | Ocultar/revelar dados sensíveis com botão olho | **B3c em validação:** botão de olho em telas autenticadas com valores e dados pessoais; mostra/oculta nesta aba e oculta ao trocar de aba. Cobertura complementar de módulos legados permanece pendente. | B3 |
+| 14 | Ocultar/revelar dados sensíveis com botão olho | **B3c publicado (PR #80, deploy verde):** botão de olho em telas autenticadas com valores e dados pessoais; mostra/oculta nesta aba e oculta ao trocar de aba. Cobertura complementar de módulos legados permanece pendente. | B3 |
 | 15 | Cards gamificados e animações inspiradas em games | Pendente: pontuações, conquistas e movimento reduzido | B4 |
 
 ### Etapas e critérios de aceite
@@ -79,7 +79,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 2. Leia o último run de CI e do workflow de deploy. Se houver falha, não anuncie que chegou à VPS.
 3. Na VPS, confira /home/leaguecut/current, /health e logs sem revelar segredos; só então marque como verificado em produção.
 4. A cada bloco concluído, atualize esta tabela, testes, PR, data, pendências, alterações do banco e próximo bloco.
-5. B3a e B3b publicados. B3c em testes (privacidade visual, sem substituir permissão server-side). Depois B4: múltiplos bônus, máscaras monetárias e gamificação; antifraude avançada e estorno financeiro seguem pendentes.
+5. **B3a/B3b/B3c e B4a publicados** e verificados no GitHub Actions. Próximo: B4b revisão geral de máscaras de dinheiro, neon e gamificação; em seguida B5 SEO. Antifraude avançada e estorno financeiro auditável continuam pendentes.
 
 
 ### B2a — Implementação retomada após o B1 (16/10/2026)
@@ -157,7 +157,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B3c — Ocultação visual de dados autenticados (16/10/2026)
 
-- Estado: **implementado em branch, aguardando CI e deploy**.
+- Estado: **publicado** no PR #80, commit `c33060d`, com deploy e Production UX Probe aprovados.
 - Botão de **olho** aparece onde há dados pessoais ou financeiros marcados, somente após a autorização normal do usuário. Na abertura, valores ocultos; a revelação não persiste no navegador e é revertida ao trocar de aba ou sair.
 - Cobertura inicial: nomes reais, e-mails, WhatsApp, chave Pix e saques do ADM; saldo/extrato/saques de clipador; comissões e relatórios de indicações; edição de conta; saldo em tempo real do clipador continua atualizando enquanto oculto.
 - Helper `lc_private()` escapa HTML contra XSS; CSS/JS/ícones são locais. O comportamento sem JavaScript permanece legível, e o botão funciona por teclado e leitor de tela.
@@ -168,7 +168,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B4a — Múltiplos bônus mensais e máscara BRL (16/10/2026)
 
-- Estado: **implementado em branch; aguarda CI, PR e deploy**.
+- Estado: **publicado** no PR #81, commit `b4cc986`, com migração `MIGRACAO_MONTHLY_BONUS_OK`, CI e Production UX Probe aprovados.
 - Na tela `/admin/bonus-mensal`, os programas extras permitem criar vários bônus (inclusive na mesma campanha), nomear cada prêmio, escolher classificação por maior soma de views **verificadas** ou mais clipes **aprovados** e definir valor em reais. O programa pode ser pausado/reativado sem apagar lançamentos anteriores.
 - Cada prêmio/mês encerrado exige apuração manual do ADM e confirmação de senha + 2FA quando ativo; desempate por menor ID para estabilidade. A recompensa entra no `ledger_entries.kind=adjustment`, `dedupe_key=monthly_bonus:<program_id>:<YYYY-MM>`, impedindo pagamento duplicado. Só inclui usuários ativos/clipadores e clipes aprovados enviados no período.
 - **Compatibilidade:** o fechamento do bônus legado da campanha segue disponível; programas extras não modificam automaticamente bônus já existentes nem distribuem créditos durante a migração.
@@ -176,3 +176,12 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Máscara JS BRL formata como `R$ 0,00`, sem dependência externa, e converte para `0,00` ao enviar; o parser PHP `lc_cents` continua validando centavos. A máscara não cria créditos nem altera valores persistidos.
 - Testes incluem dois programas na mesma campanha/mês, idempotência, rejeição de mês aberto e de programa pausado, além de presença do formulário na tela do ADM e validação sintática do JS.
 - Próxima fase do B4: edição avançada dos programas, critérios por intervalo e múltiplas colocações, animações de gamificação, revisão de todas as máscaras, acessibilidade e prevenção de pagamentos indevidos em casos de reversões.
+
+
+### Registro de publicação B4a
+
+- PR #81: https://github.com/vitoryvensreis/leaguecut/pull/81
+- Commit em produção: `b4cc986f3a7bfa97a4fe13ea2090c8e91d49f5f6`.
+- Deploy: https://github.com/vitoryvensreis/leaguecut/actions/runs/38844516447 — sucesso, backup MySQL antes do DDL, marcador `MIGRACAO_MONTHLY_BONUS_OK` e `LEAGUECUT_PUBLICADO` confirmado.
+- Verificação pública após deploy: https://github.com/vitoryvensreis/leaguecut/actions/runs/38844549018 — sucesso.
+- Pendências de UX e regras futuras: edição da definição de programa, limites por campanha/competição, várias colocações, reversões auditáveis, testes reais mobile/Firefox/Safari e leitura manual dos resultados financeiros. **Não ativar pagamentos automáticos sem provedor verificado.**
