@@ -260,7 +260,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B6C2 — Manter logado neste dispositivo (16/10/2026)
 
-- **Estado:** implementado em branch, aguardando CI/deploy.
+- **Estado: publicado em produção.** PR #89, commit `22d74ad830a747397811e8740c70e31f98aa9a60`, suíte CI e Production UX Probe confirmados.
 - Checkbox opcional desmarcado no login; contas com 2FA só registram dispositivo após confirmar o segundo fator.
 - Cookie `__Host-lc_remember` com selector 12 bytes + validator 32 bytes, `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, sem Domain; HTTPS obrigatório, expiração em até 30 dias. Segredo armazenado apenas em forma de HMAC no MySQL.
 - Ao restaurar a sessão, verifica status da conta, validade, segredo, versão do MFA, rotaciona token atomicamente e rejeita replay. Até oito dispositivos por usuário; tokens mais antigos revogados.
@@ -270,16 +270,25 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 ### B6D1 — PWA instalável (16/10/2026)
 
-- **Estado: implementação em branch, aguardando CI/deploy.** Manifesto `GET /manifest.webmanifest` e ícones PNG de 192/512 pixels gerados internamente sem GD ou serviços externos. Cabeçalho com manifest e apple-touch-icon. `public/assets/pwa.js` registra service worker sob HTTPS e apresenta botão Instalar quando o navegador oferece `beforeinstallprompt`.
+- **Estado: publicado em produção.** PR #90, commit `e3905b533dce533924e846dd9fb0b9cf5d692974`, deploy e Production UX Probe aprovados. Manifesto `GET /manifest.webmanifest` e ícones PNG de 192/512 pixels gerados internamente sem GD ou serviços externos. Cabeçalho com manifest e apple-touch-icon. `public/assets/pwa.js` registra service worker sob HTTPS e apresenta botão Instalar quando o navegador oferece `beforeinstallprompt`.
 - Service Worker em `/sw.js` intercepta apenas solicitações GET de **arquivos estáticos públicos** no namespace `/assets/` (CSS, JS, imagens e fontes). Nunca intercepta navegação HTML, APIs, usuário logado, dados financeiros, arquivos privados, respostas autorizadas ou POST. Navegação precisa de internet; não há armazenamento offline de páginas protegidas.
 - Cache público versionado (`leaguecut-public-static-v1`), substituído na ativação. Manifeste `display:standalone`, `start_url:/`, tema escuro. No iOS, adição à Tela de Início depende do menu Compartilhar do Safari.
 - Teste PHP valida PNG e restrições do worker; smoke via HTTP confere manifesto, ícones binários, registro JS e controle de instalação. **B6D2 pendente:** implementar permissão de notificações Web Push, assinatura revogável, servidor VAPID, entregas via worker e controles de som. Instalar o PWA sozinho não habilita envio push.
 
 ### B6D2a — Avisos com a LeagueCut aberta e som opcional (16/10/2026)
 
-- **Estado:** implementado em branch `feat/b6d2a-foreground-notices-20261016`; PR, CI e deploy ainda precisam ser confirmados. Branch anterior `feat/b6d2-opt-in-webpush-20261016` foi preservada **sem merge** como referência para B6D2b.
+- **Estado: publicado em produção.** PR #91, commit `145c9df40ec5b252913dfb5840826a463575fe8f`, CI, deploy e UX Probe aprovados. Branch anterior `feat/b6d2-opt-in-webpush-20261016` foi preservada **sem merge** como referência para B6D2b.
 - Rota autenticada `/notificacoes` nos menus de ADM, criador e clipador: permissão explícita de notificações do navegador, opt-out e som de aviso opcional. Preferências locais por navegador, sem coleta de dados sensíveis.
 - A atualização em tempo real já existente passa a disparar evento local `leaguecut:live-event`; notificações e som só aparecem se autorizados. Textos genéricos sem nomes, dados bancários ou saldos; áudio sintetizado e disparado após interação do usuário.
 - **Limite deliberado:** não é Web Push em segundo plano. Notificações de navegador dependem da plataforma ativa e dos eventos recebidos; não funcionam com o site fechado. Não há nova migração MySQL nem biblioteca Composer nesta entrega.
 - **B6D2b seguinte:** importar de forma revisada os endpoints de assinatura Web Push, migração, worker VAPID e envio em segundo plano em PR separado; chaves VAPID somente no .env privado, never GitHub. Verificar permissões, iOS PWA, expiração e revogação.
 - **B6E depois:** suporte para usuários e fila de chamados ADM, com permissões, status, histórico e auditoria.
+
+### B6D2b1 — Armazenamento seguro de assinaturas Web Push (16/10/2026)
+
+- **Estado:** implementação em `feat/b6d2b1-push-subscription-storage-20261016`, aguardando PR, CI, migração e publicação. Sem habilitar disparos nesta fase.
+- Migração backup-first idempotente: `push_subscriptions`, `push_preferences` e `push_deliveries` com índices, vínculo por usuário e fila deduplicada por (dispositivo, evento). Instalação limpa também inclui as tabelas no schema.
+- API autenticada `/api/push/status`, `/api/push/subscribe` e `/api/push/unsubscribe` protegida por CSRF nas alterações e desligada por padrão (`PUSH_REGISTRATION_ENABLED=0`). Com a chave desligada devolve HTTP 503, sem armazenar endpoints.
+- Endpoint push só pode ser de provedores de navegador permitidos via HTTPS. Chaves `p256dh` e `auth`, além do endpoint, persistem criptografadas por `APP_KEY`; hash do endpoint garante unicidade sem salvar URL em claro. Máximo de 8 dispositivos; cada usuário revoga apenas os próprios endpoints.
+- Testes em MySQL descartável garantem deduplicação, criptografia, isolamento entre contas, revogação e estado opt-in desligado. **NÃO contém biblioteca Web Push nem worker nesta etapa.**
+- **Próximo B6D2b2:** integrar biblioteca VAPID, gerar chaves privadas diretamente na VPS, habilitar assinaturas apenas após health check do worker, UI de autorização Web Push em segundo plano e envio sem dados sensíveis; separar teste de entrega e monitoramento. **B6E:** chamados/suporte após concluir push.
