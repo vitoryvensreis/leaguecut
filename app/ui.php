@@ -52,6 +52,7 @@ function lc_workspace_links(array $u): array {
     return [
       ['Visão geral','/dashboard','layout-dashboard'],
       ['Explorar campanhas','/explorar','compass'],
+      ['Ranking geral','/ranking','trophy'],
       ['Minha biblioteca','/biblioteca','library'],
       ['Minhas redes','/redes','share-2'],
       ['Financeiro','/financeiro','wallet'],
@@ -116,6 +117,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/ux-upgrade.css?v=2">
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
+<link rel="stylesheet" href="/assets/arena.css?v=1">
 <?php if($path==='/seguranca/2fa'): ?><link rel="stylesheet" href="/assets/mfa-qr.css?v=1"><?php endif; ?>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><link rel="stylesheet" href="/assets/flow-editor.css?v=2">
 <?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><link rel="stylesheet" href="/assets/flow-canvas-v2.css?v=1"><?php endif; ?><?php endif; ?>
