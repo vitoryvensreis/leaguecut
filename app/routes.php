@@ -36,6 +36,7 @@ require __DIR__ . '/account-admin.php';
 require __DIR__ . '/mfa.php';
 require __DIR__ . '/mfa-routes.php';
 require __DIR__ . '/otp-challenge.php';
+require __DIR__ . '/remember-device.php';
 require __DIR__ . '/password-recovery.php';
 require __DIR__ . '/request-audit.php';
 require __DIR__ . '/account-self.php';
