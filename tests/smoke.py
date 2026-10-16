@@ -227,6 +227,12 @@ def main():
     assert 'privacy-toggle.js' not in get(make_client(),"/cadastrar"), "No private fields on public signup"
     creator_page=register(creator,"creator@leaguecut.test","Criador Teste")
     assert "analisando" in creator_page.lower(), "Creator pending page"
+    settings_page=get(creator,"/notificacoes")
+    assert "Notificações e sons" in settings_page and 'data-notify-enable' in settings_page, "Signed-in foreground notification controls"
+    assert 'data-notify-sound' in settings_page and '/assets/notification-preferences.js?v=1' in settings_page, "Sound UI wired"
+    assert 'Manter' not in settings_page or 'notificações' in settings_page.lower(), "Settings page available to pending user"
+    assert '/assets/notification-preferences.js?v=1' not in home, "No private notification scripts required for public guests"
+
     register(admin,"admin@leaguecut.test","Admin Teste")
     import subprocess
     subprocess.check_call(["php","bin/make-admin.php","admin@leaguecut.test"])
