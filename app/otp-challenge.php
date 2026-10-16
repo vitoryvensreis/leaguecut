@@ -101,8 +101,8 @@ function lc_otp_begin(array $user,string $purpose,array $payload,string $channel
         lc_one('SELECT id FROM users WHERE id=? FOR UPDATE',[$uid]);
         $count=(int)(lc_one('SELECT COUNT(*) AS n FROM account_otp_challenges WHERE user_id=? AND created_at>=DATE_SUB(NOW(),INTERVAL 20 MINUTE)',[$uid])['n']??0);
         if($count>=4)throw new InvalidArgumentException('Limite de envios atingido. Aguarde 20 minutos.');
-        $last=lc_one('SELECT created_at FROM account_otp_challenges WHERE user_id=? ORDER BY id DESC LIMIT 1',[$uid]);
-        if($last&&strtotime($last['created_at'])>time()-60)
+        $last=lc_one('SELECT (created_at>DATE_SUB(NOW(),INTERVAL 60 SECOND)) AS too_recent FROM account_otp_challenges WHERE user_id=? ORDER BY id DESC LIMIT 1',[$uid]);
+        if($last&&(int)$last['too_recent']===1)
             throw new InvalidArgumentException('Aguarde 60 segundos antes de solicitar outro código.');
         lc_query("UPDATE account_otp_challenges SET status='expired' WHERE user_id=? AND status IN ('sending','ready')",[$uid]);
         // Code hash depends on its generated DB id; no plaintext OTP in database.
@@ -135,8 +135,8 @@ function lc_otp_verify_and_apply(array $user,string $code): string {
     if($id<1||!preg_match('/^\d{6}$/D',$code))throw new InvalidArgumentException('Código inválido.');
     $db=lc_db();$db->beginTransaction();
     try{
-        $row=lc_one('SELECT * FROM account_otp_challenges WHERE id=? AND user_id=? FOR UPDATE',[$id,$uid]);
-        if(!$row||$row['status']!=='ready'||strtotime($row['expires_at'])<=time()||
+        $row=lc_one('SELECT *, (expires_at>NOW()) AS not_expired FROM account_otp_challenges WHERE id=? AND user_id=? FOR UPDATE',[$id,$uid]);
+        if(!$row||$row['status']!=='ready'||(int)$row['not_expired']!==1||
            !hash_equals((string)$row['session_hash'],lc_otp_session_binding($uid))||
            lc_mfa_enabled($uid)){
             $db->rollBack();throw new InvalidArgumentException('Código expirado ou solicitação inválida.');
@@ -176,7 +176,7 @@ function lc_otp_routes(string $method,string $path): bool {
     header('X-Robots-Tag: noindex,nofollow');
     $user=lc_login_required();
     $id=(int)($_SESSION['lc_otp_pending']??0);
-    $row=$id?lc_one('SELECT purpose,channel,status,expires_at FROM account_otp_challenges WHERE id=? AND user_id=?',[$id,$user['id']]):null;
+    $row=$id?lc_one('SELECT purpose,channel,status, (expires_at>NOW()) AS not_expired FROM account_otp_challenges WHERE id=? AND user_id=?',[$id,$user['id']]):null;
     if(!$row||$row['status']!=='ready'||strtotime($row['expires_at'])<=time()){
         unset($_SESSION['lc_otp_pending']);
         lc_flash('Não há código ativo. Solicite uma nova verificação.','error');
