@@ -350,6 +350,25 @@ try{
         $db->exec($rememberSql);
     }
     echo "MIGRACAO_REMEMBER_DEVICES_OK\n";
+    // B6D2 — no notifications until explicitly subscribed and VAPID configured.
+    $pushTables=['push_subscriptions','push_preferences','push_deliveries'];
+    $needPush=false;
+    foreach($pushTables as $t){
+        if(!lc_one("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?",[$t]))$needPush=true;
+    }
+    if($needPush){
+        lc_migration_backup();
+        $allSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_webpush.sql'));
+        $parts=array_values(array_filter(array_map('trim',explode(';',$allSql))));
+        if(count($parts)!==3)throw new RuntimeException('Migração push inválida.');
+        foreach($parts as $ix=>$statement){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($pushTables[$ix],'/').'\\s*\\(/i',$statement))
+                throw new RuntimeException('Migração push com tabela inesperada.');
+            $db->exec($statement);
+        }
+    }
+    echo "MIGRACAO_WEBPUSH_OK\n";
+
 
 
     // B3a: keep original account data untouched, assign reserved lc_ID nicknames
