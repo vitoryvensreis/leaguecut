@@ -53,7 +53,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | 6 | ADM editar todas as contas, acessos, senha, e-mail, telefone e Pix | Implementado no código B1: /admin/contas com confirmação da senha do operador; protege último ADM | B1 |
 | 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | **B4b publicado (PR #83, deploy e UX Probe aprovados):** máscaras BRL também nos preços de pacotes mensais, comissões fixas, saques, bônus e pagamentos por campanha; percentual preservado sem prefixo de moeda. Teste JS valida precisão em centavos e formulários dinâmicos. Revisão manual completa pendente. | B4 |
 | 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. B2b1 adiciona trilha GET/POST de páginas e operações, sem payload nem query string; classificação detalhada e cron de retenção pendentes. | B2 |
-| 9 | SEO gerenciado pelo ADM (ícones, OG, keywords, metadata, imagem, sitemap) | Pendente: editor e testes de compartilhamento/indexação | B5 |
+| 9 | SEO gerenciado pelo ADM (ícones, OG, keywords, metadata, imagem, sitemap) | **B5 implementado em branch, aguardando CI/deploy:** editor ADM com prévias de busca/compartilhamento, uploads PNG/JPG/WebP em armazenamento privado, títulos/descriptions/keywords e X, OG/Twitter, canonical, JSON-LD, favicon, robots/sitemap dinâmicos, noindex em rotas internas; testes de acesso e HTML. | B5 |
 | 10 | Muitos bônus mensais cadastráveis | **B4a publicado (PR #81, migração e deploy aprovados):** programas independentes por campanha e critério (views verificadas ou quantidade de clipes aprovados), valores por programa, ativar/pausar e apuração manual por mês com crédito único. Bônus mensal antigo permanece disponível. | B4 |
 | 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **B2b2 publicado (PR #77; entrega real de canais ainda requer homologação):** contas com TOTP confirmam no autenticador; sem TOTP, SMTP/WPPConnect configurado e autorizado permite código temporário de uso único antes de mudar dados ou criar saque. Se nenhum canal estiver operacional, mantém senha atual como fallback temporário. | B2 |
 | 12 | Neon animado sutil em todo o site | **B4b publicado (PR #83, deploy e UX Probe aprovados):** nova camada visual nos rankings, cards e KPIs com reflexos sutis, bordas neon, foco acessível e respeito a movimento reduzido. Revisão visual mobile pendente. | B4 |
@@ -71,7 +71,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 
 **B4 — Financeiro e experiência:** múltiplos bônus por campanha/mês com deduplicação, máscaras monetárias compatíveis com parsing em centavos, neon e animações gamificadas, acesso por teclado e movimento reduzido.
 
-**B5 — SEO:** configuração de título, description, keywords, canonical, favicon, OG/Twitter Card, imagem de compartilhamento, sitemap.xml, robots.txt e metadados estruturados. Melhora a apresentação e indexabilidade, mas não garante aparecer em primeiro lugar no Google.
+**B5 — SEO:** editor em `/admin/seo` implementado em branch; validação automatizada e publicação ainda em andamento. Melhora a apresentação e indexabilidade, mas não garante colocação no Google.
 
 ### Como retomar depois de interrupção
 
@@ -206,3 +206,15 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Production UX Probe: https://github.com/vitoryvensreis/leaguecut/actions/runs/38890397886 — sucesso.
 - Testes do PR: `SMOKE PASSED`, `B4B_MASKS_OK`, `UX SMOKE PASSED`. Sem nova tabela ou alteração do saldo.
 - **Próxima entrega: B5 — configurações SEO e compartilhamento editáveis pelo administrador**. Pendências de B4b: validação visual manual em múltiplos navegadores e eventual expansão das conquistas gamificadas.
+
+
+### B5 — SEO, compartilhamento social e indexação pelo ADM (16/10/2026)
+
+- **Estado:** código em `feat/b5-seo-admin-meta-sharing-20261016`, aguardando integração, CI, publicação VPS e Production UX Probe. Atualize o estado após confirmação do SHA implantado.
+- Nova aba do ADM `/admin/seo` com prévias ilustrativas de Google e card para redes sociais; configura títulos de home, catálogo, ranking, planos, descriptions, palavras-chave, ícone, imagem social, usuário X, base canonical e chave de indexação das páginas públicas. Operações exigem senha administrativa e TOTP quando ativado; ajustes ficam em `platform_settings` e são auditados.
+- URLs canônicas geradas no host oficial `https://leaguecut.com`, **nunca** do header Host/query string. A base editável pelo ADM é validada para impedir domínio externo; detalhes de campanhas ativas têm título, descrição e capa individual. Rotas autenticadas, cadastro, login, campanhas ocultas/inativas e páginas de erro são noindex; não exibir dados de usuários em OG/JSON-LD.
+- Cabeçalho público: meta title/description/keywords/robots, canonical, Open Graph `og:type,title,description,url,site_name,locale,image`, X/Twitter Card, favicon/apple-touch-icon e JSON-LD `schema.org/WebSite`. Sem imagem social configurada, usa card reduzido em vez de publicar imagem incorreta. Imagens OG são absolutas HTTPS.
+- Uploads PNG/JPG/WebP de até 4 MB: favicon quadrado de pelo menos 48 × 48; card social pelo menos 300 × 157 (ideal 1200 × 630). Arquivos com MIME e dimensões verificados e armazenados em pasta privada compartilhada, fora do Git e da pasta web; rota pública `/media/seo/{icon|social}/TOKEN` serve somente imagens que estejam selecionadas no painel. Variável opcional `SEO_MEDIA_DIR`, padrão `/home/leaguecut/shared/storage/seo`. Evitar enviar logotipos SVG diretamente como OG.
+- `/robots.txt` dinâmico bloqueia áreas privadas e referencia `/sitemap.xml`; sitemap contém home, explorar, ranking, planos e **somente** campanhas ativas, com `lastmod`. Desativar indexação no painel aplica noindex nas páginas e `Disallow: /` no robots; reativação não força recrawl imediato.
+- Testes de CI: `tests/seo_security.php` (XSS, links maliciosos, canonical, privacidade, OG e JSON-LD); smoke Python configura SEO autenticado, envia favicon e imagem social PNG válidos, confere conteúdo e endpoints, verifica robots/sitemap e nega painel para clipadores. **Não existe migração DDL:** a tabela `platform_settings` já é usada no site.
+- **Limitações/validação manual:** visualização real de cards depende do cache e das políticas do WhatsApp/Facebook/X/Google; reindexação depende de rastreamento e Google Search Console. SEO não garante ranking, CTR ou indexação. Verificar links finais em redes após deploy. Arquivos antigos não são removidos automaticamente e devem integrar futura política de retenção após substituir uploads.
