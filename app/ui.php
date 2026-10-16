@@ -37,6 +37,7 @@ function lc_workspace_links(array $u): array {
           ['Administradores','/admin/administradores','shield-check'],
           ['Gerenciar contas','/admin/contas','user-round-cog'],
           ['Auditoria de contas','/admin/atividades','activity'],
+          ['Acessos e operações','/admin/auditoria','list-checks'],
           ['Meus dados','/conta','user-round-cog'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check']
         ];
