@@ -117,6 +117,7 @@ jobs:
           php tests/otp_security.php
           php tests/wpp_status.php
           node --check public/assets/input-masks.js
+          node tests/masks-b4b.cjs
           node --check public/assets/flow-editor.js
           node --check public/assets/flow-canvas-v2.js
           python3 tests/ux_smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
