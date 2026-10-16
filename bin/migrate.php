@@ -349,6 +349,28 @@ try{
     // assign lc_ID or chosen nick in their transaction; the unique index
     // ensures every non-NULL nickname is globally unique.
     echo "MIGRACAO_NICKNAME_OK\n";
+    // B3b additive tables. A full MySQL backup is mandatory before DDL.
+    $referralTables=['referral_codes','referral_rules','referrals','referral_commissions'];
+    $missing=[];
+    foreach($referralTables as $table){
+       if(!lc_one('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?',[$table]))
+          $missing[]=$table;
+    }
+    if($missing){
+        lc_migration_backup();
+        $sql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_referrals.sql'));
+        $parts=array_values(array_filter(array_map('trim',explode(';',$sql))));
+        if(count($parts)!==count($referralTables))throw new RuntimeException('Migração B3b inconsistente.');
+        foreach($parts as $i=>$part){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($referralTables[$i],'/').'\s*\(/i',$part))
+                throw new RuntimeException('Migração B3b malformada.');
+            $db->exec($part);
+        }
+    }
+    $db->exec("INSERT IGNORE INTO referral_rules(referred_role,enabled,mode,value_int)
+       VALUES ('clipador',0,'fixed',0),('criador',0,'fixed',0)");
+    echo "MIGRACAO_REFERRALS_OK\n";
+
 
 
 
