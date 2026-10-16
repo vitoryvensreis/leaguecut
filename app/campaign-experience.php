@@ -7,7 +7,7 @@ declare(strict_types=1);
  */
 function lc_campaign_rankings(int $campaignId,int $max=30): array {
     $max=max(1,min(100,$max));
-    $rows=lc_all("SELECT c.user_id,u.full_name,
+    $rows=lc_all("SELECT c.user_id,u.nickname,
       COUNT(*) AS approved_clips,
       COALESCE(SUM(COALESCE((
         SELECT d.views FROM clip_daily_views d
@@ -17,8 +17,8 @@ function lc_campaign_rankings(int $campaignId,int $max=30): array {
         ORDER BY d.snapshot_date DESC LIMIT 1)) AS latest_snapshot
       FROM clips c JOIN users u ON u.id=c.user_id
       WHERE c.campaign_id=? AND c.status='approved'
-        AND u.role='clipador'
-      GROUP BY c.user_id,u.full_name
+        AND u.role='clipador' AND u.status='approved' AND u.nickname IS NOT NULL
+      GROUP BY c.user_id,u.nickname
       ORDER BY public_views DESC, approved_clips DESC,c.user_id ASC
       LIMIT ".$max,[$campaignId]);
     foreach($rows as $idx=>&$row) {
@@ -63,8 +63,8 @@ function lc_campaign_leaderboard(int $campaignId,?array $viewer): void {
       $p=$ranking[$positionIndex];$medal=$p['rank']===1?'Ouro':($p['rank']===2?'Prata':'Bronze');?>
       <article class="lc-podium-player lc-podium-player-<?=$p['rank']?> <?=$own===(int)$p['user_id']?'is-me':''?>">
         <span class="lc-podium-place">#<?=$p['rank']?> · <?=lc_e($medal)?></span>
-        <div class="lc-podium-avatar" aria-hidden="true"><?=lc_e(mb_strtoupper(mb_substr($p['full_name'],0,1)))?></div>
-        <strong><?=lc_e(lc_campaign_public_name((string)$p['full_name'],$signedIn,(int)$p['user_id']))?></strong>
+        <div class="lc-podium-avatar" aria-hidden="true"><?=lc_e(mb_strtoupper(mb_substr($p['nickname'],0,1)))?></div>
+        <strong><?=lc_e('@'.(string)$p['nickname'])?></strong>
         <span class="lc-podium-level">Nível <?=$p['level']?></span>
         <span class="lc-podium-views"><?=number_format($p['public_views'],0,',','.')?> <small>views públicas</small></span>
         <span class="lc-podium-xp"><?=number_format($p['xp'],0,',','.')?> XP</span>
@@ -77,8 +77,8 @@ function lc_campaign_leaderboard(int $campaignId,?array $viewer): void {
     <div class="lc-rank-row <?=$own===(int)$p['user_id']?'is-me':''?>" role="listitem">
       <span class="lc-rank-number">#<?=$p['rank']?></span>
       <span class="lc-rank-row-user">
-        <span class="lc-rank-row-avatar"><?=lc_e(mb_strtoupper(mb_substr($p['full_name'],0,1)))?></span>
-        <span><strong><?=lc_e(lc_campaign_public_name((string)$p['full_name'],$signedIn,(int)$p['user_id']))?><?=$own===(int)$p['user_id']?' · Você':''?></strong><small>Nível <?=$p['level']?> · <?=$p['approved_clips']?> <?=$p['approved_clips']===1?'clipe aprovado':'clipes aprovados'?></small></span>
+        <span class="lc-rank-row-avatar"><?=lc_e(mb_strtoupper(mb_substr($p['nickname'],0,1)))?></span>
+        <span><strong><?=lc_e('@'.(string)$p['nickname'])?><?=$own===(int)$p['user_id']?' · Você':''?></strong><small>Nível <?=$p['level']?> · <?=$p['approved_clips']?> <?=$p['approved_clips']===1?'clipe aprovado':'clipes aprovados'?></small></span>
       </span>
       <span class="lc-rank-row-view"><?=number_format($p['public_views'],0,',','.')?><small>views</small></span>
       <span class="lc-rank-row-xp"><?=number_format($p['xp'],0,',','.')?> XP<small><?=$p['next_xp']>0?'Faltam '.$p['next_xp'].' XP':'Nível máximo'?></small></span>
