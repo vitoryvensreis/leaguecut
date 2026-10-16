@@ -199,6 +199,13 @@ def main():
     assert 'assets/icons.svg' in get(creator,"/")
     assert 'lc-icon' in get(creator,"/")
     assert "Junte-se aos criadores." in get(creator,"/cadastrar")
+    signin=get(creator,"/entrar")
+    assert 'href="/recuperar-senha"' in signin, "Reset password entry point in modal"
+    reset=get(creator,"/recuperar-senha")
+    assert 'name="identifier"' in reset and 'name="channel"' in reset, "Recovery supports registered email/WhatsApp"
+    confirm=get(creator,"/recuperar-senha/confirmar")
+    assert 'name="code"' in confirm and 'name="new_password"' in confirm, "New password requires one-time code"
+
     assert 'privacy-toggle.js' not in get(make_client(),"/cadastrar"), "No private fields on public signup"
     creator_page=register(creator,"creator@leaguecut.test","Criador Teste")
     assert "analisando" in creator_page.lower(), "Creator pending page"
