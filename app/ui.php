@@ -34,7 +34,9 @@ function lc_workspace_links(array $u): array {
           ['Banner da Home','/admin/home','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['Integrações','/admin/integracoes','settings-2'],
-          ['Administradores','/admin/administradores','shield-check']
+          ['Administradores','/admin/administradores','shield-check'],
+          ['Gerenciar contas','/admin/contas','user-round-cog'],
+          ['Auditoria de contas','/admin/atividades','activity']
         ];
     }
     if($u['role']==='criador'){
