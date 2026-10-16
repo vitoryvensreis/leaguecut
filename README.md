@@ -274,3 +274,12 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Service Worker em `/sw.js` intercepta apenas solicitações GET de **arquivos estáticos públicos** no namespace `/assets/` (CSS, JS, imagens e fontes). Nunca intercepta navegação HTML, APIs, usuário logado, dados financeiros, arquivos privados, respostas autorizadas ou POST. Navegação precisa de internet; não há armazenamento offline de páginas protegidas.
 - Cache público versionado (`leaguecut-public-static-v1`), substituído na ativação. Manifeste `display:standalone`, `start_url:/`, tema escuro. No iOS, adição à Tela de Início depende do menu Compartilhar do Safari.
 - Teste PHP valida PNG e restrições do worker; smoke via HTTP confere manifesto, ícones binários, registro JS e controle de instalação. **B6D2 pendente:** implementar permissão de notificações Web Push, assinatura revogável, servidor VAPID, entregas via worker e controles de som. Instalar o PWA sozinho não habilita envio push.
+
+### B6D2a — Avisos com a LeagueCut aberta e som opcional (16/10/2026)
+
+- **Estado:** implementado em branch `feat/b6d2a-foreground-notices-20261016`; PR, CI e deploy ainda precisam ser confirmados. Branch anterior `feat/b6d2-opt-in-webpush-20261016` foi preservada **sem merge** como referência para B6D2b.
+- Rota autenticada `/notificacoes` nos menus de ADM, criador e clipador: permissão explícita de notificações do navegador, opt-out e som de aviso opcional. Preferências locais por navegador, sem coleta de dados sensíveis.
+- A atualização em tempo real já existente passa a disparar evento local `leaguecut:live-event`; notificações e som só aparecem se autorizados. Textos genéricos sem nomes, dados bancários ou saldos; áudio sintetizado e disparado após interação do usuário.
+- **Limite deliberado:** não é Web Push em segundo plano. Notificações de navegador dependem da plataforma ativa e dos eventos recebidos; não funcionam com o site fechado. Não há nova migração MySQL nem biblioteca Composer nesta entrega.
+- **B6D2b seguinte:** importar de forma revisada os endpoints de assinatura Web Push, migração, worker VAPID e envio em segundo plano em PR separado; chaves VAPID somente no .env privado, never GitHub. Verificar permissões, iOS PWA, expiração e revogação.
+- **B6E depois:** suporte para usuários e fila de chamados ADM, com permissões, status, histórico e auditoria.
