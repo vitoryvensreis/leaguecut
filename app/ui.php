@@ -48,6 +48,7 @@ function lc_workspace_links(array $u): array {
           ['Indicações e comissões','/admin/indicacoes','hand-coins'],
           ['Auditoria de contas','/admin/atividades','activity'],
           ['Acessos e operações','/admin/auditoria','list-checks'],
+          ['Solicitações LGPD','/admin/privacidade','shield-check'],
           ['Meus dados','/conta','user-round-cog'],
           ['Indicações','/indicacoes','users-round'],
           ['Enviar notificações','/admin/notificacoes','bell'],
@@ -63,6 +64,7 @@ function lc_workspace_links(array $u): array {
           ['Indicações','/indicacoes','users-round'],
           ['Notificações','/notificacoes','bell'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check'],
+          ['Meus direitos LGPD','/privacidade/solicitacoes','shield-check'],
           ['Dispositivos conectados','/seguranca/dispositivos','shield-check'],
         ];
     }
@@ -131,9 +133,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="apple-touch-icon" sizes="180x180" href="/app-icon/180.png?v=3">
 <title><?=lc_e($seo['title'])?></title>
 <?php lc_seo_head($seo); ?>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- System font fallback avoids automatic third-party font requests before optional consent. -->
 <link rel="stylesheet" href="/assets/app.css?v=10">
 <link rel="stylesheet" href="/assets/v2.css?v=10">
 <?php if($needsLanding): ?><link rel="stylesheet" href="/assets/landing.css?v=11"><?php endif; ?>
@@ -161,6 +161,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
+<link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
@@ -224,12 +225,14 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <button type="button" class="btn btn-ghost btn-sm" data-pwa-install hidden>Instalar LeagueCut</button>
 <nav class="lc-footer-nav" aria-label="Informações legais">
 <a href="/planos">Planos para criadores</a><a href="/politica-de-privacidade">Privacidade</a>
-<a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a></nav>
+<a href="/termos-de-uso">Termos de Uso</a><a href="/exclusao-de-dados">Exclusão de Dados</a>
+<a href="/preferencias-de-privacidade">Preferências de cookies</a><?php if($u): ?><a href="/privacidade/solicitacoes">Meus direitos LGPD</a><?php endif;?></nav>
 <?php $footerSocials=lc_social_footer_links($s); if($footerSocials): ?>
 <nav class="lc-footer-socials" aria-label="Redes sociais oficiais">
 <?php foreach($footerSocials as $social): ?><a href="<?=lc_e($social['url'])?>" target="_blank" rel="noopener noreferrer external"><?=lc_icon('external-link')?> <?=lc_e($social['label'])?></a><?php endforeach;?></nav>
 <?php endif; ?></footer>
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
+<?php lc_privacy_banner(); ?>
 <script src="/assets/ux-upgrade.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><script src="/assets/flow-canvas-v2.js?v=1" defer></script><?php endif; ?>
