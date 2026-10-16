@@ -128,6 +128,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
 <link rel="stylesheet" href="/assets/arena.css?v=1">
+<link rel="stylesheet" href="/assets/b4b-arena-polish.css?v=1">
 <?php if($path==='/admin/bonus-mensal'): ?><link rel="stylesheet" href="/assets/monthly-bonuses.css?v=1"><?php endif; ?>
 <?php if($u): ?><link rel="stylesheet" href="/assets/privacy-toggle.css?v=1"><?php endif; ?>
 <?php if(in_array($path,['/indicacoes','/admin/indicacoes'],true)): ?><link rel="stylesheet" href="/assets/referrals.css?v=1"><?php endif; ?>
