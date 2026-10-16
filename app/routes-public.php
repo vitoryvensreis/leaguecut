@@ -175,6 +175,7 @@ function lc_public_routes(string $method,string $path): bool {
             lc_flash('E-mail ou senha inválidos.','error');lc_redirect('/entrar');
         }
         $id=(int)$user['id'];
+        $_SESSION['remember_after_mfa']=!empty($_POST['remember_me']);
         if(lc_mfa_enabled($id)){
             lc_mfa_login_pending($id);
             lc_redirect('/seguranca/verificar');
@@ -185,10 +186,15 @@ function lc_public_routes(string $method,string $path): bool {
         $_SESSION['mfa_verified']=false;
         $_SESSION['mfa_version']=(int)(lc_mfa_state($id)['session_version']??0);
         lc_mfa_event('login.success',$id);
+        if(!empty($_SESSION['remember_after_mfa'])){
+            try{lc_remember_issue($id);}catch(Throwable $e){error_log('LEAGUECUT_REMEMBER_ISSUE_FAILED');}
+        }
+        unset($_SESSION['remember_after_mfa']);
         $role=lc_one('SELECT role FROM users WHERE id=?',[$id])['role']??'clipador';
         lc_redirect($role==='criador'?'/criador':'/dashboard');
     }
     if ($method==='POST' && $path==='/sair') {
+        lc_remember_revoke_current();
         $_SESSION=[];session_regenerate_id(true);lc_redirect('/');
     }
     if ($method==='GET' && $path==='/aguardando') {

@@ -64,6 +64,7 @@ function lc_flash(string $message, string $type = 'info'): void { $_SESSION['fla
 function lc_take_flash(): ?array { $f = $_SESSION['flash'] ?? null; unset($_SESSION['flash']); return $f; }
 function lc_redirect(string $path): never { header('Location: ' . $path, true, 303); exit; }
 function lc_user(): ?array {
+    if (empty($_SESSION['uid']) && function_exists('lc_remember_restore')) lc_remember_restore();
     if (empty($_SESSION['uid'])) return null;
     $uid=(int)$_SESSION['uid'];
     // Versions invalidate other browser sessions after MFA enrollment/revocation.

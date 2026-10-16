@@ -69,6 +69,7 @@ function lc_reset_finish(string $code,string $password): bool {
         $uid=(int)$row['user_id'];
         lc_query('UPDATE users SET password_hash=? WHERE id=?',[password_hash($password,PASSWORD_DEFAULT),$uid]);
         lc_mfa_rotate_sessions($uid);
+        lc_remember_revoke_all($uid);
         lc_query("UPDATE password_reset_challenges SET status='used',used_at=NOW() WHERE id=?",[$id]);
         lc_query("UPDATE password_reset_challenges SET status='expired'
              WHERE user_id=? AND id<>? AND status IN ('ready','sending')",[$uid,$id]);

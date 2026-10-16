@@ -201,6 +201,7 @@ def main():
     assert "Junte-se aos criadores." in get(creator,"/cadastrar")
     signin=get(creator,"/entrar")
     assert 'href="/recuperar-senha"' in signin, "Reset password entry point in modal"
+    assert 'name="remember_me"' in signin, "Optional trusted-device checkbox"
     reset=get(creator,"/recuperar-senha")
     assert 'name="identifier"' in reset and 'name="channel"' in reset, "Recovery supports registered email/WhatsApp"
     confirm=get(creator,"/recuperar-senha/confirmar")
