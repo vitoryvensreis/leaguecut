@@ -72,7 +72,7 @@ function lc_user(): ?array {
         unset($_SESSION['uid'],$_SESSION['mfa_verified'],$_SESSION['mfa_version']);
         return null;
     }
-    return lc_one('SELECT id,full_name,email,whatsapp,instagram,portfolio_url,role,status FROM users WHERE id=?',[$uid]);
+    return lc_one('SELECT id,full_name,email,whatsapp,instagram,portfolio_url,role,status,consent_whatsapp FROM users WHERE id=?',[$uid]);
 }
 function lc_login_required(bool $approved = true): array {
     $u = lc_user();
