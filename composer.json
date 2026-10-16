@@ -3,16 +3,17 @@
   "description": "Marketplace de campanhas de clipadores",
   "type": "project",
   "require": {
-    "php": "^8.2",
-    "ext-pdo": "*",
-    "ext-openssl": "*",
-    "ext-json": "*",
-    "phpmailer/phpmailer": "^6.9",
-    "google/apiclient": "^2.18",
-    "ext-mbstring": "*",
-    "ext-fileinfo": "*",
+    "cboden/ratchet": "^0.4.4",
+    "chillerlan/php-qrcode": "^6.0",
     "ext-curl": "*",
-    "cboden/ratchet": "^0.4.4"
+    "ext-fileinfo": "*",
+    "ext-json": "*",
+    "ext-mbstring": "*",
+    "ext-openssl": "*",
+    "ext-pdo": "*",
+    "google/apiclient": "^2.18",
+    "php": "^8.2",
+    "phpmailer/phpmailer": "^6.9"
   },
   "config": {
     "sort-packages": true,
