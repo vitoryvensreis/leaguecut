@@ -71,3 +71,8 @@ foreach($pending as $job){
         fwrite(STDERR,"AUTOMATION_FAILED #".$job['id']." (".$channel.")\n");
     }
 }
+
+/* Push uses this existing once-per-minute cron. Disabled until VAPID is configured. */
+require_once dirname(__DIR__).'/app/push.php';
+require_once dirname(__DIR__).'/app/push-worker.php';
+try{lc_push_worker_run();}catch(Throwable $e){error_log('LEAGUECUT_PUSH_WORKER_FAILED');}
