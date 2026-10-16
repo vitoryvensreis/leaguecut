@@ -350,6 +350,23 @@ try{
         $db->exec($rememberSql);
     }
     echo "MIGRACAO_REMEMBER_DEVICES_OK\n";
+    $pushTables=['push_subscriptions','push_preferences','push_deliveries'];
+    $pushPending=false;
+    foreach($pushTables as $pushTable){
+        if(!lc_one("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?",[$pushTable]))$pushPending=true;
+    }
+    if($pushPending){
+        lc_migration_backup();
+        $statements=array_values(array_filter(array_map('trim',explode(';',(string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_webpush.sql')))));
+        if(count($statements)!==3)throw new RuntimeException('Migração de assinaturas push inválida.');
+        foreach($statements as $idx=>$sql){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($pushTables[$idx],'/').'\\s*\\(/i',$sql))
+                throw new RuntimeException('Migração de assinaturas push tem tabela inesperada.');
+            $db->exec($sql);
+        }
+    }
+    echo "MIGRACAO_PUSH_STORAGE_OK\n";
+
 
 
     // B3a: keep original account data untouched, assign reserved lc_ID nicknames
