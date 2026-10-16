@@ -71,7 +71,10 @@ function lc_seo_defaults(array $s): array {
         'seo_social_image_url'=>'',
         'seo_twitter_handle'=>'',
         'seo_canonical_base'=>lc_seo_origin(),
-        'seo_index_enabled'=>'1'
+        'seo_index_enabled'=>'1',
+        // Include persisted social links in the admin SEO form's whitelist.
+        'social_instagram'=>'','social_tiktok'=>'','social_youtube'=>'',
+        'social_facebook'=>'','social_x'=>'','social_linkedin'=>''
     ];
 }
 function lc_seo_config(array $s): array { return array_merge(lc_seo_defaults($s),array_intersect_key($s,lc_seo_defaults($s))); }

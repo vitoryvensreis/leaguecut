@@ -89,3 +89,42 @@
   .site-footer{display:flex;flex-direction:column;align-items:flex-start}
   .site-footer .lc-footer-nav{gap:8px 14px}
 }
+
+
+/* B8 UI follow-up: login checkbox must never inherit text-field dimensions. */
+.lc-auth-dialog .lc-login-remember{margin:0}
+.lc-auth-dialog .lc-login-remember>span{
+  display:inline-flex;align-items:center;justify-content:flex-start;
+  gap:10px;max-width:100%;font-size:.84rem;line-height:1.5;
+}
+.lc-auth-dialog .lc-login-remember input[type="checkbox"]{
+  appearance:auto;accent-color:var(--accent);
+  display:inline-block!important;flex:0 0 18px!important;
+  width:18px!important;min-width:18px!important;max-width:18px!important;
+  height:18px!important;min-height:18px!important;max-height:18px!important;
+  padding:0!important;margin:0!important;border-radius:4px;
+  box-shadow:none;cursor:pointer;
+}
+@media(min-width:971px){
+  /* Fixed to the viewport, not sticky to the document. */
+  .workspace-page{--lc-fixed-sidebar-width:254px;--lc-fixed-header-height:78px}
+  .workspace-page .workspace-shell{
+    --sidebar:var(--lc-fixed-sidebar-width);
+    grid-template-columns:var(--lc-fixed-sidebar-width) minmax(0,1fr);
+  }
+  .workspace-page .workspace-sidebar{
+    position:fixed;top:var(--lc-fixed-header-height);left:0;bottom:0;
+    width:var(--lc-fixed-sidebar-width);
+    height:auto;max-height:none;min-height:0;
+    align-self:auto;z-index:22;overflow:hidden;
+  }
+  .workspace-page .workspace-sidebar>nav{
+    flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
+    overscroll-behavior-y:contain;
+  }
+  .workspace-page .workspace-sidebar .ws-sidebar-bottom{flex:0 0 auto;margin-top:0}
+  .workspace-page .site-footer{margin-left:var(--lc-fixed-sidebar-width)}
+}
+@media(min-width:971px) and (max-width:1310px){
+  .workspace-page{--lc-fixed-sidebar-width:228px}
+}

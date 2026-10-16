@@ -6,6 +6,18 @@ function seo_assert(bool $yes,string $why):void {
     if(!$yes)throw new RuntimeException('B5_SEO_FAILED: '.$why);
 }
 $base=['brand_name'=>'LeagueCut'];
+$socialConfig=lc_seo_config([
+  'social_instagram'=>'https://www.instagram.com/leaguecut/',
+  'social_tiktok'=>'https://www.tiktok.com/@leaguecut',
+  'social_youtube'=>'https://www.youtube.com/@leaguecut',
+  'social_facebook'=>'https://www.facebook.com/leaguecut',
+  'social_x'=>'https://x.com/leaguecut',
+  'social_linkedin'=>'https://www.linkedin.com/company/leaguecut/'
+]);
+foreach(lc_social_footer_specs() as $key=>$spec){
+  seo_assert(isset($socialConfig[$key]) && $socialConfig[$key]!=='','Saved '.$key.' must prefill SEO form');
+}
+seo_assert(lc_seo_config([])['social_instagram']==='','Missing social keys default to empty');
 $home=lc_seo_meta('Início',$base,'/');
 seo_assert($home['image']==='https://leaguecut.com/share/leaguecut.png?v=3','default Open Graph image');
 seo_assert($home['public'] && $home['robots']==='index, follow, max-image-preview:large','public home indexable');

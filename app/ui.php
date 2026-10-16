@@ -160,7 +160,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><link rel="stylesheet" href="/assets/flow-canvas-v2.css?v=1"><?php endif; ?><?php endif; ?>
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
-<link rel="stylesheet" href="/assets/b6-layout.css?v=1">
+<link rel="stylesheet" href="/assets/b6-layout.css?v=2">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>

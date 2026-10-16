@@ -151,10 +151,11 @@ def seo_upload_and_save(admin):
     with admin.open(req,timeout=18) as response:
         panel=response.read().decode('utf-8')
     assert "SEO atualizado" in panel, "Successful authenticated SEO update"
-    assert 'name="social_instagram"' in panel and 'name="social_tiktok"' in panel, "Admin SEO has official social settings"
+    assert 'name="social_instagram" value="https://www.instagram.com/leaguecut/"' in panel, "Saved Instagram remains visible in SEO form"
+    assert 'name="social_tiktok" value="https://www.tiktok.com/@leaguecut"' in panel, "Saved TikTok remains visible in SEO form"
 
     homepage=get(make_client(),"/")
-    assert '/assets/b6-layout.css?v=1' in homepage, "Responsive logo/sidebar/header stylesheet"
+    assert '/assets/b6-layout.css?v=2' in homepage, "Responsive logo/sidebar/header stylesheet"
     assert 'href="https://www.instagram.com/leaguecut/"' in homepage and 'href="https://www.tiktok.com/@leaguecut"' in homepage, "Configured footer social links"
     assert '/politica-de-privacidade' in homepage and '/exclusao-de-dados' in homepage and '/termos-de-uso' in homepage, "Legal footer pages linked"
     for legal in ['/politica-de-privacidade','/exclusao-de-dados','/termos-de-uso']:
@@ -214,6 +215,9 @@ def main():
     assert '<meta property="og:title"' in home and 'application/ld+json' in home, "Open Graph and JSON-LD"
     assert "Perguntas frequentes" in home, "FAQ section"
     assert 'href="/ranking"' in home, "Public nickname ranking linked from home"
+    ranking=get(make_client(),"/ranking")
+    assert "Seu nickname. Seu lugar no topo." not in ranking and "observações públicas" not in ranking, "No technical copy in public ranking"
+    assert "Ranking geral de clipadores" in ranking and "Ranking de visualizações" in ranking, "Public ranking stays usable"
     assert 'href="/explorar"' in home, "Catalog link"
     assert "Novas campanhas em breve" in get(creator,"/explorar"), "Catalog empty state"
     assert "Campanhas</a>" in home, "Catalog navigation"
