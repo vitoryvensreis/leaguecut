@@ -124,9 +124,21 @@ function lc_public_routes(string $method,string $path): bool {
             lc_flash('Confira seus dados: nome, e-mail, senha, Instagram, WhatsApp, portfólio e Pix.','error');lc_redirect('/cadastrar');
         }
         if(lc_one('SELECT id FROM users WHERE email=?',[$email])){lc_flash('Este e-mail já possui cadastro. Faça login.','error');lc_redirect('/entrar');}
-        lc_query("INSERT INTO users(full_name,email,password_hash,instagram,whatsapp,portfolio_url,pix_key_enc,consent_whatsapp) VALUES(?,?,?,?,?,?,?,?)",
-            [$name,$email,password_hash($password,PASSWORD_DEFAULT),$instagram,$whatsapp,$portfolio?:null,lc_encrypt($pix),lc_bool('consent_whatsapp')?1:0]);
-        session_regenerate_id(true);$_SESSION['uid']=(int)lc_db()->lastInsertId();
+        try {
+            $candidate=trim((string)($_POST['nickname']??''));
+            if($candidate!=='')lc_nickname_validate($candidate);
+            $db=lc_db();$db->beginTransaction();
+            lc_query("INSERT INTO users(full_name,email,password_hash,instagram,whatsapp,portfolio_url,pix_key_enc,consent_whatsapp) VALUES(?,?,?,?,?,?,?,?)",
+                [$name,$email,password_hash($password,PASSWORD_DEFAULT),$instagram,$whatsapp,$portfolio?:null,lc_encrypt($pix),lc_bool('consent_whatsapp')?1:0]);
+            $newId=(int)$db->lastInsertId();
+            lc_nickname_complete($newId,$candidate);
+            $db->commit();
+        }catch(InvalidArgumentException|PDOException $e){
+            if(lc_db()->inTransaction())lc_db()->rollBack();
+            lc_flash($e instanceof InvalidArgumentException?$e->getMessage():'E-mail ou nickname já está em uso.','error');
+            lc_redirect('/cadastrar');
+        }
+        session_regenerate_id(true);$_SESSION['uid']=$newId;
         lc_realtime_emit('admin',null,'creator.registered','user',$_SESSION['uid']);
         lc_flash('Cadastro enviado! Aguarde a aprovação da equipe.');lc_redirect('/aguardando');
     }
@@ -140,7 +152,7 @@ function lc_public_routes(string $method,string $path): bool {
         $hash=hash('sha256',(string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
         $recent=(int)(lc_one("SELECT COUNT(*) AS total FROM login_attempts WHERE ip_hash=? AND created_at > DATE_SUB(NOW(),INTERVAL 15 MINUTE)",[$hash])['total']??0);
         if($recent>=10){lc_flash('Muitas tentativas. Aguarde 15 minutos.','error');lc_redirect('/entrar');}
-        $email=mb_strtolower(lc_post('email',190));$user=lc_one('SELECT id,password_hash FROM users WHERE email=?',[$email]);
+        $login=mb_strtolower(trim(lc_post('email',190)));$user=lc_one('SELECT id,password_hash FROM users WHERE email=? OR nickname=? LIMIT 1',[$login,$login]);
         if(!$user||!password_verify((string)($_POST['password']??''),$user['password_hash'])){
             lc_query('INSERT INTO login_attempts(ip_hash) VALUES(?)',[$hash]);
             lc_flash('E-mail ou senha inválidos.','error');lc_redirect('/entrar');
