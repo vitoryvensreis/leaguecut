@@ -115,6 +115,7 @@ jobs:
           php tests/remember_device.php
           php tests/pwa_security.php
           node --check public/assets/pwa.js
+          node --check public/assets/notification-preferences.js
           php tests/campaign_ranking.php || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           php tests/automation_rules.php
           php tests/automation_visual.php
