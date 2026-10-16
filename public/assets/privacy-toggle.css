@@ -1,0 +1,18 @@
+/* B3c: visual concealment only. Authorization remains server-side. */
+.lc-privacy-toolbar{display:flex;justify-content:flex-end;position:relative;z-index:2;padding:8px clamp(12px,3vw,36px) 0}
+.lc-privacy-toggle{display:inline-flex!important;align-items:center;gap:8px;min-height:36px;font-size:.83rem!important}
+.lc-privacy-toggle .lc-icon{width:17px;height:17px}
+.lc-private{display:inline-block;position:relative;vertical-align:baseline;max-width:100%;min-width:3.9em}
+.lc-private-value{display:inline-block;max-width:100%;overflow-wrap:anywhere}
+html.lc-privacy-ready:not(.lc-privacy-visible) .lc-private-value{visibility:hidden!important;user-select:none!important}
+html.lc-privacy-ready:not(.lc-privacy-visible) .lc-private::after{content:"••••••";display:inline-block;position:absolute;left:0;top:0;bottom:0;font-size:.88rem;line-height:inherit;white-space:nowrap;color:#a6adbb;letter-spacing:.09em;pointer-events:none}
+html.lc-privacy-ready:not(.lc-privacy-visible) input[data-lc-private-input]:not(:focus),
+html.lc-privacy-ready:not(.lc-privacy-visible) textarea[data-lc-private-input]:not(:focus){
+ -webkit-text-security:disc;
+}
+html.lc-privacy-ready:not(.lc-privacy-visible) input[data-lc-private-input]:focus,
+html.lc-privacy-ready:not(.lc-privacy-visible) textarea[data-lc-private-input]:focus{
+ -webkit-text-security:disc;
+}
+@media(max-width:600px){.lc-privacy-toolbar{padding:7px 12px 0}}
+@media(prefers-reduced-motion:reduce){.lc-privacy-toggle{transition:none}}
