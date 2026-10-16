@@ -71,6 +71,61 @@ function lc_support_ticket_list(array $rows,bool $admin): void {
       </a>
     <?php endforeach; ?></div><?php
 }
+
+/** B6F1: bounded, owner-scoped searches without exposing other people's tickets. */
+function lc_support_list_url(bool $admin,string $status,string $q,int $page): string {
+    $params=[];
+    if($admin && $status!=='all')$params['status']=$status;
+    if($q!=='')$params['q']=$q;
+    if($page>1)$params['page']=$page;
+    return ($admin?'/admin/chamados':'/suporte').($params?'?'.http_build_query($params,'','&',PHP_QUERY_RFC3986):'');
+}
+function lc_support_list_page(array $viewer,bool $admin,array $input): array {
+    $status=$admin?(string)($input['status']??'all'):'all';
+    if(!in_array($status,['all','open','in_progress','answered','closed'],true))$status='all';
+    $rawPage=(string)($input['page']??'1');
+    $page=preg_match('/^[1-9][0-9]{0,3}$/D',$rawPage)?min(1000,(int)$rawPage):1;
+    $q=trim(preg_replace('/[\x00-\x1F\x7F]/u',' ',(string)($input['q']??''))??'');
+    $q=mb_substr($q,0,80);
+    $where=[];$args=[];
+    if(!$admin){$where[]='t.requester_id=?';$args[]=(int)$viewer['id'];}
+    if($admin && $status!=='all'){$where[]='t.status=?';$args[]=$status;}
+    if($q!==''){
+        $pattern='%'.str_replace(['!','%','_'],['!!','!%','!_'],$q).'%';
+        $parts=["t.subject LIKE ? ESCAPE '!'"];$searchArgs=[$pattern];
+        if($admin){
+            $parts[]="u.nickname LIKE ? ESCAPE '!'";
+            $parts[]="u.email LIKE ? ESCAPE '!'";
+            $searchArgs[]=$pattern;$searchArgs[]=$pattern;
+        }
+        if(ctype_digit($q) && strlen($q)<=13){
+            $parts[]='t.id=?';$searchArgs[]=(int)$q;
+        }
+        $where[]='('.implode(' OR ',$parts).')';
+        array_push($args,...$searchArgs);
+    }
+    $sql='SELECT t.id,t.subject,t.status,t.created_at,u.nickname,u.email
+      FROM support_tickets t JOIN users u ON u.id=t.requester_id';
+    if($where)$sql.=' WHERE '.implode(' AND ',$where);
+    $sql.=$admin?" ORDER BY FIELD(t.status,'open','in_progress','answered','closed'),t.id DESC":
+                  ' ORDER BY t.id DESC';
+    $limit=25;$offset=($page-1)*$limit;
+    $rows=lc_all($sql.' LIMIT '.($limit+1).' OFFSET '.$offset,$args);
+    $hasNext=count($rows)>$limit;
+    if($hasNext)$rows=array_slice($rows,0,$limit);
+    return ['rows'=>$rows,'status'=>$status,'q'=>$q,'page'=>$page,
+      'has_next'=>$hasNext,'has_previous'=>$page>1];
+}
+function lc_support_list_pager(array $list,bool $admin): void {
+    if(!$list['has_previous']&&!$list['has_next'])return;
+    $page=(int)$list['page'];$status=(string)$list['status'];$q=(string)$list['q'];
+    ?><nav class="lc-ticket-pager" aria-label="Páginas de chamados">
+    <?php if($list['has_previous']): ?><a rel="prev" href="<?=lc_e(lc_support_list_url($admin,$status,$q,$page-1))?>">← Anterior</a><?php endif; ?>
+    <span>Página <?=lc_e($page)?></span>
+    <?php if($list['has_next']): ?><a rel="next" href="<?=lc_e(lc_support_list_url($admin,$status,$q,$page+1))?>">Próxima →</a><?php endif; ?>
+    </nav><?php
+}
+
 function lc_support_routes(string $method,string $path): bool {
     if($path!=='/suporte' && $path!=='/admin/chamados' &&
        !preg_match('~^/(?:suporte|admin/chamados)/[1-9][0-9]{0,13}$~D',$path))return false;
@@ -94,9 +149,8 @@ function lc_support_routes(string $method,string $path): bool {
     }
     if($method!=='GET')return false;
     if($path==='/suporte'){
-        $rows=lc_all('SELECT id,subject,status,created_at FROM support_tickets
-             WHERE requester_id=? ORDER BY id DESC LIMIT 100',[(int)$viewer['id']]);
-        lc_page('Suporte',function()use($rows){?>
+        $list=lc_support_list_page($viewer,false,$_GET);
+        lc_page('Suporte',function()use($list){?>
 <div class="container lc-support-page">
 <?php lc_heading('Central de ajuda','Suporte LeagueCut','Abra um chamado e acompanhe seus protocolos em um só lugar.'); ?>
 <div class="lc-support-grid">
@@ -110,25 +164,35 @@ function lc_support_routes(string $method,string $path): bool {
 <div class="form-actions"><button class="btn" type="submit">Abrir chamado →</button></div>
 </form></section>
 <section class="panel"><h2>Meus protocolos</h2>
-<?php lc_support_ticket_list($rows,false); ?></section>
+<form class="lc-ticket-search" method="get" action="/suporte" role="search">
+<label for="lc-search-mine">Buscar protocolo ou assunto</label>
+<div><input id="lc-search-mine" type="search" name="q" maxlength="80" value="<?=lc_e($list['q'])?>" placeholder="Assunto ou número do protocolo">
+<button type="submit" class="btn btn-ghost">Buscar</button></div>
+</form>
+<?php lc_support_ticket_list($list['rows'],false); ?>
+<?php lc_support_list_pager($list,false); ?></section>
 </div></div>
 <?php },'dashboard');return true;
     }
     if($path==='/admin/chamados'){
-        $filter=(string)($_GET['status']??'all');
-        if(!in_array($filter,['all','open','in_progress','answered','closed'],true))$filter='all';
-        $rows=$filter==='all'?
-           lc_all('SELECT t.id,t.subject,t.status,t.created_at,u.nickname,u.email FROM support_tickets t JOIN users u ON u.id=t.requester_id ORDER BY FIELD(t.status,\'open\',\'in_progress\',\'answered\',\'closed\'),t.id DESC LIMIT 150'):
-           lc_all('SELECT t.id,t.subject,t.status,t.created_at,u.nickname,u.email FROM support_tickets t JOIN users u ON u.id=t.requester_id WHERE t.status=? ORDER BY t.id DESC LIMIT 150',[$filter]);
-        lc_page('Chamados',function()use($rows,$filter){?>
+        $list=lc_support_list_page($viewer,true,$_GET);
+        $filter=$list['status'];
+        lc_page('Chamados',function()use($list,$filter){?>
 <div class="container lc-support-page">
 <?php lc_heading('Atendimento','Chamados dos usuários','Acompanhe solicitações recebidas de clipadores e criadores.'); ?>
 <section class="panel"><nav class="lc-ticket-filters" aria-label="Filtrar chamados">
 <?php foreach(['all'=>'Todos','open'=>'Abertos','in_progress'=>'Em atendimento','answered'=>'Respondidos','closed'=>'Encerrados'] as $value=>$label):
-$link='/admin/chamados'.($value==='all'?'':'?status='.$value);?>
+$link=lc_support_list_url(true,$value,(string)$list['q'],1);?>
 <a href="<?=lc_e($link)?>" <?=$filter===$value?'aria-current="page"':''?>><?=lc_e($label)?></a><?php endforeach; ?>
 </nav>
-<?php lc_support_ticket_list($rows,true); ?>
+<form class="lc-ticket-search" method="get" action="/admin/chamados" role="search">
+<?php if($filter!=='all'): ?><input type="hidden" name="status" value="<?=lc_e($filter)?>"><?php endif; ?>
+<label for="lc-search-admin">Buscar assunto, número, nickname ou e-mail</label>
+<div><input id="lc-search-admin" type="search" name="q" maxlength="80" value="<?=lc_e($list['q'])?>" placeholder="Ex.: campanha, 123, nickname">
+<button type="submit" class="btn btn-ghost">Buscar</button></div>
+</form>
+<?php lc_support_ticket_list($list['rows'],true); ?>
+<?php lc_support_list_pager($list,true); ?>
 <p class="hint">Clique em um protocolo para responder e ajustar seu atendimento.</p>
 </section></div><?php },'admin');return true;
     }
