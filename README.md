@@ -46,13 +46,13 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 | # | Requisito | Situação | Bloco |
 |---|---|---|---|
 | 1 | Cadastrar ADM no painel | Implementado no código B1: formulário em /admin/administradores, confirmação da senha do operador e auditoria | B1 |
-| 2 | 2FA Google Authenticator para ADM, clipador e criador | **B2a implementado no código:** TOTP por chave manual no aplicativo, challenge de login, códigos de recuperação de uso único, rate limit e revogação das sessões antigas. Falta QR local e validação real de navegador. | B2 |
+| 2 | 2FA Google Authenticator para ADM, clipador e criador | **B2a implementado no código:** TOTP por chave manual no aplicativo, challenge de login, códigos de recuperação de uso único, rate limit e revogação das sessões antigas. QR local SVG incluído no B2b1; validação real de navegador pendente. | B2 |
 | 3 | Item não consta da lista original | N/A | — |
 | 4 | Logo 70% maior | Implementado no código B1: cabeçalhos com ajuste responsivo | B1 |
 | 5 | Indicações de clipadores/criadores e comissões fixas/percentuais editáveis | Pendente: atribuição, antifraude, reversões e créditos em centavos | B3 |
 | 6 | ADM editar todas as contas, acessos, senha, e-mail, telefone e Pix | Implementado no código B1: /admin/contas com confirmação da senha do operador; protege último ADM | B1 |
 | 7 | Máscaras CPF, WhatsApp, moeda e demais formulários | Parcial B1: máscara JS de telefone e CPF. Valores monetários e auditoria de formulários pendentes | B4 |
-| 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. Auditoria transversal de acessos, navegação, exclusões, financeiro e retenção pendente. | B2 |
+| 8 | Auditoria de ações e acessos de TODOS os usuários | **Parcial B2a:** conta ADM (B1) e eventos de autenticação/MFA e alterações dos próprios dados em account_security_events. B2b1 adiciona trilha GET/POST de páginas e operações, sem payload nem query string; classificação detalhada e cron de retenção pendentes. | B2 |
 | 9 | SEO gerenciado pelo ADM (ícones, OG, keywords, metadata, imagem, sitemap) | Pendente: editor e testes de compartilhamento/indexação | B5 |
 | 10 | Muitos bônus mensais cadastráveis | Pendente: regras de bônus, limites e não duplicação | B4 |
 | 11 | Usuário altera dados de acesso/Pix, saque protegido por e-mail/WhatsApp/TOTP | **Parcial B2a:** /conta permite alterar dados, senha e Pix com TOTP se ativo; saque exige TOTP ou senha atual; alteração revoga outras sessões; Pix bloqueado durante saques pendentes. Código enviado por e-mail/WhatsApp ainda pendente. | B2 |
@@ -79,12 +79,12 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 2. Leia o último run de CI e do workflow de deploy. Se houver falha, não anuncie que chegou à VPS.
 3. Na VPS, confira /home/leaguecut/current, /health e logs sem revelar segredos; só então marque como verificado em produção.
 4. A cada bloco concluído, atualize esta tabela, testes, PR, data, pendências, alterações do banco e próximo bloco.
-5. Próximo passo: **B2b**, códigos OTP transacionais por e-mail/WhatsApp (somente com provedor operacional e consentimento), auditoria global com políticas de retenção, QR Code local e revisão de controle de sessões.
+5. Próximo passo: **B2b2**, códigos OTP por SMTP/WhatsApp com confirmação real de entrega, cron de retenção de auditoria e revisão de eventos, depois B3.
 
 
 ### B2a — Implementação retomada após o B1 (16/10/2026)
 
-**Entregue no código (aguardando CI, merge e verificação da VPS):**
+**B2a já foi integrado e publicado (commit cd4cd1b):**
 - Login protegido com segundo fator TOTP de 6 dígitos para os três papéis.
 - Ativação voluntária em /seguranca/2fa, exigindo senha atual. Adição no Google Authenticator via **inserção manual da chave**, sem serviços externos e sem vazamento por gerador de QR.
 - Segredo TOTP guardado com criptografia AES-GCM usando APP_KEY já existente; dez códigos de recuperação de uso único mostrados uma vez e armazenados exclusivamente como HMAC.
@@ -94,7 +94,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - /conta: edição de nome, e-mail, telefone, senha e Pix; alteração de Pix bloqueada com saque solicitado/em análise.
 - Migração idempotente: account_mfa, account_mfa_attempts, account_security_events. Sempre realizar backup antes de executar pela primeira vez.
 
-**Ainda não entregue no B2:** confirmação por e-mail/WhatsApp com código de curta duração (depende de provedor operacional, opt-in e retenção), QR Code gerado localmente (atualmente manual), logs de **todas** as requisições/leituras/ações de usuários, recuperação assistida quando todos os códigos forem perdidos, avisos de mudança de endereço de e-mail, controles antifraude avançados e testes manuais de UX. **Nunca** confundir senha de confirmação com código OTP enviado por e-mail/WhatsApp.
+**Ainda não entregue no B2:** confirmação por e-mail/WhatsApp com código de curta duração (depende de provedor operacional, opt-in e retenção), QR Code gerado localmente (B2b1), logs de **todas** as requisições/leituras/ações de usuários, recuperação assistida quando todos os códigos forem perdidos, avisos de mudança de endereço de e-mail, controles antifraude avançados e testes manuais de UX. **Nunca** confundir senha de confirmação com código OTP enviado por e-mail/WhatsApp.
 
 **Checagens pós-deploy:**
 1. Conta clipador sem 2FA continua fazendo login normalmente.
@@ -103,3 +103,15 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 4. Alterar senha/Pix na página /conta e fazer saque com o segundo fator ativo; testar também conta sem segundo fator (confirmação de senha).
 5. Alterar credenciais pelo ADM e garantir que outra sessão do usuário é invalidada.
 6. Validar ausência de segredo TOTP, senha, chave Pix e códigos nos logs de aplicação.
+
+
+### B2b1 — QR Code local e auditoria transversal (16/10/2026)
+
+- QR de configuração TOTP gerado no servidor por chillerlan/php-qrcode ^6.0; não transmite chave a terceiros. A inserção manual permanece disponível.
+- Registro de navegação GET e ações POST por perfil/ID/data/status em request_audit. Sem dados de formulários, tokens, parâmetros de URL, senhas, CPF ou Pix; IP somente HMAC. Caminhos identificáveis são normalizados.
+- Painel de auditoria em /admin/auditoria, com filtros e acesso exclusivo de administradores. Guarda até 250 eventos na exibição recente.
+- Migração incremental idempotente com backup, testes de QR e sanitização do histórico no CI.
+- Retenção por CLI em bin/audit-prune.php, padrão 90 dias (AUDIT_RETENTION_DAYS: 30 a 365). Na VPS, o cron precisa ser ativado manualmente sob o usuário leaguecut, por exemplo:
+  15 3 * * * cd /home/leaguecut/current && /usr/bin/php bin/audit-prune.php >> /home/leaguecut/logs/audit-prune.log 2>&1
+- B2b2 PENDENTE: códigos por SMTP/WhatsApp com entrega realmente confirmada e expiração, consentimento, limites de tentativas e vinculação ao saque/alteração. O worker bin/notify.php atualmente envia mensagem fixa de aprovação e NÃO deve ser reutilizado sem revisão.
+- Verificação após merge: status do deploy, renderização do QR no navegador, auditoria GET/POST sem segredos, cron de retenção e rollback se algum teste falhar. Próximo bloco depois B2b2: B3 indicações, nickname e ranking.
