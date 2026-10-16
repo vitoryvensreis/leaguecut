@@ -1,0 +1,15 @@
+/* Referral dashboard — restrained game aesthetic */
+.lc-referral-area .ws-kpi-grid{margin-bottom:18px}
+.lc-referral-area .ws-kpi{padding:20px;background:linear-gradient(140deg,#141b24,#21151e)}
+.lc-referral-area .ws-kpi strong{font-size:clamp(1.25rem,2.8vw,1.8rem);display:block;margin-top:12px}
+.lc-referral-copy{display:flex;gap:8px;margin-bottom:12px}
+.lc-referral-copy input{flex:1;min-width:0}
+.lc-referral-rules{display:grid;gap:8px}
+.lc-referral-rules>div{display:flex;justify-content:space-between;gap:14px;align-items:center;border:1px solid #ffffff19;border-radius:9px;padding:12px 14px;background:#ffffff08}
+.lc-referral-rules span{color:#b0bdcc}
+.lc-referral-admin-rules{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.lc-referral-rule-form{border:1px solid #ffffff20;border-radius:12px;padding:17px;background:linear-gradient(135deg,#141b23,#15111a);display:grid;gap:12px}
+.lc-referral-rule-form h3{margin:0 0 4px;color:#fff}
+.lc-referral-area .form-actions{display:flex;gap:8px;flex-wrap:wrap}
+@media(max-width:820px){.lc-referral-admin-rules{grid-template-columns:1fr}.lc-referral-rules>div{display:grid}}
+@media(max-width:550px){.lc-referral-copy{flex-wrap:wrap}.lc-referral-copy input{flex-basis:100%}}
