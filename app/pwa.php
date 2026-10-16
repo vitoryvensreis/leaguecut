@@ -1,41 +1,15 @@
 <?php
 declare(strict_types=1);
 /** B6D1 PWA: private pages and their API/data responses are always online-only. */
-function lc_pwa_png_chunk(string $kind,string $data): string {
-    return pack('N',strlen($data)).$kind.$data.pack('N',crc32($kind.$data));
-}
-/** Self-contained icon, no GD/Imagick dependency or external services. */
-function lc_pwa_icon_png(int $size): string {
-    if(!in_array($size,[192,512],true))throw new InvalidArgumentException('Tamanho de ícone inválido.');
-    $bytes='';
-    for($y=0;$y<$size;$y++){
-        $bytes.="\x00";
-        $yf=($y+.5)/$size;
-        for($x=0;$x<$size;$x++){
-            $xf=($x+.5)/$size;
-            // Black LeagueCut tile with a red rounded-square, white cinematic play glyph.
-            $r=11;$g=13;$b=20;
-            $dx=max(abs($xf-.5)-.27,0);
-            $dy=max(abs($yf-.5)-.27,0);
-            if($dx*$dx+$dy*$dy<.060*.060 && abs($xf-.5)<.33 && abs($yf-.5)<.33){
-                $r=228;$g=(int)(24+22*$yf);$b=(int)(42+9*$xf);
-            }
-            $inPlay=$xf>=.435 && $xf<=.65 &&
-                abs($yf-.5)<(.65-$xf)*.88;
-            if($inPlay){$r=255;$g=255;$b=255;}
-            $bytes.=chr($r).chr($g).chr($b)."\xff";
-        }
-    }
-    return "\x89PNG\r\n\x1a\n".
-       lc_pwa_png_chunk('IHDR',pack('NNCCCCC',$size,$size,8,6,0,0,0)).
-       lc_pwa_png_chunk('IDAT',gzcompress($bytes,8)).
-       lc_pwa_png_chunk('IEND','');
+require_once __DIR__ . '/brand-images.php';
+function lc_pwa_icon_png(int $size,bool $maskable=false): string {
+    return lc_brand_icon_png($size,$maskable);
 }
 function lc_pwa_sw_source(): string {
     return <<<'JS'
 'use strict';
-const CACHE='leaguecut-public-static-v2';
-const STATIC=['/assets/app.css?v=10','/assets/v2.css?v=10','/assets/icons.svg','/app-icon/192.png'];
+const CACHE='leaguecut-public-static-v3';
+const STATIC=['/assets/app.css?v=10','/assets/v2.css?v=10','/assets/icons.svg','/app-icon/192.png?v=3'];
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(STATIC)).then(()=>self.skipWaiting()));
 });
@@ -72,7 +46,7 @@ self.addEventListener('push',event=>{
   const body=typeof input.body==='string'&&input.body.length<150?input.body:
     'Você tem uma nova atualização.';
   event.waitUntil(self.registration.showNotification('LeagueCut',{
-    body,icon:'/app-icon/192.png',badge:'/app-icon/192.png',
+    body,icon:'/app-icon/192.png?v=3',badge:'/app-icon/48.png?v=3',
     tag:'leaguecut-event-'+id,
     data:{target},renotify:false
   }));
@@ -104,8 +78,10 @@ function lc_pwa_routes(string $method,string $path): bool {
             'scope'=>'/','display'=>'standalone','background_color'=>'#080a0e',
             'theme_color'=>'#e50914','lang'=>'pt-BR',
             'icons'=>[
-                ['src'=>'/app-icon/192.png','type'=>'image/png','sizes'=>'192x192','purpose'=>'any maskable'],
-                ['src'=>'/app-icon/512.png','type'=>'image/png','sizes'=>'512x512','purpose'=>'any maskable']
+                ['src'=>'/app-icon/192.png?v=3','type'=>'image/png','sizes'=>'192x192','purpose'=>'any'],
+                ['src'=>'/app-icon/512.png?v=3','type'=>'image/png','sizes'=>'512x512','purpose'=>'any'],
+                ['src'=>'/app-icon/192-maskable.png?v=3','type'=>'image/png','sizes'=>'192x192','purpose'=>'maskable'],
+                ['src'=>'/app-icon/512-maskable.png?v=3','type'=>'image/png','sizes'=>'512x512','purpose'=>'maskable']
             ],
             'description'=>'Acesse suas campanhas, clipes e recompensas LeagueCut.'
         ],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
@@ -119,11 +95,21 @@ function lc_pwa_routes(string $method,string $path): bool {
         echo lc_pwa_sw_source();
         return true;
     }
-    if(preg_match('~^/app-icon/(192|512)\.png$~D',$path,$m)){
-        $png=lc_pwa_icon_png((int)$m[1]);
+    if(preg_match('~^/app-icon/(32|48|180|192|512)(-maskable)?\.png$~D',$path,$m)){
+        $png=lc_pwa_icon_png((int)$m[1],($m[2]??'')==='-maskable');
         header('Content-Type: image/png');
+        header('X-Content-Type-Options: nosniff');
         header('Content-Length: '.strlen($png));
-        header('Cache-Control: public,max-age=86400,immutable');
+        header('Cache-Control: public,max-age=604800,immutable');
+        echo $png;
+        return true;
+    }
+    if($path==='/share/leaguecut.png'){
+        $png=lc_brand_social_png();
+        header('Content-Type: image/png');
+        header('X-Content-Type-Options: nosniff');
+        header('Content-Length: '.strlen($png));
+        header('Cache-Control: public,max-age=604800,immutable');
         echo $png;
         return true;
     }
