@@ -30,7 +30,8 @@ function lc_audit_track(string $method,string $path): void {
     if(!in_array($method,['GET','POST'],true))return;
     // Exclude static/media/realtime polling to avoid recording background noise.
     if($path==='/health'||str_starts_with($path,'/media/')||
-       str_starts_with($path,'/realtime/')||str_starts_with($path,'/assets/')||
+       str_starts_with($path,'/realtime/')||str_starts_with($path,'/admin/whatsapp/api/')||
+       str_starts_with($path,'/admin/automacoes/api/')||str_starts_with($path,'/assets/')||
        str_starts_with($path,'/.well-known/'))return;
     $before=(int)($_SESSION['uid']??0);
     $normalized=lc_audit_route($path);
