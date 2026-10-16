@@ -159,6 +159,18 @@ jobs:
             fi
             crontab -l | grep -Fq '# LEAGUECUT_AUTOMATIONS_MANAGED' || { echo 'ERR: automations worker cron was not installed'; exit 1; }
             echo 'LEAGUECUT_AUTOMATIONS_CRON_INSTALLED'
+            # Install under the already-validated leaguecut Unix user, never root/TaskEsc.
+            CURRENT_CRON="$(crontab -l 2>/dev/null || true)"
+            if ! printf '%s\n' "$CURRENT_CRON" | grep -Fq '# LEAGUECUT_SECURITY_PRUNE_MANAGED'; then
+              {
+                printf '%s\n' "$CURRENT_CRON"
+                printf '%s\n' '# LEAGUECUT_SECURITY_PRUNE_MANAGED'
+                printf '%s\n' '15 3 * * * cd /home/leaguecut/current && /usr/bin/flock -n /tmp/leaguecut-security-prune.lock /bin/sh -c "/usr/bin/php bin/audit-prune.php && /usr/bin/php bin/otp-prune.php" >> /home/leaguecut/logs/security-prune.log 2>&1'
+              } | crontab -
+            fi
+            crontab -l | grep -Fq '# LEAGUECUT_SECURITY_PRUNE_MANAGED' ||
+              { echo 'ERR: cron de retenção de auditoria/OTP não configurado'; exit 1; }
+            echo 'LEAGUECUT_SECURITY_PRUNE_INSTALLED'
           fi
           echo "LEAGUECUT_PUBLICADO=$REV"
           REMOTE
