@@ -44,11 +44,8 @@ function lc_push_save(int $uid,array $subscription): void {
        ON DUPLICATE KEY UPDATE enabled=1",[$uid]);
 }
 function lc_push_disable(int $uid,string $endpoint): void {
-    if($endpoint!==''&&lc_push_endpoint_valid($endpoint)){
-        lc_query('DELETE FROM push_subscriptions WHERE user_id=? AND endpoint_hash=?',[$uid,hash('sha256',$endpoint)]);
-    }else{
-        lc_query('DELETE FROM push_subscriptions WHERE user_id=?',[$uid]);
-    }
+    if(!lc_push_endpoint_valid($endpoint))throw new InvalidArgumentException('Dispositivo inválido.');
+    lc_query('DELETE FROM push_subscriptions WHERE user_id=? AND endpoint_hash=?',[$uid,hash('sha256',$endpoint)]);
     $remain=(int)(lc_one('SELECT COUNT(*) AS n FROM push_subscriptions WHERE user_id=?',[$uid])['n']??0);
     if($remain===0)lc_query("INSERT INTO push_preferences(user_id,enabled) VALUES(?,0)
        ON DUPLICATE KEY UPDATE enabled=0",[$uid]);
@@ -73,8 +70,13 @@ function lc_push_routes(string $method,string $path): bool {
           }
        }
        if($path==='/notificacoes/desativar'){
-          lc_push_disable($uid,trim((string)($_POST['endpoint']??'')));
-          echo '{"ok":true}';return true;
+          try {
+              lc_push_disable($uid,trim((string)($_POST['endpoint']??'')));
+              echo '{"ok":true}';return true;
+          } catch(InvalidArgumentException $e){
+              http_response_code(422);
+              echo '{"ok":false,"message":"Dispositivo inválido."}';return true;
+          }
        }
        return false;
     }
@@ -86,7 +88,7 @@ function lc_push_routes(string $method,string $path): bool {
 <div class="container container-md" style="max-width:860px">
 <?php lc_heading('Central de notificações','Notificações e som',
     'Escolha como receber avisos sobre campanhas, aprovações, clipes e andamento da conta.'); ?>
-<div class="panel" id="lc-push-panel" data-vapid="<?=lc_e($public)?>">
+<div class="panel" id="lc-push-panel" data-vapid="<?=lc_e($public)?>" data-csrf="<?=lc_e(lc_token())?>">
 <h2>Notificações push neste dispositivo</h2>
 <p class="hint">Web Push envia avisos mesmo com o aplicativo fechado, quando autorizado pelo navegador e configurado no servidor. Você pode desativar quando quiser.</p>
 <div class="form-actions">
