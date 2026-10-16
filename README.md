@@ -242,7 +242,7 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Nenhuma migration MySQL, nem alteração em pagamentos. CSS `/assets/b6-layout.css` carregado após o design anterior para evitar regras antigas de escala da logo. Testes de integração para links sociais e documentos legais; validação visual Chrome desktop/tablet/mobile recomendada após deploy.
 
 ### Próximos blocos
-- **B6C1 implementado em branch, aguardando CI/deploy:** recuperação de senha por contato previamente cadastrado com código temporário de uso único, limite por conta e sessão, resposta genérica e revogação de sessões ao concluir. **B6C2 pendente:** manter logado com tokens opacos revogáveis e integração com 2FA.
+- **B6C1 implementado em branch, aguardando CI/deploy:** recuperação de senha por contato previamente cadastrado com código temporário de uso único, limite por conta e sessão, resposta genérica e revogação de sessões ao concluir. **B6C2 em validação:** manter logado com tokens opacos revogáveis e verificação do 2FA.
 - **B6D:** PWA com manifesto, ícones, service worker restrito a recursos estáticos e páginas públicas; implementação de Web Push com opt-in, VAPID, armazenamento protegido de subscriptions, respeitar permissão do navegador e controle de sons/alertas. Não armazenar HTML privado em cache offline.
 - **B6E:** suporte via formulário de chamados para clipadores/criadores, fila ADM com status/prioridades/respostas e notificações de atualização; permissão por autor e trilha de auditoria.
 
@@ -255,4 +255,14 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Código aleatório de **8 dígitos**, armazenado apenas como HMAC no MySQL, vinculado à sessão HTTP e com validade de **10 minutos**, cinco tentativas máximas, no máximo 4 solicitações por usuário em 20 minutos (e 60 segundos entre emissões), throttle de 45 segundos por navegador. Senha nova de 12–128 caracteres; nenhuma senha é enviada em e-mail/WhatsApp.
 - Atualização da senha é atômica com consumo do código e rotação de `account_mfa.session_version`, encerrando sessões anteriores, inclusive com Google Authenticator. O código não pode ser usado novamente; MFA continua habilitado e necessário para próximos logins.
 - Migração aditiva `password_reset_challenges` com backup antes do DDL, sem alterar o resto do banco. Testes verificam conta desconhecida, código errado, senha curta, mudança com hash e replay. Validar envio real em contas de teste antes de divulgação; não alterar senha real no teste.
-- **B6C2 permanece pendente:** login persistente revogável com cookie opaco Secure/HttpOnly e verificação de 2FA, botão para sair de todos os dispositivos.
+- **B6C2 implementado em branch, aguardando CI/deploy:** login persistente revogável com cookie opaco Secure/HttpOnly e verificação de 2FA; painel de gestão individual de dispositivos permanece para uma revisão posterior.
+
+
+### B6C2 — Manter logado neste dispositivo (16/10/2026)
+
+- **Estado:** implementado em branch, aguardando CI/deploy.
+- Checkbox opcional desmarcado no login; contas com 2FA só registram dispositivo após confirmar o segundo fator.
+- Cookie `__Host-lc_remember` com selector 12 bytes + validator 32 bytes, `Secure`, `HttpOnly`, `SameSite=Lax`, `Path=/`, sem Domain; HTTPS obrigatório, expiração em até 30 dias. Segredo armazenado apenas em forma de HMAC no MySQL.
+- Ao restaurar a sessão, verifica status da conta, validade, segredo, versão do MFA, rotaciona token atomicamente e rejeita replay. Até oito dispositivos por usuário; tokens mais antigos revogados.
+- Sair elimina o dispositivo atual. Redefinir a senha elimina todos os tokens e invalida sessões antigas sem desativar o 2FA.
+- Migration com backup idempotente `account_remember_tokens`, testes de token válido, expirado, reutilizado e revogado. **Pendente:** painel para gerenciar dispositivos e revisão manual em múltiplos navegadores. Próximos blocos B6D (PWA/notificações) e B6E (suporte/chamados).
