@@ -468,7 +468,7 @@ def main():
     assert "R$ 75,00" in finance, "Credits unchanged by blocked actions"
     # Approving an already-approved clip is idempotent.
     submit(admin,first_url,{"decision":"approved"},"/admin/clipes")
-    submit(creator,"/financeiro/saques",{"amount":"10,00"},"/financeiro")
+    submit(creator,"/financeiro/saques",{"amount":"10,00","current_password":"This-Is-A-Test-Password-123"},"/financeiro")
     finance=get(creator,"/financeiro")
     assert "R$ 65,00" in finance, "Withdrawal reserves available balance"
     creator_latest=json.loads(get(creator,"/api/realtime/snapshot"))

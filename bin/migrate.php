@@ -286,6 +286,28 @@ try{
     }
     echo "MIGRACAO_ADMIN_AUDIT_OK\n";
 
+    // MFA tables are additive. Always back up once before the first structural change.
+    $mfaTables=['account_mfa','account_mfa_attempts','account_security_events'];
+    $missing=[];
+    foreach($mfaTables as $table){
+        if(!lc_one("SELECT 1 AS present FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?",[$table]))
+            $missing[]=$table;
+    }
+    if($missing){
+        lc_migration_backup();
+        $sql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_2fa_security.sql'));
+        $statements=array_values(array_filter(array_map('trim',explode(';',$sql))));
+        if(count($statements)!==count($mfaTables))
+            throw new RuntimeException('Quantidade de tabelas MFA inválida.');
+        foreach($statements as $index=>$statement){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($mfaTables[$index],'/').'\s*\(/i',$statement))
+                throw new RuntimeException('Migração MFA inválida.');
+            $db->exec($statement);
+        }
+    }
+    echo "MIGRACAO_MFA_OK\n";
+
+
     echo "MIGRACAO_CRIADOR_ASSINATURAS_OK\n";
 
 

@@ -276,7 +276,15 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
 <div class="stats-grid"><div class="metric"><small>Ganhos creditados</small><strong><?=lc_money($balance['earned'])?></strong></div><div class="metric"><small>Saldo disponível</small><strong><?=lc_money($balance['available'])?></strong></div>
 <div class="metric"><small>Reservado / já sacado</small><strong><?=lc_money($balance['reserved'])?></strong></div><div class="metric"><small>Chave Pix</small><strong style="font-size:1rem">Cadastrada <?=lc_icon('lock-keyhole')?></strong></div></div>
 <div class="panel"><h2>Solicitar saque</h2><p>O saldo só considera recompensas liberadas. A transferência Pix é conferida e realizada manualmente até a homologação do provedor de pagamentos.</p>
-<form method="post" action="/financeiro/saques"><?=lc_csrf()?><div class="form-inline"><?php lc_field('Valor (R$)','amount','text','',true,'Ex.: 35,00'); ?><button class="btn" type="submit">Solicitar saque →</button></div></form></div>
+<form method="post" action="/financeiro/saques"><?=lc_csrf()?>
+<div class="form-inline"><?php lc_field('Valor (R$)','amount','text','',true,'Ex.: 35,00'); ?>
+<button class="btn" type="submit">Solicitar saque →</button></div>
+<?php if(lc_mfa_enabled((int)$u['id'])):?>
+<label class="field"><span>Código do Google Authenticator ou recuperação</span><input name="mfa_code" maxlength="60" autocomplete="one-time-code" required></label>
+<?php else:?>
+<label class="field"><span>Confirme sua senha atual</span><input type="password" name="current_password" autocomplete="current-password" required></label>
+<p class="hint">Proteja seus próximos saques com <a href="/seguranca/2fa">Google Authenticator</a>. Confirmação por código de e-mail/WhatsApp virá em outra etapa.</p>
+<?php endif;?></form></div>
 <div class="panel"><h2>Extrato de créditos</h2><?php if(!$entries):lc_empty('Nenhum crédito liberado','A aprovação e as metas semanais determinam quando os créditos entram no saldo.');else:?>
 <div class="table-wrap"><table><thead><tr><th>Descrição</th><th>Data</th><th>Valor</th></tr></thead><tbody><?php foreach($entries as $e):?><tr><td><?=lc_e($e['description'])?><small><?=lc_e($e['kind'])?></small></td><td><?=date('d/m/Y',strtotime($e['created_at']))?></td><td><?=lc_money($e['amount_cents'])?></td></tr><?php endforeach;?></tbody></table></div><?php endif;?></div>
 <div class="panel"><h2>Solicitações de saque</h2><?php if(!$withdrawals):lc_empty('Nenhuma solicitação','Quando tiver saldo disponível, você poderá solicitar um saque.');else:?>
@@ -285,6 +293,10 @@ else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th
     }
     if($method==='POST'&&$path==='/financeiro/saques'){
         $u=lc_login_required();
+        if(!lc_mfa_stepup_or_password($u,lc_post('mfa_code',60),(string)($_POST['current_password']??''))){
+            lc_flash('Confirmação de segurança inválida ou limite de tentativas atingido.','error');
+            lc_redirect('/financeiro');
+        }
         $amount=lc_cents('amount',0);
         if($amount<100){lc_flash('O valor mínimo é R$ 1,00.','error');lc_redirect('/financeiro');}
         lc_db()->beginTransaction();
