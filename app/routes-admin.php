@@ -72,39 +72,63 @@ function lc_admin_routes(string $method,string $path): bool {
           FROM clips c JOIN users u ON u.id=c.user_id WHERE c.status='approved' AND u.role='clipador' GROUP BY u.id,u.full_name,u.nickname ORDER BY views DESC,clips DESC,u.id ASC LIMIT 8");
         $rankCampaigns=lc_all("SELECT p.slug,p.title,COUNT(c.id) AS clips,COALESCE(SUM(COALESCE((SELECT d.views FROM clip_daily_views d WHERE d.clip_id=c.id ORDER BY d.snapshot_date DESC LIMIT 1),0)),0) AS views
           FROM campaigns p LEFT JOIN clips c ON c.campaign_id=p.id AND c.status='approved' GROUP BY p.id,p.slug,p.title ORDER BY views DESC,clips DESC,p.id ASC LIMIT 8");
-        lc_page('Administração',function()use($admin,$pending,$total,$campaigns,$clips,$withdrawals,$recent,$viewsAll,$lastObservation,$rankUsers,$rankCampaigns){?>
+        $demo=lc_demo_enabled();
+        if($demo){
+            $fakePlayers=lc_demo_ranking(30);
+            $rankUsers=lc_demo_merge_ranking($rankUsers,8);
+            $fakeCampaigns=lc_demo_campaigns();
+            foreach($fakeCampaigns as $i=>$fake){
+                $rankCampaigns[]=['slug'=>$fake['slug'],'title'=>$fake['title'],
+                    'clips'=>72+$i*4,'views'=>max(155000,3700000-$i*191000),'is_demo'=>true];
+            }
+            usort($rankCampaigns,static fn(array $a,array $b)=>(int)$b['views']<=>(int)$a['views']);
+            $rankCampaigns=array_slice($rankCampaigns,0,8);
+            $viewsAll['views']=(int)($viewsAll['views']??0)+array_sum(array_column($fakePlayers,'views'));
+            $viewsAll['clips']=(int)($viewsAll['clips']??0)+array_sum(array_column($fakePlayers,'clips'));
+            $viewsAll['players']=(int)($viewsAll['players']??0)+count($fakePlayers);
+            $campaigns+=count($fakeCampaigns);
+            $examples=[];
+            for($i=0;$i<6;$i++){
+                $examples[]=['title'=>'Clipe ilustrativo #'.($i+1),'status'=>'approved',
+                    'submitted_at'=>date('Y-m-d H:i:s',strtotime('-'.($i+1).' hours')),
+                    'full_name'=>$fakePlayers[$i]['full_name'],
+                    'campaign_title'=>$fakeCampaigns[$i]['title'],'is_demo'=>true];
+            }
+            $recent=array_slice(array_merge($examples,$recent),0,10);
+        }
+        lc_page('Administração',function()use($admin,$pending,$total,$campaigns,$clips,$withdrawals,$recent,$viewsAll,$lastObservation,$rankUsers,$rankCampaigns,$demo){?>
 <div class="container ws-dashboard">
   <section class="ws-hero" aria-labelledby="admin-overview-title">
     <div><span class="eyebrow">Painel administrativo · League Cut · placar de resultados</span><h1 id="admin-overview-title">O jogo está acontecendo.</h1>
-      <p>Visualizações reais observadas, melhores clipadores e campanhas em destaque. Métricas coletadas pela Apify.</p>
+      <p><?=$demo?'Indicadores demonstrativos com registros fictícios identificados. Pagamentos e operações reais permanecem separados.':'Visualizações reais observadas, melhores clipadores e campanhas em destaque. Métricas coletadas pela Apify.'?></p><?php if($demo):?><a class="tag" href="/admin/demo">MODO DEMONSTRAÇÃO · DADOS SIMULADOS</a><?php endif;?>
     </div>
     <div class="ws-hero-actions"><a href="/admin/clipadores?status=pending" class="btn">Ver aprovações <?=lc_icon('arrow-right')?></a><a href="/admin/campanhas" class="btn btn-ghost">Gerenciar campanhas</a></div>
   </section>
   <div class="ws-kpi-grid" aria-label="Indicadores administrativos">
     <?php foreach([
-     ['Views observadas',(int)($viewsAll['views']??0),'chart-column','Última leitura por clipe aprovado'],
-      ['Clipes aprovados',(int)($viewsAll['clips']??0),'clapperboard','Publicações no ranking'],
-      ['Campanhas ativas',$campaigns,'layers','Oportunidades disponíveis'],
-      ['Clipadores no ranking',(int)($viewsAll['players']??0),'users-round','Com clipes aprovados']
+     [$demo?'Views ilustrativas':'Views observadas',(int)($viewsAll['views']??0),'chart-column',$demo?'Inclui dados simulados':'Última leitura por clipe aprovado'],
+      [$demo?'Clipes ilustrativos':'Clipes aprovados',(int)($viewsAll['clips']??0),'clapperboard',$demo?'Inclui clipes fictícios':'Publicações no ranking'],
+      ['Campanhas ativas',$campaigns,'layers',$demo?'Inclui campanhas fictícias':'Oportunidades disponíveis'],
+      ['Clipadores no ranking',(int)($viewsAll['players']??0),'users-round',$demo?'Inclui perfis fictícios':'Com clipes aprovados']
     ] as $index=>[$name,$value,$icon,$help]): ?>
       <div class="ws-kpi"><div class="ws-kpi-top"><span><?=lc_e($name)?></span><span class="ws-kpi-icon"><?=lc_icon($icon)?></span></div>
-       <div class="ws-kpi-value" <?=$index===2?'data-live="active_campaigns"':''?>><?=number_format((int)$value,0,',','.')?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
+       <div class="ws-kpi-value" <?=$index===2&&!$demo?'data-live="active_campaigns"':''?>><?=number_format((int)$value,0,',','.')?></div><p class="ws-kpi-foot"><?=lc_e($help)?></p></div>
     <?php endforeach; ?>
   </div>
 
   <div class="ws-dashboard-views-heading"><div><span class="eyebrow">Gamificação · placar geral</span><h2>Ranking de desempenho</h2>
-  <p class="hint">Views públicas observadas pela Apify em clipes aprovados. Não representam pagamento nem prova de titularidade.</p></div>
-  <span class="tag">Última leitura: <?=$lastObservation?lc_e(date('d/m/Y H:i',strtotime((string)$lastObservation)).' UTC'):'Sem coletas'?></span></div>
+  <p class="hint"><?=$demo?'Ranking ilustrativo: valores de demonstração não foram coletados de redes sociais e não representam pagamentos.':'Views públicas observadas pela Apify em clipes aprovados. Não representam pagamento nem prova de titularidade.'?></p></div>
+  <span class="tag"><?=$demo?'DEMO · DADOS FICTÍCIOS':'Última leitura: '.($lastObservation?lc_e(date('d/m/Y H:i',strtotime((string)$lastObservation)).' UTC'):'Sem coletas')?></span></div>
   <div class="ws-rank-dashboard">
     <section class="ws-rank-panel"><h2><?=lc_icon('trophy')?> Top clipadores</h2>
     <?php if(!$rankUsers):?><p class="ws-rank-empty">Aguardando clipes aprovados.</p><?php else:foreach($rankUsers as $i=>$p):?>
     <div class="ws-rank-row" data-arena-position="<?=$i+1?>"><span class="ws-rank-number"><?=$i+1?>º</span><span><strong><?=lc_private($p['full_name'])?></strong><small>@<?=lc_e($p['nickname']??'sem-nick')?></small>
-    <small><?=(int)$p['clips']?> clipes · <?=number_format((int)$p['clips']*100+intdiv((int)$p['views'],100),0,',','.')?> XP ilustrativo</small></span>
+    <small><?=(int)$p['clips']?> <?=!empty($p['is_demo'])?'clipes simulados':'clipes'?> · <?=number_format((int)$p['clips']*100+intdiv((int)$p['views'],100),0,',','.')?> XP ilustrativo</small></span>
     <span class="ws-rank-count"><?=number_format((int)$p['views'],0,',','.')?><small>views</small></span></div>
     <?php endforeach;endif;?></section>
     <section class="ws-rank-panel"><h2><?=lc_icon('chart-column')?> Top campanhas</h2>
     <?php if(!$rankCampaigns):?><p class="ws-rank-empty">Nenhuma campanha cadastrada.</p><?php else:foreach($rankCampaigns as $i=>$p):?>
-    <div class="ws-rank-row" data-arena-position="<?=$i+1?>"><span class="ws-rank-number"><?=$i+1?>º</span><span><a href="/campanhas/<?=lc_e($p['slug'])?>"><strong><?=lc_e($p['title'])?></strong></a><small><?=(int)$p['clips']?> clipes aprovados</small></span>
+    <div class="ws-rank-row" data-arena-position="<?=$i+1?>"><span class="ws-rank-number"><?=$i+1?>º</span><span><a href="<?=!empty($p['is_demo'])?'/demo/campanhas/':'/campanhas/'?><?=lc_e($p['slug'])?>"><strong><?=lc_e($p['title'])?></strong></a><small><?=(int)$p['clips']?> <?=!empty($p['is_demo'])?'clipes fictícios':'clipes aprovados'?></small></span>
     <span class="ws-rank-count"><?=number_format((int)$p['views'],0,',','.')?><small>views</small></span></div>
     <?php endforeach;endif;?></section>
   </div>
@@ -122,7 +146,7 @@ function lc_admin_routes(string $method,string $path): bool {
       <?php if(!$recent):?><div class="ws-empty-note">Os vídeos enviados pelos clipadores aparecerão aqui assim que começarem a participar.</div>
       <?php else: ?><div class="ws-recent"><?php foreach($recent as $item):?>
        <div class="ws-recent-item"><div class="ws-recent-leading"><span class="ws-recent-icon"><?=lc_icon('video')?></span>
-       <div class="ws-recent-main"><strong><?=lc_e($item['title'])?></strong><small><?=lc_e($item['full_name'])?> · <?=date('d/m/Y',strtotime($item['submitted_at']))?></small></div></div>
+       <div class="ws-recent-main"><strong><?=lc_e($item['title'])?><?=!empty($item['is_demo'])?' · DEMO':''?></strong><small><?=lc_e($item['full_name'])?> · <?=date('d/m/Y',strtotime($item['submitted_at']))?></small></div></div>
        <span class="tag tag-<?=lc_e($item['status'])?>"><?=lc_e(lc_status_label($item['status']))?></span></div>
       <?php endforeach;?></div><?php endif;?>
     </section>
@@ -154,6 +178,14 @@ function lc_admin_routes(string $method,string $path): bool {
         if(!in_array($filter,['all','pending','approved','rejected','suspended'],true))$filter='all';
         $where="role='clipador'".($filter==='all'?'':' AND status=?');
         $users=lc_all("SELECT id,full_name,email,instagram,whatsapp,portfolio_url,status,consent_whatsapp,created_at FROM users WHERE $where ORDER BY FIELD(status,'pending','approved','rejected','suspended'),created_at DESC LIMIT 200",$filter==='all'?[]:[$filter]);
+        if(lc_demo_enabled()&&in_array($filter,['all','approved'],true)){
+            foreach(lc_demo_ranking(30) as $i=>$person){
+                $users[]=['id'=>0,'full_name'=>$person['full_name'].' · DEMO',
+                    'email'=>'exemplo'.($i+1).'@example.invalid',
+                    'instagram'=>$person['nickname'],'whatsapp'=>'','portfolio_url'=>null,
+                    'status'=>'approved','consent_whatsapp'=>0,'created_at'=>date('Y-m-d H:i:s')];
+            }
+        }
         lc_page('Clipadores',function()use($users,$filter){?>
 <div class="container"><?php lc_heading('Aprovações','Clipadores','Aprovação manual com registro e notificações em fila.'); ?>
 <div class="ws-filter-tabs" aria-label="Filtrar clipadores por situação">
@@ -189,7 +221,7 @@ function lc_admin_routes(string $method,string $path): bool {
         lc_flash('Clipador aprovado. Notificações enfileiradas; o envio depende da configuração dos canais.');lc_redirect('/admin/clipadores');
     }
     if($method==='GET'&&$path==='/admin/campanhas'){
-        $campaigns=lc_all('SELECT * FROM campaigns ORDER BY FIELD(status,"active","draft","paused","ended"),created_at DESC,id DESC LIMIT 120');
+        $campaigns=lc_demo_merge_campaigns(lc_all('SELECT * FROM campaigns ORDER BY FIELD(status,"active","draft","paused","ended"),created_at DESC,id DESC LIMIT 120'));
         lc_page('Campanhas',function()use($campaigns){?>
 <div class="container lc-admin-catalog">
   <div class="lc-admin-catalog-header">
@@ -198,7 +230,7 @@ function lc_admin_routes(string $method,string $path): bool {
     <a class="btn" href="#criar-campanha"><?=lc_icon('plus')?> Nova campanha</a>
   </div>
   <div class="lc-admin-catalog-count"><span><?=lc_icon('layers')?> Catálogo gerenciado</span>
-    <strong><?=count($campaigns)?> <?=count($campaigns)===1?'campanha':'campanhas'?></strong></div>
+    <strong><?=count($campaigns)?> <?=count($campaigns)===1?'campanha':'campanhas'?></strong><?php if(lc_demo_enabled()):?><span class="tag">INCLUI EXEMPLOS FICTÍCIOS</span><?php endif;?></div>
   <div class="lc-admin-catalog-library">
     <h2>Campanhas criadas</h2>
     <?php lc_campaign_catalog($campaigns,true); ?>
