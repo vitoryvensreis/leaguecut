@@ -12,6 +12,7 @@
     "ext-openssl": "*",
     "ext-pdo": "*",
     "google/apiclient": "^2.18",
+    "minishlink/web-push": "^11.0",
     "php": "^8.2",
     "phpmailer/phpmailer": "^6.9"
   },
