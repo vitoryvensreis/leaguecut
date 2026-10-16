@@ -114,6 +114,7 @@ jobs:
           php tests/password_reset.php
           php tests/remember_device.php
           php tests/devices.php
+          php tests/notice_targeting.php
           php tests/pwa_security.php
           php tests/push_storage.php
           php tests/push_vapid_queue.php

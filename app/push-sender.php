@@ -21,8 +21,8 @@ function lc_push_send_ready(): bool {
     return lc_push_vapid_configured() &&
        lc_push_registration_enabled() && lc_env('PUSH_SENDING_ENABLED','0')==='1';
 }
-function lc_push_payload(int $eventId,string $scope,string $role): string {
-    $url=$scope==='admin'?'/admin':($role==='criador'?'/criador':'/dashboard');
+function lc_push_payload(int $eventId,string $scope,string $role,string $eventType=''): string {
+    $url=$eventType==='notice.direct'?'/notificacoes':($scope==='admin'?'/admin':($role==='criador'?'/criador':'/dashboard'));
     return json_encode([
         'id'=>$eventId,
         'title'=>'LeagueCut',
@@ -49,7 +49,8 @@ function lc_push_queue_new(): int {
            'clip.submitted','clip.reviewed','withdrawal.requested',
            'withdrawal.updated','campaign.updated','automation.notice',
            'support.ticket.created','support.ticket.replied',
-           'support.ticket.answered','support.ticket.updated')
+           'support.ticket.answered','support.ticket.updated',
+           'notice.direct')
       ORDER BY e.id ASC LIMIT 120")->rowCount();
 }
 function lc_push_sender_instance(): \Minishlink\WebPush\WebPush {
@@ -64,7 +65,7 @@ function lc_push_send_batch(?callable $deliver=null): array {
     if(!lc_push_send_ready())return $stats;
     $stats['queued']=lc_push_queue_new();
     $jobs=lc_all("SELECT d.id,d.subscription_id,d.attempts,
-      s.endpoint_enc,s.keys_enc,e.id AS event_id,e.scope,u.role
+      s.endpoint_enc,s.keys_enc,e.id AS event_id,e.scope,e.event_type,u.role
       FROM push_deliveries d
       JOIN push_subscriptions s ON s.id=d.subscription_id
       JOIN push_preferences p ON p.user_id=s.user_id AND p.enabled=1
@@ -85,7 +86,7 @@ function lc_push_send_batch(?callable $deliver=null): array {
             $endpoint=lc_decrypt((string)$job['endpoint_enc']);
             $keys=json_decode(lc_decrypt((string)$job['keys_enc']),true,6,JSON_THROW_ON_ERROR);
             $safe=lc_push_check_subscription(['endpoint'=>$endpoint,'keys'=>$keys]);
-            $payload=lc_push_payload((int)$job['event_id'],(string)$job['scope'],(string)$job['role']);
+            $payload=lc_push_payload((int)$job['event_id'],(string)$job['scope'],(string)$job['role'],(string)$job['event_type']);
             if($deliver!==null){
                 $result=$deliver($safe,$payload);
                 $success=($result['success']??false)===true;

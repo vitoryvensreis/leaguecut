@@ -367,3 +367,9 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - Rota `/seguranca/dispositivos` mostra somente tokens de login persistente do próprio usuário, com datas e ação de revogação por POST/CSRF. Não expõe segredos.
 - Revogar impede futuras restaurações pelo cookie; sessões PHP já abertas permanecem ativas até logout/expiração, e trocar a senha invalida todas.
 - Teste `tests/devices.php`. Nenhuma nova migração. Aguardar CI, deploy e teste da interface antes de marcar publicado.
+
+### B7B — Notificações do ADM para usuários selecionados, grupos e todos
+
+- Envio em `/admin/notificacoes`, somente ADM aprovado com confirmação de senha: destinatários específicos (IDs, até 30), todos os aprovados, clipadores ou criadores. Até 5.000 destinatários por operação, intervalo mínimo de dois minutos por operador.
+- Cada destinatário recebe evento privado `scope=user`; a interface mostra título e mensagem apenas para quem recebeu. WebSocket e consulta HTTP respeitam papel e ID, incluindo criadores; Web Push inclui evento com payload genérico, respeitando VAPID e opt-in.
+- Registros de envio persistem como eventos; nenhum envio em massa via WhatsApp/e-mail foi habilitado. Teste em `tests/notice_targeting.php`. **Aguardar CI/deploy e homologação VAPID real.**

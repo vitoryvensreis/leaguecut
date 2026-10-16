@@ -49,6 +49,7 @@ function lc_workspace_links(array $u): array {
           ['Acessos e operações','/admin/auditoria','list-checks'],
           ['Meus dados','/conta','user-round-cog'],
           ['Indicações','/indicacoes','users-round'],
+          ['Enviar notificações','/admin/notificacoes','bell'],
           ['Notificações','/notificacoes','bell'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check']
         ];
