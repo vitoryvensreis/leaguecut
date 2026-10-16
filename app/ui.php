@@ -46,6 +46,7 @@ function lc_workspace_links(array $u): array {
           ['Integrações','/admin/integracoes','settings-2'],
           ['Administradores','/admin/administradores','shield-check'],
           ['Gerenciar contas','/admin/contas','user-round-cog'],
+           ['Modo demonstração','/admin/demo','sparkles'],
           ['Indicações e comissões','/admin/indicacoes','hand-coins'],
           ['Auditoria de contas','/admin/atividades','activity'],
           ['Acessos e operações','/admin/auditoria','list-checks'],
