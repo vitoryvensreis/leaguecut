@@ -394,3 +394,12 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - B7C responsáveis, SLA, relatórios: PR #103, SHA `f68d2f4`; CI, migração com backup, deploy e probe aprovados.
 - B7D VAPID e teste individual: PR #104, SHA `e712fd0`; deploy https://github.com/vitoryvensreis/leaguecut/actions/runs/38941056294 aprovado com LEAGUECUT_VAPID_CONFIGURED=1, probe https://github.com/vitoryvensreis/leaguecut/actions/runs/38941116112 aprovado.
 - **Pendente:** dois flags Web Push desligados e homologação no navegador real. Siga `ops/WEBPUSH_HOMOLOGACAO.md`; nunca anuncie recebimento em dispositivos sem confirmação.
+
+
+### B8 — Identidade visual de favicon, iPhone/PWA e compartilhamento
+
+- Novo ícone LeagueCut vermelho/preto com recorte play. Fontes vetoriais em `public/assets/leaguecut-icon.svg` e `public/assets/leaguecut-social.svg`.
+- Ícones PNG renderizados sem GD/Imagick/Node em `/app-icon/{32,48,180,192,512}.png` e variantes `-maskable` de 192/512; `/favicon.ico` real se não houver favicon personalizado no ADM.
+- Manifest atualizado para ícone normal e maskable, Apple Touch 180x180, cache/versionamento de SW e splash, e Web Push com ícone atualizado.
+- Compartilhamento usa card `https://leaguecut.com/share/leaguecut.png?v=3` de 1200x630 (Open Graph e Twitter); imagem social customizada do ADM prevalece quando definida. URLs privadas não recebem OG público.
+- Após deploy, ao instalar no iPhone via Safari, remova e instale novamente se o sistema mantiver ícone antigo em cache. Não altera as chaves VAPID nem o banco.
