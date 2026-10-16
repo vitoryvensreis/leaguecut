@@ -46,7 +46,7 @@ function lc_public_routes(string $method,string $path): bool {
 </div>
 <div class="lc-home-ranking-rows">
 <?php if(!$topRanking):?><p class="hint">Aguardando as primeiras publicações aprovadas.</p><?php else:foreach($topRanking as $pos=>$player):?>
-<div class="lc-home-ranking-player"><span class="lc-home-ranking-pos"><?=$pos+1?>º</span>
+<div class="lc-home-ranking-player" data-arena-position="<?=$pos+1?>"><span class="lc-home-ranking-pos"><?=$pos+1?>º</span>
 <strong>@<?=lc_e($player['nickname'])?></strong>
 <span><?=number_format((int)$player['views'],0,',','.')?> views</span></div>
 <?php endforeach;endif;?></div>
