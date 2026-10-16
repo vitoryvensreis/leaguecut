@@ -19,7 +19,7 @@ function lc_audit_route(string $path): string {
         $isDynamic=ctype_digit($p)||strlen($p)>28 ||
           ($first==='campanhas' && $i===1) ||
           ($first==='clipes' && $i===1) ||
-          ($first==='admin'&&$i>=2&&($parts[1]==='contas'||$parts[1]==='campanhas'));
+          ($first==='admin'&&$i===2&&($parts[1]==='contas'||$parts[1]==='campanhas'));
         $safe[]=$isDynamic?'/{item}':
             (preg_match('/^[a-z][a-z0-9-]{0,27}$/D',$p)?'/'.$p:'/{item}');
     }
