@@ -370,6 +370,18 @@ try{
     $db->exec("INSERT IGNORE INTO referral_rules(referred_role,enabled,mode,value_int)
        VALUES ('clipador',0,'fixed',0),('criador',0,'fixed',0)");
     echo "MIGRACAO_REFERRALS_OK\n";
+    // B4a: additive multi-bonus rules; never auto-credit during migration.
+    $hasBonus=(bool)lc_one("SELECT 1 AS found FROM information_schema.TABLES
+      WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='monthly_bonus_programs'");
+    if(!$hasBonus){
+        lc_migration_backup();
+        $bonusSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261016_monthly_bonus_programs.sql'));
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS monthly_bonus_programs\s*\(/i',$bonusSql))
+            throw new RuntimeException('Migração de bônus múltiplos inválida.');
+        $db->exec($bonusSql);
+    }
+    echo "MIGRACAO_MONTHLY_BONUS_OK\n";
+
 
 
 
