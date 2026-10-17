@@ -188,6 +188,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
+<?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
