@@ -144,7 +144,7 @@ jobs:
           php tests/master_admin_permissions.php
           php tests/asaas_foundation.php
           php tests/asaas_connection.php
-          php tests/asaas_pix_tests.php
+          php tests/asaas_test_retired.php
           php tests/mfa_security.php
           php tests/mfa_qr_audit.php
           php tests/otp_security.php

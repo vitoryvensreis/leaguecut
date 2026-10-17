@@ -61,42 +61,6 @@ Interpretação:
 
 AVISO: não ativar cobranças ou saques reais apenas com GET 200; a homologação de recebimentos, reembolsos, idempotência e transferências Pix é uma etapa separada.
 
+## Retirada do antigo painel de testes Pix
 
-## Aba Testes Pix (Produção, somente master)
-
-Endereço: https://leaguecut.com/admin/asaas/testes
-
-A aba realiza dois fluxos financeiros reais **sob autorização explícita do master**:
-1. "Receber": informar valor de R$ 1 a R$ 50 e CPF/CNPJ do pagador. Cria um cliente Asaas caso não exista, envia uma cobrança Pix avulsa para POST /v3/payments, recupera o QR Code dinâmico em GET /v3/payments/{id}/pixQrCode e mostra código copia e cola. O pagamento deve ser feito em outro banco; pode sofrer taxas, prazo de liquidação e estornos.
-2. "Enviar": informar valor de R$ 1 a R$ 50, tipo e chave Pix. O primeiro botão apenas prepara a operação, criptografa a chave e exibe revisão com destino mascarado. Um segundo formulário exige senha master/2FA, digitar ENVIAR PIX e confirmar. Só então chama POST /v3/transfers. O saldo precisa estar disponível. Limites globais: máximo R$ 100 e 5 tentativas de Pix de saída por dia.
-
-Exclusão e separação: todas as operações entram em asaas_pix_tests, separadas de asaas_charges, withdrawals e dos créditos de criadores. Nenhum Pix de teste libera clipes, remove saldos ou marca saques de usuários como pagos.
-
-Após criar cobrança ou transferência, use "Consultar status atualizado" na própria aba para obter o resultado diretamente do Asaas. Os Webhooks já entram na caixa de eventos /admin/asaas; não autorizam por si só alterações de saldo. Operações com timeout/status "review_required" NÃO são refeitas automaticamente — confira manualmente no painel do Asaas.
-
-### Como habilitar especificamente os testes reais
-
-No arquivo PRIVADO /home/leaguecut/shared/.env, inclua:
-    ASAAS_ENV=production
-    ASAAS_ENABLED=0
-    ASAAS_LIVE_TEST_ENABLED=1
-
-A chave ASAAS_PRODUCTION_API_KEY e o token ASAAS_WEBHOOK_TOKEN já precisam estar configurados. ASAAS_ENABLED=0 permanece, pois o processamento financeiro normal do LeagueCut ainda não foi homologado. ASAAS_LIVE_TEST_ENABLED=1 ativa somente esta aba e permite **movimentação real** depois das confirmações do master.
-
-Por padrão, ASAAS_LIVE_TEST_ENABLED=0 (ou ausente), e a aba mostra campos bloqueados. Não coloque credenciais ou documentos pessoais em commit, chat ou prints.
-
-Para interromper novos testes, volte ASAAS_LIVE_TEST_ENABLED=0 no .env. Histórico e operações já enviadas continuarão existindo no Asaas.
-
-
-## Correção de erro HTTP 400 em eventos Asaas (outubro/2026)
-
-Os identificadores de evento do Asaas podem conter o caractere ampersand (exemplo oficial `evt_05b708f961d739ea7eba7e4db318f621&368604920`). Um validador anterior do LeagueCut só permitia letras, números, hífen e sublinhado, devolvendo HTTP 400 antes da persistência. Agora IDs documentados com `&` são aceitos com autenticação do token, tamanho limitado e unicidade no banco.
-
-Após a implantação **e após confirmar o teste HTTP 200**, no Asaas Produção:
-1. Integrações → Webhooks → selecione LeagueCut - Pagamentos.
-2. Se aparecer penalização, use **Remover penalização** uma vez. Isto acelera o reenvio; não exclua ou recrie a configuração.
-3. Se a **fila** estiver interrompida (não apenas penalizada), reative a sincronização na configuração do Webhook.
-4. Em Logs de Webhooks, confira novas tentativas com **HTTP 200** (e na aba do LeagueCut "Webhooks recebidos" procure por `PAYMENT_CREATED` e outros eventos).
-5. Não recrie cobranças ou transferências para disparar teste: Asaas reenvia eventos com entrega pendente e mantém retenção de até 14 dias.
-
-Os eventos recebidos são registrados uma vez por identificador; esta etapa **não credita clipadores, não ativa assinaturas nem marca saques automaticamente**.
+A interface de cobrança e transferência Pix avulsas de teste foi removida do LeagueCut. A rota `/admin/asaas/testes` não existe mais. A variável legada `ASAAS_LIVE_TEST_ENABLED` não é consultada pelo aplicativo. A migração e o código que criavam a tabela `asaas_pix_tests` foram retirados; tabelas e registros financeiros existentes na VPS são preservados como histórico de operações reais e não devem ser apagados sem revisão contábil. A integração oficial do Asaas, os Webhooks e a futura conciliação de pagamentos de criadores/clipadores continuam disponíveis.
