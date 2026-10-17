@@ -102,6 +102,9 @@ jobs:
           php -r 'require "app/core.php"; require "vendor/autoload.php"; require "app/push-sender.php"; if(!lc_push_vapid_configured())exit(1); echo "LEAGUECUT_VAPID_CONFIGURED=1\n";'
           php bin/migrate.php
           php -r 'require "app/core.php"; lc_db()->query("SELECT COUNT(*) FROM users"); lc_db()->query("SELECT COUNT(*) FROM homepage_banners"); lc_db()->query("SELECT COUNT(*) FROM realtime_events"); echo "DB OK\n";'
+          # Read-only Asaas diagnostics; logs show HTTP status ONLY. No account
+          # data or secret ever leaves the VPS. Failure is advisory, not rollback.
+          php bin/asaas-connection-check.php || echo "ASAAS_DIAGNOSTIC_UNAVAILABLE"
 
           PREV="$(readlink -f "$BASE/current" || true)"
           if [ "$PREV" = "$RELEASE" ]; then

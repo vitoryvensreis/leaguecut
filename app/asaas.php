@@ -53,6 +53,71 @@ function lc_asaas_request(string $method,string $path,?array $body=null): array 
         throw new RuntimeException('Asaas retornou HTTP '.$code.'. Confira credenciais, dados e o painel do Asaas.');
     return $json;
 }
+/**
+ * Read-only production diagnostic. No charges, no transfers, no account balance
+ * values leave this function. API key is read only from the private server env.
+ */
+function lc_asaas_check_connection(): array {
+    $environment=lc_asaas_env();
+    $key=lc_asaas_api_key();
+    $token=lc_env('ASAAS_WEBHOOK_TOKEN');
+    $expectedPrefix=$environment==='production'?'$aact_prod_':'$aact_hmlg_';
+    $result=[
+       'environment'=>$environment,
+       'key_present'=>$key!=='',
+       'webhook_ready'=>strlen($token)>=32 && strlen($token)<=255 && !hash_equals($key,$token),
+       'operations_enabled'=>lc_env('ASAAS_ENABLED','0')==='1',
+       'api_status'=>'NOT_TESTED',
+       'webhook_status'=>'NOT_TESTED',
+    ];
+    if($key===''){$result['api_status']='KEY_MISSING';return $result;}
+    if(!str_starts_with($key,$expectedPrefix)){
+        $result['api_status']='KEY_ENVIRONMENT_MISMATCH';
+        return $result;
+    }
+    if(!function_exists('curl_init')){$result['api_status']='CURL_UNAVAILABLE';return $result;}
+    $ch=curl_init(lc_asaas_base_url().'/finance/balance');
+    curl_setopt_array($ch,[
+        CURLOPT_RETURNTRANSFER=>true,
+        CURLOPT_CUSTOMREQUEST=>'GET',
+        CURLOPT_HTTPHEADER=>['Accept: application/json','User-Agent: LeagueCut/1.0','access_token: '.$key],
+        CURLOPT_CONNECTTIMEOUT=>6,
+        CURLOPT_TIMEOUT=>15,
+        CURLOPT_SSL_VERIFYPEER=>true,
+        CURLOPT_SSL_VERIFYHOST=>2,
+        CURLOPT_FOLLOWLOCATION=>false,
+    ]);
+    try{
+        $reply=curl_exec($ch);
+        $code=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);
+        $result['api_status']=$reply===false?'CONNECTION_FAILED':'HTTP_'.$code;
+    }finally{
+        curl_close($ch);
+    }
+    return $result;
+}
+function lc_asaas_check_webhook_reachability(): string {
+    if(!function_exists('curl_init'))return 'CURL_UNAVAILABLE';
+    // Deliberately NO authorization header. The expected app-level response
+    // is 401. 403 means Cloudflare or another proxy may be blocking POSTs.
+    $ch=curl_init('https://leaguecut.com/webhooks/asaas');
+    curl_setopt_array($ch,[
+        CURLOPT_RETURNTRANSFER=>true,
+        CURLOPT_CUSTOMREQUEST=>'POST',
+        CURLOPT_POSTFIELDS=>'{}',
+        CURLOPT_HTTPHEADER=>['Content-Type: application/json','User-Agent: LeagueCutWebhookCheck/1.0'],
+        CURLOPT_CONNECTTIMEOUT=>6,
+        CURLOPT_TIMEOUT=>15,
+        CURLOPT_SSL_VERIFYPEER=>true,
+        CURLOPT_SSL_VERIFYHOST=>2,
+        CURLOPT_FOLLOWLOCATION=>false,
+    ]);
+    try{
+        $reply=curl_exec($ch);
+        $code=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);
+        return $reply===false?'CONNECTION_FAILED':'HTTP_'.$code;
+    }finally{curl_close($ch);}
+}
 function lc_asaas_customer_for(array $user,string $cpfCnpj): string {
     $uid=(int)$user['id'];
     $existing=lc_one('SELECT provider_customer_id,environment FROM asaas_customers WHERE user_id=?',[$uid]);
@@ -177,13 +242,20 @@ function lc_asaas_routes(string $method,string $path): bool {
         lc_redirect('/criador');
     }
     if($path==='/admin/asaas'||
-       ($method==='POST'&&preg_match('~^/admin/asaas/(?:conciliar|preparar-saque)/[0-9]+$~D',$path))){
+       ($method==='POST'&&($path==='/admin/asaas/verificar'||preg_match('~^/admin/asaas/(?:conciliar|preparar-saque)/[0-9]+$~D',$path)))){
         $actor=lc_admin();
         lc_admin_require_master($actor);
         if($method==='POST'){
             if(!lc_account_admin_password($actor)){lc_flash('Confirme sua senha master e 2FA.','error');lc_redirect('/admin/asaas');}
             try{
-                if(preg_match('~^/admin/asaas/conciliar/([0-9]+)$~D',$path,$m))
+                if($path==='/admin/asaas/verificar'){
+                    $check=lc_asaas_check_connection();
+                    $webhook=lc_asaas_check_webhook_reachability();
+                    $message='Teste sem movimentação: Asaas '.lc_e($check['api_status']).
+                        '; Webhook POST sem token '.lc_e($webhook).
+                        '; token configurado '.($check['webhook_ready']?'sim':'não').
+                        '. HTTP_200 confirma API; HTTP_401 no Webhook confirma bloqueio sem token.';
+                }elseif(preg_match('~^/admin/asaas/conciliar/([0-9]+)$~D',$path,$m))
                     $message=lc_asaas_reconcile((int)$m[1],(int)$actor['id']);
                 elseif(preg_match('~^/admin/asaas/preparar-saque/([0-9]+)$~D',$path,$m)){
                     lc_asaas_payout_preview((int)$m[1],$actor);
@@ -201,15 +273,20 @@ function lc_asaas_routes(string $method,string $path): bool {
                            LEFT JOIN asaas_payout_intents p ON p.withdrawal_id=w.id
                            WHERE w.status='requested' ORDER BY w.id DESC LIMIT 25");
             $events=lc_all('SELECT event_id,event_type,object_id,occurred_at FROM asaas_webhook_events ORDER BY occurred_at DESC LIMIT 12');
-            $configured=lc_asaas_enabled();$webhook=lc_env('ASAAS_WEBHOOK_TOKEN')!=='';
-            lc_page('Integração Asaas',function()use($charges,$withdrawals,$events,$configured,$webhook,$actor){?>
+            $configured=lc_asaas_enabled();$keyPresent=lc_asaas_api_key()!=='';$webhook=lc_env('ASAAS_WEBHOOK_TOKEN')!=='';
+            lc_page('Integração Asaas',function()use($charges,$withdrawals,$events,$configured,$keyPresent,$webhook,$actor){?>
 <div class="container container-md lc-account-admin">
 <?php lc_heading('Gestão financeira','Asaas · Integração','Primeira etapa: cobranças Pix no Sandbox e preparação de saques, sem transferências automáticas.'); ?>
 <div class="panel">
  <span class="tag"><?=lc_asaas_env()==='sandbox'?'SANDBOX':'PRODUÇÃO · ESCRITA BLOQUEADA'?></span>
- <p>API: <strong><?=$configured?'Configurada':'Aguardando credencial privada'?></strong> · Webhook: <strong><?=$webhook?'Token configurado':'Aguardando token'?></strong></p>
+ <p>Chave do ambiente atual: <strong><?=$keyPresent?'Presente no servidor':'Não encontrada'?></strong> · Operações: <strong><?=$configured?(lc_asaas_env()==='production'?'Solicitadas, mas produção bloqueada':'Sandbox habilitado'):'Desligadas'?></strong> · Webhook: <strong><?=$webhook?'Token presente':'Token ausente'?></strong></p>
+ <form method="post" action="/admin/asaas/verificar"><?=lc_csrf()?>
+ <label class="field"><span>Senha master para testar conexão (somente leitura)</span><input type="password" name="admin_password" autocomplete="current-password" required></label>
+ <?php if(lc_mfa_enabled((int)$actor['id'])):?><label class="field"><span>Código 2FA</span><input name="mfa_code" autocomplete="one-time-code" maxlength="60" required></label><?php endif;?>
+ <button class="btn btn-ghost btn-sm" type="submit">Testar conexão Asaas (sem movimentar dinheiro)</button>
+ </form>
  <p>Endpoint do Webhook: <code>https://leaguecut.com/webhooks/asaas</code></p>
- <p class="hint">Informe ASAAS_ENABLED, ASAAS_ENV, ASAAS_SANDBOX_API_KEY e ASAAS_WEBHOOK_TOKEN em /home/leaguecut/shared/.env. Não cole chaves aqui nem no GitHub.</p>
+ <p class="hint">Credenciais privadas: ASAAS_ENV=production, ASAAS_PRODUCTION_API_KEY, ASAAS_WEBHOOK_TOKEN e ASAAS_ENABLED=0 em /home/leaguecut/shared/.env. Não compartilhe as credenciais ou saldo.</p>
  <p class="hint">Cobranças somente no Sandbox. Confirmação requer consulta ao Asaas. Nenhum saque Pix é enviado automaticamente nesta versão.</p>
 </div>
 <div class="panel"><h2>Cobranças de criadores (testes)</h2>
