@@ -239,7 +239,18 @@ function lc_creator_routes(string $method,string $path): bool {
 <?php else:?>Não liberados<?php endif;?></td>
 <td><?php if($s['balance']):?><?=date('d/m/Y',strtotime($s['balance']['cycle_start']))?> — <?=date('d/m/Y',strtotime($s['balance']['cycle_end']))?>
 <small>Data final exclusiva</small><?php else:?>Aguardando confirmação de recebimento<?php endif;?></td>
-<td><?php if(in_array($s['status'],['pending','active','past_due'],true)):?>
+<td>
+<?php if($s['status']==='pending' && function_exists('lc_asaas_enabled') && lc_asaas_enabled() && lc_asaas_env()==='sandbox'):
+  $asaasCharge=lc_one('SELECT invoice_url,status FROM asaas_charges WHERE subscription_id=? ORDER BY id DESC LIMIT 1',[(int)$s['id']]); ?>
+  <?php if($asaasCharge && $asaasCharge['invoice_url'] && lc_valid_https((string)$asaasCharge['invoice_url'])):?>
+    <a class="btn btn-sm" target="_blank" rel="noopener noreferrer" href="<?=lc_e($asaasCharge['invoice_url'])?>">Abrir cobrança Pix (teste)</a>
+  <?php elseif(!$asaasCharge):?>
+    <form method="post" action="/criador/assinaturas/<?=(int)$s['id']?>/asaas-pix"><?=lc_csrf()?>
+    <label class="field"><span>CPF ou CNPJ do pagador</span><input name="cpf_cnpj" inputmode="numeric" autocomplete="off" placeholder="Somente números" minlength="11" maxlength="18" required></label>
+    <button class="btn btn-sm" type="submit">Gerar Pix de teste</button></form>
+  <?php else:?><span class="tag">Cobrança em verificação</span><?php endif;?>
+<?php endif;?>
+<?php if(in_array($s['status'],['pending','active','past_due'],true)):?>
 <form method="post" action="/criador/assinaturas/<?=(int)$s['id']?>/cancelar" onsubmit="return confirm('Cancelar assinatura? O período pago ficará disponível até o fim do ciclo.');">
 <?=lc_csrf()?><button class="btn btn-ghost btn-sm" type="submit">Cancelar</button>
 </form>
@@ -257,7 +268,7 @@ function lc_creator_routes(string $method,string $path): bool {
 <form method="post" action="/criador/pacotes/<?=(int)$p['id']?>/solicitar"><?=lc_csrf()?>
 <button type="submit" class="btn btn-ghost btn-sm">Solicitar assinatura <?=lc_icon('arrow-right')?></button>
 </form>
-<p class="hint">Sem cobrança no site. A ativação depende de confirmação manual do recebimento.</p>
+<p class="hint"><?=function_exists('lc_asaas_enabled') && lc_asaas_enabled() && lc_asaas_env()==='sandbox'?'Após solicitar, você poderá gerar uma cobrança Pix de teste pelo Asaas. O pagamento precisa ser conciliado antes da ativação.':'A ativação depende da confirmação do pagamento pela equipe.'?></p>
 </article><?php endforeach;?></div>
 <?php if(!$packages):lc_empty('Pacotes em preparação','A equipe ainda está configurando as ofertas mensais.');endif;?>
 </div>
