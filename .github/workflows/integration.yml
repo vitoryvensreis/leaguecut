@@ -78,6 +78,7 @@ jobs:
           BRAND_MEDIA_DIR: /tmp/leaguecut-brand-media
           SEO_MEDIA_DIR: /tmp/leaguecut-seo-media
           LC_E2E_FAKE_DRIVE: '1'
+          ASAAS_WEBHOOK_TOKEN: ci_webhook_auth_token_only_for_tests_2026
         run: |
           export APP_KEY="$(php -r 'echo base64_encode(random_bytes(32));')"
           echo "APP_KEY=$APP_KEY" >> "$GITHUB_ENV"
@@ -103,6 +104,7 @@ jobs:
           curl --fail --silent http://127.0.0.1:8080/health
           python3 tests/smoke.py
           python3 tests/pwa_install_smoke.py
+          python3 tests/asaas_webhook_http_smoke.py
           python3 tests/creator_subscriptions_smoke.py
           php tests/creator_schema.php
           php tests/creator_billing_cycles.php
