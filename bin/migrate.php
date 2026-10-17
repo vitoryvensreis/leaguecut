@@ -541,13 +541,6 @@ try{
         }
     }
     echo "MIGRACAO_ASAAS_FOUNDATION_OK\n";
-    if(!lc_one("SELECT 1 AS ok FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='asaas_pix_tests'")){
-        lc_migration_backup();
-        $testSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261017_asaas_pix_tests.sql'));
-        if(!preg_match('/^CREATE TABLE IF NOT EXISTS asaas_pix_tests\\s*\\(/i',$testSql))throw new RuntimeException('Migração de testes Pix inválida.');
-        $db->exec($testSql);
-    }
-    echo "MIGRACAO_ASAAS_PIX_TESTS_OK\n";
 
 
 
