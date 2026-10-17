@@ -86,6 +86,7 @@ function lc_admin(): array {
     if ($u['role'] !== 'admin' || $u['status'] !== 'approved') { http_response_code(403); exit('Acesso restrito.'); }
     $path=parse_url((string)($_SERVER['REQUEST_URI']??''),PHP_URL_PATH)?:'';
     if(str_starts_with($path,'/admin') && function_exists('lc_admin_can_url') && !lc_admin_can_url($u,$path)){
+        if($path==='/admin' && ($_SERVER['REQUEST_METHOD']??'GET')==='GET' && function_exists('lc_admin_first_url'))lc_redirect(lc_admin_first_url($u));
         http_response_code(403);exit('Você não tem permissão para acessar esta aba.');
     }
     return $u;
