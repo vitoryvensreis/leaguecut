@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/admin-permissions.php';
 
 /** Hard deletion is permitted only where there is no financial or contractual history. */
 function lc_account_delete_blocker(int $id): ?string {
