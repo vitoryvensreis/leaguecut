@@ -23,6 +23,10 @@ function lc_account_apply_update(array $u,array $data): bool {
     $uid=(int)$u['id'];
     $existing=lc_one('SELECT id,full_name,nickname,email,whatsapp FROM users WHERE id=? FOR UPDATE',[$uid]);
     if(!$existing)throw new InvalidArgumentException('Conta não encontrada.');
+    if(function_exists('lc_is_master') && lc_is_master($u) && $data['email']!==LC_MASTER_EMAIL)
+        throw new InvalidArgumentException('O e-mail da conta master está protegido.');
+    if(function_exists('lc_master_user_id') && $data['email']===LC_MASTER_EMAIL && $uid!==lc_master_user_id())
+        throw new InvalidArgumentException('Este e-mail está reservado ao administrador master.');
     if($data['new_pix_key']!==''){
         $pending=(int)(lc_one("SELECT COUNT(*) AS n FROM withdrawals
              WHERE user_id=? AND status IN ('requested','processing')",[$uid])['n']??0);

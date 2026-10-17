@@ -46,7 +46,7 @@ function lc_status_label(string $status): string {
 
 function lc_workspace_links(array $u): array {
     if($u['role']==='admin'){
-        return [
+        $links=[
           ['Visão geral','/admin','layout-dashboard'],
           ['Clipadores','/admin/clipadores','users-round'],
           ['Conferir clipes','/admin/clipes','clipboard-check'],
@@ -65,6 +65,7 @@ function lc_workspace_links(array $u): array {
           ['Integrações','/admin/integracoes','settings-2'],
           ['Administradores','/admin/administradores','shield-check'],
           ['Gerenciar contas','/admin/contas','user-round-cog'],
+          ['Funções e permissões','/admin/funcoes','shield-check'],
            ['Modo demonstração','/admin/demo','sparkles'],
           ['Indicações e comissões','/admin/indicacoes','hand-coins'],
           ['Auditoria de contas','/admin/atividades','activity'],
@@ -76,6 +77,9 @@ function lc_workspace_links(array $u): array {
           ['Notificações','/notificacoes','bell'],
           ['Segurança e 2FA','/seguranca/2fa','shield-check']
         ];
+        return array_values(array_filter($links,static function(array $link)use($u):bool{
+            return !str_starts_with($link[1],'/admin') || !function_exists('lc_admin_can_url') || lc_admin_can_url($u,$link[1]);
+        }));
     }
     if($u['role']==='criador'){
         return [
@@ -184,6 +188,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
+<?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
