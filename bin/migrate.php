@@ -499,6 +499,30 @@ try{
 
     echo "MIGRACAO_CRIADOR_ASSINATURAS_OK\n";
 
+    // B8 roles: additive only. Bind master to approved existing account ID once.
+    $roleTables=['admin_roles','admin_role_permissions','admin_user_roles'];
+    $needAdminRoles=false;
+    foreach($roleTables as $roleTable)
+        if(!lc_one('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?',[$roleTable]))$needAdminRoles=true;
+    if($needAdminRoles){
+        lc_migration_backup();
+        $sql=(string)file_get_contents(dirname(__DIR__).'/database/migrations/20261017_admin_roles.sql');
+        $parts=array_values(array_filter(array_map('trim',explode(';',$sql))));
+        if(count($parts)!==3)throw new RuntimeException('Migração de permissões incompleta.');
+        foreach($parts as $i=>$part){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($roleTables[$i],'/').'\s*\(/i',$part))
+                throw new RuntimeException('Migração de permissões inválida.');
+            $db->exec($part);
+        }
+    }
+    $master=lc_one("SELECT id FROM users WHERE LOWER(email)=? AND role='admin' AND status='approved' ORDER BY id ASC LIMIT 1",
+       ['vitoryvensreisdeoliveira@gmail.com']);
+    if($master){
+        lc_query("INSERT IGNORE INTO platform_settings(setting_key,setting_value) VALUES('master_admin_user_id',?)",[(string)(int)$master['id']]);
+    }
+    echo "MIGRACAO_ADMIN_ROLES_OK\n";
+
+
 
 }catch(Throwable $e){
     fwrite(STDERR,'MIGRACAO_FALHOU: '.$e->getMessage()."\n");
