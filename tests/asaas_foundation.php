@@ -22,6 +22,33 @@ test_asaas(lc_asaas_webhook_receive($payload,str_repeat('t',48))===200,'valid ev
 test_asaas(lc_asaas_webhook_receive($payload,str_repeat('t',48))===200,'duplicate event safely accepted');
 $count=(int)(lc_one('SELECT COUNT(*) AS n FROM asaas_webhook_events WHERE event_id=?',[$eventId])['n']??0);
 test_asaas($count===1,'event deduplicated by provider ID');
+
+$asaasEventId='evt_05b708f961d739ea7eba7e4db318f621&368604920';
+$asaasPayload=json_encode([
+    'id'=>$asaasEventId,'event'=>'PAYMENT_CREATED','dateCreated'=>'2026-10-17 10:16:39',
+    'account'=>['id'=>'ci_asaas_account','ownerId'=>null],
+    'payment'=>['object'=>'payment','id'=>'pay_7zutocfjc62p8jl','customer'=>'cus_000000000','value'=>5.0]
+],JSON_THROW_ON_ERROR);
+test_asaas(lc_asaas_webhook_receive($asaasPayload,str_repeat('t',48))===200,
+    'documented real Asaas event ID with & must be accepted');
+test_asaas(lc_asaas_webhook_receive($asaasPayload,str_repeat('t',48))===200,
+    'Asaas retries with & event ID must be idempotent');
+$asaasSaved=lc_one('SELECT event_type,object_id FROM asaas_webhook_events WHERE event_id=?',[$asaasEventId]);
+test_asaas($asaasSaved && $asaasSaved['event_type']==='PAYMENT_CREATED'
+    && $asaasSaved['object_id']==='pay_7zutocfjc62p8jl',
+    'Asaas event with & saved with correct event type and payment ID');
+$asaasCount=(int)(lc_one('SELECT COUNT(*) AS n FROM asaas_webhook_events WHERE event_id=?',[$asaasEventId])['n']??0);
+test_asaas($asaasCount===1,'Asaas & event not duplicated');
+$rejectedPayload=json_encode(['id'=>'evt_bad<script>&123','event'=>'PAYMENT_CREATED',
+    'payment'=>['id'=>'pay_example']],JSON_THROW_ON_ERROR);
+test_asaas(lc_asaas_webhook_receive($rejectedPayload,str_repeat('t',48))===400,
+    'unsafe event IDs remain rejected');
+test_asaas(lc_asaas_webhook_receive($asaasPayload,'bad-token')===401,
+    'authentication is always required even for real IDs');
+test_asaas(!lc_one("SELECT id FROM ledger_entries WHERE dedupe_key='asaas:".$asaasEventId."'"),
+    'Asaas event ID with & cannot cause a ledger credit');
+lc_query('DELETE FROM asaas_webhook_events WHERE event_id=?',[$asaasEventId]);
+
 test_asaas(lc_asaas_webhook_receive('{broken',str_repeat('t',48))===400,'bad JSON rejected');
 test_asaas(lc_asaas_webhook_receive(str_repeat('x',65537),str_repeat('t',48))===413,'oversized event rejected');
 test_asaas(!lc_one("SELECT id FROM ledger_entries WHERE dedupe_key='asaas:".$eventId."'"),'webhook does not fabricate money');

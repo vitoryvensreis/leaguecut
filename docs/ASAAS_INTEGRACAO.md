@@ -86,3 +86,17 @@ A chave ASAAS_PRODUCTION_API_KEY e o token ASAAS_WEBHOOK_TOKEN já precisam esta
 Por padrão, ASAAS_LIVE_TEST_ENABLED=0 (ou ausente), e a aba mostra campos bloqueados. Não coloque credenciais ou documentos pessoais em commit, chat ou prints.
 
 Para interromper novos testes, volte ASAAS_LIVE_TEST_ENABLED=0 no .env. Histórico e operações já enviadas continuarão existindo no Asaas.
+
+
+## Correção de erro HTTP 400 em eventos Asaas (outubro/2026)
+
+Os identificadores de evento do Asaas podem conter o caractere ampersand (exemplo oficial `evt_05b708f961d739ea7eba7e4db318f621&368604920`). Um validador anterior do LeagueCut só permitia letras, números, hífen e sublinhado, devolvendo HTTP 400 antes da persistência. Agora IDs documentados com `&` são aceitos com autenticação do token, tamanho limitado e unicidade no banco.
+
+Após a implantação **e após confirmar o teste HTTP 200**, no Asaas Produção:
+1. Integrações → Webhooks → selecione LeagueCut - Pagamentos.
+2. Se aparecer penalização, use **Remover penalização** uma vez. Isto acelera o reenvio; não exclua ou recrie a configuração.
+3. Se a **fila** estiver interrompida (não apenas penalizada), reative a sincronização na configuração do Webhook.
+4. Em Logs de Webhooks, confira novas tentativas com **HTTP 200** (e na aba do LeagueCut "Webhooks recebidos" procure por `PAYMENT_CREATED` e outros eventos).
+5. Não recrie cobranças ou transferências para disparar teste: Asaas reenvia eventos com entrega pendente e mantém retenção de até 14 dias.
+
+Os eventos recebidos são registrados uma vez por identificador; esta etapa **não credita clipadores, não ativa assinaturas nem marca saques automaticamente**.
