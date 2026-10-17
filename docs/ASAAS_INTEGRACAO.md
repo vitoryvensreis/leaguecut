@@ -41,3 +41,22 @@ Produção: POST bloqueado pelo código sempre que ASAAS_ENV=production. Esta im
 - https://docs.asaas.com/docs/webhook-para-cobrancas
 - https://docs.asaas.com/reference/criar-nova-cobranca
 - https://docs.asaas.com/reference/transferir-para-conta-de-outra-instituicao-ou-chave-pix
+
+
+## Verificar a conexão de produção sem movimentar dinheiro
+
+1. No painel master /admin/asaas, use "Testar conexão Asaas (sem movimentar dinheiro)". O botão exige senha e 2FA quando ativado.
+2. A verificação envia somente GET para o endpoint oficial de saldo. A interface mostra o status HTTP, nunca o valor do saldo.
+3. Em paralelo, envia POST sem token para /webhooks/asaas. O esperado é HTTP 401 do aplicativo; HTTP 403 pode indicar bloqueio no Cloudflare.
+4. A mesma checagem roda no deploy ou pode ser executada manualmente com php bin/asaas-connection-check.php na VPS.
+5. O teste não envia PIX, não cria cobrança, não altera assinaturas e não substitui um evento real do Asaas.
+
+Interpretação:
+- ASAAS_API_READONLY=HTTP_200 => autenticação e leitura confirmadas.
+- ASAAS_API_READONLY=HTTP_401 => revise a chave, preservando o prefixo $aact_prod_.
+- ASAAS_API_READONLY=HTTP_403 => verifique allowlist do IP da VPS no Asaas.
+- ASAAS_WEBHOOK_UNAUTHENTICATED_POST=HTTP_401 => endpoint alcançou autenticação do LeagueCut.
+- ASAAS_WEBHOOK_UNAUTHENTICATED_POST=HTTP_403 => verifique as regras do Cloudflare para o Webhook.
+- ASAAS_OPERATIONS_ENABLED=NO => o gateway permanece desligado (operações de produção ainda bloqueadas no código).
+
+AVISO: não ativar cobranças ou saques reais apenas com GET 200; a homologação de recebimentos, reembolsos, idempotência e transferências Pix é uma etapa separada.
