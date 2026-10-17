@@ -1,0 +1,11 @@
+/* Master-only Asaas Pix testing. Reuses existing LeagueCut cards. */
+.lc-asaas-test-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}
+.lc-asaas-tests .field{display:flex;flex-direction:column;gap:5px;margin:12px 0}
+.lc-asaas-tests .field input,.lc-asaas-tests .field select,.lc-asaas-tests .field textarea{max-width:100%;width:100%;box-sizing:border-box}
+.lc-asaas-tests .lc-asaas-test-agree{display:flex;align-items:flex-start;gap:8px;margin:14px 0;font-size:.9rem;line-height:1.5}
+.lc-asaas-tests .lc-asaas-test-agree input{margin-top:4px;accent-color:#dd3545;flex-shrink:0}
+.lc-asaas-tests .lc-asaas-qr{display:block;max-width:100%;height:auto;background:#fff;padding:12px;border-radius:12px;margin:12px 0}
+.lc-asaas-tests .panel{min-width:0;overflow-wrap:anywhere}
+.lc-asaas-tests form .btn{max-width:100%;white-space:normal}
+@media(max-width:800px){.lc-asaas-test-grid{grid-template-columns:1fr;gap:12px}}
+@media(max-width:480px){.lc-asaas-tests .panel{padding:14px}.lc-asaas-tests .table-wrap{overflow-x:auto}}
