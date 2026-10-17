@@ -140,6 +140,7 @@ jobs:
           php tests/demo_mode.php
           php tests/account_deletion_integration.php
           php tests/master_admin_permissions.php
+          php tests/asaas_foundation.php
           php tests/mfa_security.php
           php tests/mfa_qr_audit.php
           php tests/otp_security.php
