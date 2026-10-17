@@ -44,6 +44,7 @@ function lc_account_admin_routes(string $method,string $path): bool {
        !preg_match('~^/admin/contas/([0-9]+)/editar$~D',$path))return false;
     $actor=lc_admin();
     if($method==='POST'&&$path==='/admin/administradores/criar'){
+        lc_admin_require_master($actor);
         if(!lc_account_admin_password($actor)){
             lc_flash('Informe sua senha administrativa atual para criar outra conta.','error');
             lc_redirect('/admin/administradores');
@@ -71,6 +72,7 @@ function lc_account_admin_routes(string $method,string $path): bool {
         lc_redirect('/admin/administradores');
     }
     if($method==='GET'&&$path==='/admin/administradores'){
+        lc_admin_require_master($actor);
         $admins=lc_all("SELECT id,full_name,email,whatsapp,status,created_at FROM users WHERE role='admin' ORDER BY id ASC");
         lc_page('Administradores',function()use($admins){?>
 <div class="container lc-account-admin">
@@ -97,10 +99,11 @@ function lc_account_admin_routes(string $method,string $path): bool {
     }
     if($method==='GET'&&$path==='/admin/contas'){
         $users=lc_all("SELECT id,full_name,email,whatsapp,role,status,created_at FROM users ORDER BY id DESC LIMIT 300");
-        lc_page('Gerenciar contas',function()use($users){?>
+        $master=lc_is_master($actor);
+        lc_page('Gerenciar contas',function()use($users,$master){?>
 <div class="container lc-account-admin"><?php lc_heading('Contas e permissões','Gerenciar usuários','Clipadores, criadores e administradores em um único lugar.'); ?>
 <div class="panel"><div class="table-wrap"><table><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Ação</th></tr></thead><tbody>
-<?php foreach($users as $row):?><tr><td><?=lc_private($row['full_name'])?></td><td><?=lc_private($row['email'])?></td><td><?=lc_e($row['role'])?></td><td><?=lc_e($row['status'])?></td><td><a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$row['id']?>/editar">Editar</a> <a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$row['id']?>/excluir">Excluir</a></td></tr><?php endforeach; ?></tbody></table></div>
+<?php foreach($users as $row):?><tr><td><?=lc_private($row['full_name'])?></td><td><?=lc_private($row['email'])?></td><td><?=lc_e($row['role'])?><?=((int)$row['id']===lc_master_user_id())?' · MASTER':''?></td><td><?=lc_e($row['status'])?></td><td><?php if($master || ($row['role']!=='admin' && (int)$row['id']!==lc_master_user_id())):?><a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$row['id']?>/editar">Editar</a> <a class="btn btn-ghost btn-sm" href="/admin/contas/<?=(int)$row['id']?>/excluir">Excluir</a><?php else:?>Acesso master<?php endif;?></td></tr><?php endforeach; ?></tbody></table></div>
 <p class="hint">Exibindo as 300 contas mais recentes. Alterações de e-mail, função, telefone e senha são auditadas.</p></div></div>
 <?php },'admin');return true;
     }
@@ -117,6 +120,14 @@ function lc_account_admin_routes(string $method,string $path): bool {
                 $db=lc_db();$db->beginTransaction();
                 $existing=lc_one('SELECT id,role,status,full_name,email,whatsapp,instagram FROM users WHERE id=? FOR UPDATE',[$id]);
                 if(!$existing)throw new InvalidArgumentException('Usuário não encontrado.');
+                if(!lc_is_master($actor) &&
+                    ($existing['role']==='admin' || $f['role']==='admin' || (int)$existing['id']===lc_master_user_id()))
+                    throw new InvalidArgumentException('Somente o master pode editar administradores ou promover usuários.');
+                if((int)$existing['id']===lc_master_user_id() &&
+                    ($f['email']!==LC_MASTER_EMAIL || $f['role']!=='admin' || $f['status']!=='approved'))
+                    throw new InvalidArgumentException('O e-mail e os privilégios do master são protegidos.');
+                if($f['email']===LC_MASTER_EMAIL && (int)$existing['id']!==lc_master_user_id())
+                    throw new InvalidArgumentException('Este e-mail é reservado ao administrador master.');
                 if($id===(int)$actor['id'] && ($f['role']!=='admin'||$f['status']!=='approved'))
                     throw new InvalidArgumentException('Você não pode remover o próprio acesso administrativo.');
                 if($existing['role']==='admin' && ($f['role']!=='admin'||$f['status']!=='approved')){
@@ -158,8 +169,9 @@ function lc_account_admin_routes(string $method,string $path): bool {
         }
         if($method==='GET'){
             $user=lc_one('SELECT id,full_name,email,whatsapp,instagram,role,status FROM users WHERE id=?',[$id]);
+            if($user && !lc_is_master($actor) && ($user['role']==='admin'||(int)$user['id']===lc_master_user_id())){http_response_code(403);exit('Apenas o master edita administradores.');}
             if(!$user){http_response_code(404);lc_page('Não encontrado',fn()=>print('Conta não encontrada.'));return true;}
-            lc_page('Editar usuário',function()use($user){?>
+            lc_page('Editar usuário',function()use($user,$actor){?>
 <div class="container container-md lc-account-admin"><?php lc_heading('Permissões e dados','Editar conta #'.(int)$user['id'],'Alterações sensíveis exigem sua senha atual e ficam registradas.'); ?>
 <div class="panel"><form method="post" action="/admin/contas/<?=(int)$user['id']?>/editar" autocomplete="off"><?=lc_csrf()?>
 <div class="form-grid">
@@ -168,7 +180,7 @@ function lc_account_admin_routes(string $method,string $path): bool {
 <label class="field"><span>WhatsApp</span><input name="whatsapp" data-lc-mask="phone" maxlength="18" inputmode="tel" value="<?=lc_e($user['whatsapp'])?>" data-lc-private-input></label>
 <label class="field"><span>Instagram</span><input name="instagram" maxlength="80" value="<?=lc_e($user['instagram'])?>"></label>
 <label class="field"><span>Tipo de conta</span><select name="role">
-<?php foreach(['admin'=>'Administrador','clipador'=>'Clipador','criador'=>'Criador'] as $role=>$label):?><option value="<?=$role?>" <?=$user['role']===$role?'selected':''?>><?=$label?></option><?php endforeach;?></select></label>
+<?php foreach(['admin'=>'Administrador','clipador'=>'Clipador','criador'=>'Criador'] as $role=>$label):if($role==='admin'&&!lc_is_master($actor))continue;?><option value="<?=$role?>" <?=$user['role']===$role?'selected':''?>><?=$label?></option><?php endforeach;?></select></label>
 <label class="field"><span>Status</span><select name="status">
 <?php foreach(['approved'=>'Aprovada','pending'=>'Pendente','rejected'=>'Rejeitada','suspended'=>'Suspensa'] as $status=>$label):?><option value="<?=$status?>" <?=$user['status']===$status?'selected':''?>><?=$label?></option><?php endforeach;?></select></label>
 <label class="field"><span>Nova senha (deixe vazio para manter)</span><input name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="128"></label>
