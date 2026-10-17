@@ -41,7 +41,7 @@ require __DIR__ . '/clip-creator-actions.php';
 require __DIR__ . '/campaign-experience.php';
 require __DIR__ . '/routes-admin.php';
 require __DIR__ . '/account-admin.php';
-require __DIR__ . '/admin-permissions.php';
+require_once __DIR__ . '/admin-permissions.php';
 require __DIR__ . '/account-delete.php';
 require __DIR__ . '/mfa.php';
 require __DIR__ . '/mfa-routes.php';
