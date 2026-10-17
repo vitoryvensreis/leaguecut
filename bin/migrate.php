@@ -520,6 +520,7 @@ try{
     if($master){
         lc_query("INSERT IGNORE INTO platform_settings(setting_key,setting_value) VALUES('master_admin_user_id',?)",[(string)(int)$master['id']]);
     }
+    echo "MASTER_ADMIN_BINDING=".($master?'READY':'MISSING')."\n";
     echo "MIGRACAO_ADMIN_ROLES_OK\n";
 
 
