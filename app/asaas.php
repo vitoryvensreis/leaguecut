@@ -279,7 +279,7 @@ function lc_asaas_routes(string $method,string $path): bool {
 <?php lc_heading('Gestão financeira','Asaas · Integração','Primeira etapa: cobranças Pix no Sandbox e preparação de saques, sem transferências automáticas.'); ?>
 <div class="panel">
  <span class="tag"><?=lc_asaas_env()==='sandbox'?'SANDBOX':'PRODUÇÃO · ESCRITA BLOQUEADA'?></span>
- <p>Chave do ambiente atual: <strong><?=$keyPresent?'Presente no servidor':'Não encontrada'?></strong> · Operações: <strong><?=$configured?'Habilitadas para Sandbox':'Desligadas'?></strong> · Webhook: <strong><?=$webhook?'Token presente':'Token ausente'?></strong></p>
+ <p>Chave do ambiente atual: <strong><?=$keyPresent?'Presente no servidor':'Não encontrada'?></strong> · Operações: <strong><?=$configured?(lc_asaas_env()==='production'?'Solicitadas, mas produção bloqueada':'Sandbox habilitado'):'Desligadas'?></strong> · Webhook: <strong><?=$webhook?'Token presente':'Token ausente'?></strong></p>
  <form method="post" action="/admin/asaas/verificar"><?=lc_csrf()?>
  <label class="field"><span>Senha master para testar conexão (somente leitura)</span><input type="password" name="admin_password" autocomplete="current-password" required></label>
  <?php if(lc_mfa_enabled((int)$actor['id'])):?><label class="field"><span>Código 2FA</span><input name="mfa_code" autocomplete="one-time-code" maxlength="60" required></label><?php endif;?>
