@@ -13,7 +13,7 @@ putenv('ASAAS_ENABLED=0');
 pix_test(!lc_asaas_test_live_enabled(),'real Pix test must remain disabled by default');
 pix_test(!lc_asaas_enabled(),'normal production billing stays off');
 foreach(['1'=>'100','5,00'=>'500','9.5'=>'950','50,00'=>'5000'] as $entry=>$expected)
-    pix_test(lc_asaas_test_amount($entry)===(int)$expected,'parse cents '.$entry);
+    pix_test(lc_asaas_test_amount((string)$entry)===(int)$expected,'parse cents '.$entry);
 foreach(['0','0.50','50,01','999.00','abc','5,999','-2,00'] as $entry){
     try{lc_asaas_test_amount($entry);throw new RuntimeException('Accepted invalid '.$entry);}
     catch(InvalidArgumentException){}
