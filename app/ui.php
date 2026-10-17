@@ -55,6 +55,7 @@ function lc_workspace_links(array $u): array {
           ['Campanhas','/admin/campanhas','clapperboard'],
           ['Saques','/admin/financeiro','wallet'],
           ['Pagamentos Asaas','/admin/asaas','wallet'],
+          ['Testes Pix Asaas','/admin/asaas/testes','qr-code'],
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
           ['Pacotes para criadores','/admin/pacotes','layers'],
           ['Assinaturas','/admin/assinaturas','circle-dollar-sign'],
