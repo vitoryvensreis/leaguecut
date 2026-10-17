@@ -43,7 +43,7 @@ function lc_asaas_test_pix_key(string $raw,string $type): string {
 function lc_asaas_test_mask_key(string $key,string $type): string {
     if($type==='EMAIL'){
         [$prefix,$domain]=explode('@',$key,2);
-        return substr($prefix,0,2).'***@'.$domain;
+        return mb_substr(substr($prefix,0,2).'***@'.$domain,0,85);
     }
     return substr($key,0,2).'••••'.substr($key,-4);
 }
@@ -94,7 +94,11 @@ function lc_asaas_test_create_charge(int $uid,string $token,int $cents,string $d
     if(!in_array(strlen($doc),[11,14],true))throw new InvalidArgumentException('Informe seu CPF/CNPJ de pagador.');
     if(!preg_match('/^[a-f0-9]{32}$/D',$token))throw new InvalidArgumentException('Atualize a página para iniciar um novo teste.');
     $previous=lc_one('SELECT id FROM asaas_pix_tests WHERE request_token=?',[$token]);
-    if($previous)return (int)$previous['id'];
+    if($previous){
+        $same=lc_one('SELECT master_user_id FROM asaas_pix_tests WHERE id=?',[$previous['id']]);
+        if((int)($same['master_user_id']??0)!==$uid)throw new InvalidArgumentException('Operação inválida.');
+        return (int)$previous['id'];
+    }
     $ref=lc_asaas_test_reference('charge');
     try{
         lc_query("INSERT INTO asaas_pix_tests(master_user_id,flow,amount_cents,request_token,external_reference,status)
