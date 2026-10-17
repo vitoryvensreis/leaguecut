@@ -60,3 +60,29 @@ Interpretação:
 - ASAAS_OPERATIONS_ENABLED=NO => o gateway permanece desligado (operações de produção ainda bloqueadas no código).
 
 AVISO: não ativar cobranças ou saques reais apenas com GET 200; a homologação de recebimentos, reembolsos, idempotência e transferências Pix é uma etapa separada.
+
+
+## Aba Testes Pix (Produção, somente master)
+
+Endereço: https://leaguecut.com/admin/asaas/testes
+
+A aba realiza dois fluxos financeiros reais **sob autorização explícita do master**:
+1. "Receber": informar valor de R$ 1 a R$ 50 e CPF/CNPJ do pagador. Cria um cliente Asaas caso não exista, envia uma cobrança Pix avulsa para POST /v3/payments, recupera o QR Code dinâmico em GET /v3/payments/{id}/pixQrCode e mostra código copia e cola. O pagamento deve ser feito em outro banco; pode sofrer taxas, prazo de liquidação e estornos.
+2. "Enviar": informar valor de R$ 1 a R$ 50, tipo e chave Pix. O primeiro botão apenas prepara a operação, criptografa a chave e exibe revisão com destino mascarado. Um segundo formulário exige senha master/2FA, digitar ENVIAR PIX e confirmar. Só então chama POST /v3/transfers. O saldo precisa estar disponível. Limites globais: máximo R$ 100 e 5 tentativas de Pix de saída por dia.
+
+Exclusão e separação: todas as operações entram em asaas_pix_tests, separadas de asaas_charges, withdrawals e dos créditos de criadores. Nenhum Pix de teste libera clipes, remove saldos ou marca saques de usuários como pagos.
+
+Após criar cobrança ou transferência, use "Consultar status atualizado" na própria aba para obter o resultado diretamente do Asaas. Os Webhooks já entram na caixa de eventos /admin/asaas; não autorizam por si só alterações de saldo. Operações com timeout/status "review_required" NÃO são refeitas automaticamente — confira manualmente no painel do Asaas.
+
+### Como habilitar especificamente os testes reais
+
+No arquivo PRIVADO /home/leaguecut/shared/.env, inclua:
+    ASAAS_ENV=production
+    ASAAS_ENABLED=0
+    ASAAS_LIVE_TEST_ENABLED=1
+
+A chave ASAAS_PRODUCTION_API_KEY e o token ASAAS_WEBHOOK_TOKEN já precisam estar configurados. ASAAS_ENABLED=0 permanece, pois o processamento financeiro normal do LeagueCut ainda não foi homologado. ASAAS_LIVE_TEST_ENABLED=1 ativa somente esta aba e permite **movimentação real** depois das confirmações do master.
+
+Por padrão, ASAAS_LIVE_TEST_ENABLED=0 (ou ausente), e a aba mostra campos bloqueados. Não coloque credenciais ou documentos pessoais em commit, chat ou prints.
+
+Para interromper novos testes, volte ASAAS_LIVE_TEST_ENABLED=0 no .env. Histórico e operações já enviadas continuarão existindo no Asaas.

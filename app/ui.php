@@ -55,6 +55,7 @@ function lc_workspace_links(array $u): array {
           ['Campanhas','/admin/campanhas','clapperboard'],
           ['Saques','/admin/financeiro','wallet'],
           ['Pagamentos Asaas','/admin/asaas','wallet'],
+          ['Testes Pix Asaas','/admin/asaas/testes','qr-code'],
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
           ['Pacotes para criadores','/admin/pacotes','layers'],
           ['Assinaturas','/admin/assinaturas','circle-dollar-sign'],
@@ -190,6 +191,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
+<?php if($path==='/admin/asaas/testes'): ?><link rel="stylesheet" href="/assets/asaas-pix-tests.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
