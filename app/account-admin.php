@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__.'/admin-permissions.php';
 
 /** Account administration: no unauthenticated privilege changes or password disclosure. */
 function lc_account_admin_audit(int $actorId,string $action,?int $subject=null,array $details=[]): void {
