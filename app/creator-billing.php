@@ -188,6 +188,8 @@ function lc_creator_billing_routes(string $method,string $path): bool {
             else{
                 if(lc_post('receipt_confirmed',40)!=='CONFIRMO_RECEBIMENTO')
                     throw new RuntimeException('Confirme o recebimento real do pagamento antes de liberar o ciclo.');
+                if(lc_one("SELECT id FROM asaas_charges WHERE subscription_id=? AND status<>'settled' LIMIT 1",[(int)$m[1]]))
+                    throw new RuntimeException('Esta assinatura tem cobrança Asaas: use a conciliação verificada no painel Asaas.');
                 $sub=lc_one('SELECT status FROM creator_subscriptions WHERE id=?',[(int)$m[1]]);
                 if(!$sub)throw new RuntimeException('Assinatura não encontrada.');
                 $message=lc_creator_confirm_payment((int)$m[1],(int)$admin['id'],$sub['status']==='active');
