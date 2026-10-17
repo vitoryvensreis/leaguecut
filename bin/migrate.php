@@ -523,6 +523,26 @@ try{
     echo "MASTER_ADMIN_BINDING=".($master?'READY':'MISSING')."\n";
     echo "MIGRACAO_ADMIN_ROLES_OK\n";
 
+    // Asaas foundation: only additive tables, with secure full backup first.
+    $asaasTables=['asaas_customers','asaas_charges','asaas_webhook_events','asaas_payout_intents'];
+    $needAsaas=false;
+    foreach($asaasTables as $table){
+        if(!lc_one('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?',[$table]))$needAsaas=true;
+    }
+    if($needAsaas){
+        lc_migration_backup();
+        $sql=(string)file_get_contents(dirname(__DIR__).'/database/migrations/20261017_asaas_foundation.sql');
+        $parts=array_values(array_filter(array_map('trim',explode(';',$sql))));
+        if(count($parts)!==count($asaasTables))throw new RuntimeException('Migração Asaas incompleta.');
+        foreach($parts as $i=>$part){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($asaasTables[$i],'/').'\s*\(/i',$part))
+                throw new RuntimeException('Tabela financeira não autorizada.');
+            $db->exec($part);
+        }
+    }
+    echo "MIGRACAO_ASAAS_FOUNDATION_OK\n";
+
+
 
 
 }catch(Throwable $e){
