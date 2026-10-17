@@ -31,6 +31,7 @@ function lc_admin_areas(): array {
 function lc_admin_area_for_path(string $path): ?string {
     $prefix=[
       '/admin/administradores'=>'master','/admin/funcoes'=>'master',
+      '/admin/asaas'=>'master',
       '/admin/atividades'=>'audit','/admin/auditoria'=>'audit',
       '/admin/privacidade'=>'privacy','/admin/contas'=>'people',
       '/admin/clipadores'=>'clippers','/admin/clipes'=>'clips',
