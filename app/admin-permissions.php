@@ -59,6 +59,19 @@ function lc_admin_allowed(array $u,string $area): bool {
     if(!$assignment)return true; // legacy administrators retain existing scope
     return (bool)lc_one('SELECT 1 AS found FROM admin_role_permissions WHERE role_id=? AND area_key=?',[(int)$assignment['id'],$area]);
 }
+function lc_admin_first_url(array $u): string {
+    $pages=[
+        'overview'=>'/admin','clippers'=>'/admin/clipadores','clips'=>'/admin/clipes',
+        'support'=>'/admin/chamados','campaigns'=>'/admin/campanhas',
+        'finance'=>'/admin/financeiro','creator'=>'/admin/pacotes',
+        'automations'=>'/admin/automacoes','branding'=>'/admin/home',
+        'integrations'=>'/admin/integracoes','notifications'=>'/admin/notificacoes',
+        'people'=>'/admin/contas','privacy'=>'/admin/privacidade',
+        'audit'=>'/admin/auditoria','demo'=>'/admin/demo'
+    ];
+    foreach($pages as $key=>$url)if(lc_admin_allowed($u,$key))return $url;
+    return '/conta';
+}
 function lc_admin_can_url(array $u,string $url): bool {
     $path=parse_url($url,PHP_URL_PATH)?:$url;
     $area=lc_admin_area_for_path($path);
