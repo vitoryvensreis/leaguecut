@@ -27,6 +27,7 @@ require __DIR__ . '/routes-clip-video.php';
 require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/creator-platform.php';
 require __DIR__ . '/creator-billing.php';
+require __DIR__ . '/asaas.php';
 require __DIR__ . '/nick-ranking.php';
 require __DIR__ . '/demo-mode.php';
 require_once __DIR__ . '/referrals.php';
@@ -61,7 +62,7 @@ $path = parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/'
 $path = $path==='/'?'/':rtrim($path,'/');
 if (!in_array($method,['GET','POST'],true)) {http_response_code(405);header('Allow: GET, POST');exit('Método não permitido.');}
 lc_audit_track($method,$path);
-if ($method==='POST' && $path!=='/redes/oauth/instagram/desautorizacao') lc_check_csrf();
+if ($method==='POST' && !in_array($path,['/redes/oauth/instagram/desautorizacao','/webhooks/asaas'],true)) lc_check_csrf();
 if($method==='GET' && preg_match('~^/media/seo/(icon|social)/([a-f0-9]{36})$~D',$path,$seoMedia)) {
     lc_seo_media_response($seoMedia[1],$seoMedia[2]);
 }
@@ -82,6 +83,7 @@ if(lc_clip_video_route($method,$path))return;
 if(lc_realtime_route($method,$path))return;
 if(lc_integrations_routes($method,$path))return;
 if(lc_home_admin_routes($method,$path))return;
+if(lc_asaas_routes($method,$path))return;
 if(lc_creator_billing_routes($method,$path))return;
 if(lc_creator_admin_routes($method,$path))return;
 if(lc_wpp_admin_routes($method,$path))return;
