@@ -218,7 +218,9 @@ function lc_asaas_webhook_receive(string $raw,string $header): int {
     if(!is_array($payload))return 400;
     $id=(string)($payload['id']??'');$event=(string)($payload['event']??'');
     $object=(string)($payload['payment']['id']??$payload['transfer']['id']??'');
-    if(!preg_match('/^[A-Za-z0-9_-]{3,100}$/D',$id)||!preg_match('/^[A-Z_]{5,90}$/D',$event)||
+    // Asaas event IDs can include an ampersand followed by a numeric suffix.
+    // Reject HTML/control characters; use parameterized SQL and a unique PK.
+    if(!preg_match('/^[A-Za-z0-9_&-]{3,100}$/D',$id)||!preg_match('/^[A-Z_]{5,90}$/D',$event)||
        strlen($object)>100)return 400;
     lc_query('INSERT IGNORE INTO asaas_webhook_events(event_id,event_type,object_id) VALUES(?,?,?)',[$id,$event,$object]);
     // Inbox only: no money, no credits, no balance mutations from incoming data.
