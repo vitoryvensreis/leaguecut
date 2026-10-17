@@ -13,7 +13,7 @@ function authz_make_user(string $email,string $role='admin'):int {
     return (int)lc_db()->lastInsertId();
 }
 $existingSetting=lc_one("SELECT setting_value FROM platform_settings WHERE setting_key='master_admin_user_id'");
-$masterId=0;$otherId=0;$subjectId=0;$roleId=0;
+$masterId=0;$otherId=0;$subjectId=0;$roleId=0;$packageId=0;
 try{
     $masterId=authz_make_user(LC_MASTER_EMAIL);
     $otherId=authz_make_user('ci-admin-'.bin2hex(random_bytes(5)).'@example.invalid');
@@ -45,6 +45,25 @@ try{
               VALUES (?,?,'adjustment',45600,?,'CI financial removal')",
               [$subjectId,(int)$campaign['id'],$dedupe]);
     lc_query("INSERT INTO withdrawals(user_id,amount_cents,status) VALUES(?,?,'paid')",[$subjectId,12000]);
+    // Exercise every RESTRICT finance relation, not just balances and saques.
+    lc_query("INSERT INTO creator_packages(name,slug,description,fulfillment_mode,monthly_clips,monthly_price_cents,status,created_by)
+              VALUES(?,?,'CI subscription','download',3,10000,'active',?)",
+              ['CI Test Package','ci-master-pkg-'.bin2hex(random_bytes(6)),$masterId]);
+    $packageId=(int)lc_db()->lastInsertId();
+    lc_query("INSERT INTO creator_subscriptions(creator_id,package_id,status,price_cents_snapshot,monthly_clips_snapshot,fulfillment_mode_snapshot)
+              VALUES(?,?,'active',10000,3,'download')",[$subjectId,$packageId]);
+    $subscriptionId=(int)lc_db()->lastInsertId();
+    lc_query("INSERT INTO creator_subscription_cycles(subscription_id,cycle_start,cycle_end,clips_included,payment_status)
+              VALUES(?,'2026-10-01','2026-10-31',3,'confirmed')",[$subscriptionId]);
+    $cycleId=(int)lc_db()->lastInsertId();
+    lc_query("INSERT INTO creator_deliveries(subscription_id,cycle_id,creator_id,title,status)
+              VALUES(?,?,?,'CI sample delivery','delivered')",[$subscriptionId,$cycleId,$subjectId]);
+    $deliveryId=(int)lc_db()->lastInsertId();
+    lc_query("INSERT INTO referrals(referrer_user_id,referred_user_id,referred_role) VALUES(?,?,'clipador')",[$otherId,$subjectId]);
+    $referralId=(int)lc_db()->lastInsertId();
+    lc_query("INSERT INTO referral_commissions(referral_id,referrer_user_id,referred_user_id,source_type,source_key,base_amount_cents,amount_cents,mode,rate_value)
+              VALUES(?,?,?,'clip_credit',?,1000,200,'fixed',200)",[$referralId,$otherId,$subjectId,'ci-master-'.$subjectId]);
+    $commissionId=(int)lc_db()->lastInsertId();
     $email=(string)lc_one('SELECT email FROM users WHERE id=?',[$subjectId])['email'];
     authz_test(lc_account_delete_blocker($subjectId)!==null,'finance requires explicit override');
     try{
@@ -58,6 +77,11 @@ try{
     authz_test(!lc_one('SELECT id FROM users WHERE id=?',[$subjectId]),'master hard-deleted financial subject');
     authz_test(!lc_one('SELECT id FROM ledger_entries WHERE dedupe_key=?',[$dedupe]),'financial ledger erased');
     authz_test(!lc_one('SELECT id FROM withdrawals WHERE user_id=?',[$subjectId]),'withdrawal history erased');
+    authz_test(!lc_one('SELECT id FROM creator_deliveries WHERE id=?',[$deliveryId]),'creator delivery erased');
+    authz_test(!lc_one('SELECT id FROM creator_subscription_cycles WHERE id=?',[$cycleId]),'subscription cycle erased');
+    authz_test(!lc_one('SELECT id FROM creator_subscriptions WHERE id=?',[$subscriptionId]),'contract erased');
+    authz_test(!lc_one('SELECT id FROM referrals WHERE id=?',[$referralId]),'referral erased');
+    authz_test(!lc_one('SELECT id FROM referral_commissions WHERE id=?',[$commissionId]),'commission erased');
     echo "MASTER_ROLES_AND_FINANCIAL_PURGE_OK\n";
 }finally{
     if($existingSetting){
@@ -67,6 +91,8 @@ try{
     }
     if($otherId)lc_query('DELETE FROM admin_user_roles WHERE user_id=?',[$otherId]);
     if($roleId)lc_query('DELETE FROM admin_roles WHERE id=?',[$roleId]);
+    if($packageId)lc_query('DELETE FROM creator_packages WHERE id=?',[$packageId]);
+    if($masterId)lc_query("DELETE FROM account_admin_audit WHERE actor_id=? AND action='account.deleted'",[$masterId]);
     if($otherId)lc_query('DELETE FROM users WHERE id=?',[$otherId]);
     if($masterId)lc_query('DELETE FROM users WHERE id=?',[$masterId]);
 }
