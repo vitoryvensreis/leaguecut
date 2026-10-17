@@ -286,6 +286,7 @@ function lc_asaas_routes(string $method,string $path): bool {
  <button class="btn btn-ghost btn-sm" type="submit">Testar conexão Asaas (sem movimentar dinheiro)</button>
  </form>
  <p>Endpoint do Webhook: <code>https://leaguecut.com/webhooks/asaas</code></p>
+ <p><a class="btn btn-ghost btn-sm" href="/admin/asaas/testes">Abrir aba Testes Pix (cobrar e enviar) →</a></p>
  <p class="hint">Credenciais privadas: ASAAS_ENV=production, ASAAS_PRODUCTION_API_KEY, ASAAS_WEBHOOK_TOKEN e ASAAS_ENABLED=0 em /home/leaguecut/shared/.env. Não compartilhe as credenciais ou saldo.</p>
  <p class="hint">Cobranças somente no Sandbox. Confirmação requer consulta ao Asaas. Nenhum saque Pix é enviado automaticamente nesta versão.</p>
 </div>
