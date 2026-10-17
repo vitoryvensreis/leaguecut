@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS asaas_pix_tests (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ master_user_id BIGINT UNSIGNED NOT NULL,
+ flow ENUM('charge','transfer') NOT NULL,
+ environment VARCHAR(12) NOT NULL DEFAULT 'production',
+ amount_cents INT UNSIGNED NOT NULL,
+ request_token CHAR(32) NOT NULL UNIQUE,
+ external_reference VARCHAR(95) NOT NULL UNIQUE,
+ provider_id VARCHAR(100) NULL,
+ status VARCHAR(36) NOT NULL DEFAULT 'creating',
+ recipient_key_encrypted TEXT NULL,
+ recipient_masked VARCHAR(90) NULL,
+ recipient_type VARCHAR(12) NULL,
+ attempted_at DATETIME NULL,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_asaas_pix_tests_provider(provider_id),
+ KEY idx_asaas_pix_tests_history(master_user_id,created_at),
+ KEY idx_asaas_pix_tests_flow_day(flow,created_at),
+ FOREIGN KEY(master_user_id) REFERENCES users(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
