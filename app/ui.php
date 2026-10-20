@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/legal-entity.php';
 require_once __DIR__ . '/clipper-ui.php';
+require_once __DIR__ . '/admin-navigation.php';
 
 function lc_icon(string $name, string $class = ''): string {
     static $allowed = ["play","compass","layout-dashboard","library","wallet","share-2","shield-check","log-out","users-round","user-round-cog","clapperboard","chart-column","hand-coins","trophy","palette","chevron-right","arrow-right","external-link","lock-keyhole","check","circle-check","sparkles","folder-open","clock-3","plus","upload-cloud","settings-2","bell","activity","clipboard-check","layers","circle-dollar-sign","menu","video","globe","shield"];
@@ -110,6 +111,7 @@ function lc_workspace_links(array $u): array {
     ];
 }
 function lc_workspace_nav(array $u, string $current): void {
+    if($u['role']==='admin'){lc_admin_sidebar_navigation($u,$current);return;}
     $links=lc_workspace_links($u);
     $groups=$u['role']==='admin' ? ['Operação'=>array_slice($links,0,8),'Configuração'=>array_slice($links,8)] : ['Meu espaço'=>$links];
     foreach($groups as $label=>$items): ?>
@@ -194,6 +196,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
 <link rel="stylesheet" href="/assets/clipper-ux-basics.css?v=1">
 <link rel="stylesheet" href="/assets/clipper-ux.css?v=1">
+<?php if($workspace): ?><link rel="stylesheet" href="/assets/admin-navigation.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
@@ -259,6 +262,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php endif; ?>
 <main id="conteudo" tabindex="-1">
   <?php if ($flash): ?><div class="toast <?=$flash['type']==='error'?'toast-error':''?>" role="<?=$flash['type']==='error'?'alert':'status'?>"><?=lc_e($flash['message'])?></div><?php endif; ?>
+  <?php if($workspace && $u['role']==='admin')lc_admin_context_tabs($u,$path); ?>
   <?php $body(); ?>
 </main>
 <?php if($workspace): ?></div></div><?php endif; ?>
@@ -295,7 +299,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($u): ?><script src="/assets/notification-preferences.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/input-masks.js?v=1" defer></script>
 <?php if($u): ?><script src="/assets/privacy-toggle.js?v=2" defer></script><?php endif; ?>
-<?php if($workspace): ?><script src="/assets/clipper-ux.js?v=1" defer></script><?php endif; ?>
+<?php if($workspace): ?><script src="/assets/clipper-ux.js?v=1" defer></script><script src="/assets/admin-navigation.js?v=1" defer></script><?php endif; ?>
 </body></html><?php
 }
 function lc_tile(array $c): void {
