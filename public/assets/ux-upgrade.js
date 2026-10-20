@@ -1,7 +1,7 @@
 /* LeagueCut: progressive-enhanced auth and Brazilian form masks */
 (() => {
   'use strict';
-  const routes = {'/entrar': 'lc-auth-login', '/cadastrar': 'lc-auth-signup'};
+  const routes = {'/entrar': 'lc-auth-login', '/cadastrar': 'lc-auth-signup', '/seguranca/verificar': 'lc-auth-mfa'};
   const dialogs = Object.values(routes).map(id => document.getElementById(id)).filter(Boolean);
   let modalNavigation = false;
   function activeDialog() { return dialogs.find(d => d.open); }
@@ -18,12 +18,12 @@
       history.pushState({lcAuth: true}, '', path);
       modalNavigation = true;
     }
-    const focus = dialog.querySelector('input[name="email"]');
+    const focus = dialog.querySelector('input[name="email"], input[name="mfa_code"]');
     if (focus) focus.focus({preventScroll: true});
     return true;
   }
   for (const dialog of dialogs) {
-    if (dialog.hasAttribute('open')) { dialog.removeAttribute('open'); openAuth(dialog.id === 'lc-auth-login' ? '/entrar' : '/cadastrar'); }
+    if (dialog.hasAttribute('open')) { dialog.removeAttribute('open'); openAuth(dialog.id === 'lc-auth-login' ? '/entrar' : dialog.id === 'lc-auth-signup' ? '/cadastrar' : '/seguranca/verificar'); }
     dialog.querySelector('[data-auth-close]')?.addEventListener('click', () => dialog.close());
     dialog.addEventListener('click', (e) => {
       if (e.target === dialog) dialog.close();
@@ -44,6 +44,7 @@
       openAuth(url.pathname, true);
     }
   });
+  document.addEventListener('lc:auth:open', e=>{if(e.detail && routes[e.detail.path])openAuth(e.detail.path,Boolean(e.detail.push));});
   window.addEventListener('popstate', () => {
     const dialog = activeDialog();
     if (routes[location.pathname]) openAuth(location.pathname);
