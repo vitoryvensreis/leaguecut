@@ -91,6 +91,18 @@ def main():
     assert 'Nickname público (opcional)' not in signup, "Nickname no longer optional"
     assert '<div class="full"><label class="field"><span>Chave Pix' not in signup, "Pix and portfolio share the same desktop form row"
     assert 'id="lc-auth-login"' in signin and 'action="/entrar"' in signin, "Login must load directly in modal"
+    assert 'assets/stable-scroll-layout.css?v=1' in signup and 'assets/stable-scroll-layout.css?v=1' in signin, "Signup/login use stable popup scrolling"
+    # Verify it loads after prior modal/sidebar styles, so the override wins.
+    assert signup.index('assets/stable-scroll-layout.css?v=1') > signup.index('assets/signup-dialog-polish.css?v=2')
+    assert signin.index('assets/stable-scroll-layout.css?v=1') > signin.index('assets/clipper-ux.css?v=1')
+    with guest.open(BASE+"/assets/stable-scroll-layout.css",timeout=10) as asset:
+        scroll_css=asset.read().decode("utf-8")
+    assert '.workspace-page .workspace-sidebar>nav' in scroll_css and 'scrollbar-gutter: stable' in scroll_css, "Sidebar scrolling retains stable layout"
+    assert 'overflow-y: auto' in scroll_css and 'overscroll-behavior-y: contain' in scroll_css, "Sidebar retains independent scrolling"
+    assert '.lc-auth-dialog > .lc-auth-dialog-inner' in scroll_css and 'overflow: hidden !important' in scroll_css, "Popup corners no longer scroll"
+    assert 'scrollbar-width: none' in scroll_css and '::-webkit-scrollbar { display: none; }' in scroll_css, "Popup scrollbars hidden across engines"
+    assert 'overflow-x: hidden' in scroll_css and 'grid-template-columns: minmax(0,1fr)' in scroll_css, "No popup horizontal scroll, signup stays single-column on mobile"
+    assert '@media (max-height: 610px)' in scroll_css, "Short screens preserve keyboard/touch vertical access"
     assert 'id="lc-auth-mfa"' in signin and 'action="/seguranca/verificar"' in signin, "2FA must be a popup too"
     assert 'data-auth-async="login"' in signin and 'data-auth-async="mfa"' in signin, "Both auth phases use asynchronous forms"
     assert 'assets/auth-mfa-modal.js?v=1' in signin, "Async MFA script loaded"
@@ -110,6 +122,7 @@ def main():
     admin=client()
     login(admin,"admin@leaguecut.test")
     dashboard=verify(admin,"/admin",["workspace.css","realtime.css","polish.css"],["landing.css","banner.css"])
+    assert 'assets/stable-scroll-layout.css?v=1' in dashboard, "Admin sidebar receives stable scroll CSS"
     assert "Precisa da sua atenção" in dashboard
     assert "Top clipadores" in dashboard and "Top campanhas" in dashboard, "Rankings must appear on admin homepage"
     assert 'data-admin-nav' in dashboard and dashboard.count('data-admin-group=')==9, "Nine expandable administrative groups including personal account"
