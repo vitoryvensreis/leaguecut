@@ -38,11 +38,12 @@ function lc_clipper_cleanup_uploaded_file(?array $upload): void {
 /** Editing a rejected item resubmits it for admin review. */
 function lc_clipper_update_clip(int $clipId,int $userId,array $post,array $files): string {
     $old=lc_clipper_editable_clip($clipId,$userId);
-    $title=mb_substr(trim((string)($post['title']??'')),0,180);
+    $title=mb_substr(trim((string)($post['title']??$old['title'])),0,180);
+    if(mb_strlen($title)<4)$title='Clip '.bin2hex(random_bytes(8));
     $url=mb_substr(trim((string)($post['published_url']??'')),0,800);
     $accountId=filter_var($post['social_account_id']??null,FILTER_VALIDATE_INT);
-    if(!$accountId || (int)$accountId<1||mb_strlen($title)<4){
-        throw new RuntimeException('Informe título com pelo menos quatro caracteres e selecione uma rede.');
+    if(!$accountId || (int)$accountId<1){
+        throw new RuntimeException('Selecione uma rede para publicar.');
     }
     $account=lc_one('SELECT * FROM social_accounts WHERE id=? AND user_id=?',[(int)$accountId,$userId]);
     if(!$account||!lc_clip_social_url_valid($url,(string)$account['network']))
