@@ -144,7 +144,8 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         $u=lc_login_required();
         if($u['role']==='admin'){http_response_code(403);exit('Disponível apenas para clipadores.');}
         $campaignId=lc_int('campaign_id',0,2147483647);$accountId=lc_int('social_account_id',0,2147483647);
-        $title=lc_post('title',180);$url=lc_post('published_url',800);
+        $title=lc_post('title',180);if($title==='')$title='Clipe '.date('Ymd-His').'-'.bin2hex(random_bytes(3));
+        $url=lc_post('published_url',800);
         $campaign=lc_one("SELECT * FROM campaigns WHERE id=? AND status='active'",[$campaignId]);
         $account=lc_one('SELECT * FROM social_accounts WHERE id=? AND user_id=?',[$accountId,$u['id']]);
         $host=strtolower((string)parse_url($url,PHP_URL_HOST));
@@ -217,7 +218,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
 <form id="lc-clip-form" data-optional-video="<?=$clip['drive_file_id']?'1':'0'?>" method="post" action="/clipes/<?=(int)$clip['id']?>/editar" enctype="multipart/form-data">
 <?=lc_csrf()?>
 <div class="form-grid">
-<div class="full"><?php lc_field('Título do clipe','title','text',(string)$clip['title'],true,'Título do vídeo'); ?></div>
+<input type="hidden" name="title" value="<?=lc_e($clip['title'])?>">
 <div class="full"><?php lc_field('Link da publicação','published_url','url',(string)$clip['published_url'],true,'https://www.instagram.com/reel/...'); ?></div>
 <label class="field full"><span>Perfil usado para publicar</span>
 <select name="social_account_id" required>
