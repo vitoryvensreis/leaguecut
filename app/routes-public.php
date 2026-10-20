@@ -174,16 +174,18 @@ function lc_public_routes(string $method,string $path): bool {
     if ($method==='POST' && $path==='/entrar') {
         $hash=hash('sha256',(string)($_SERVER['REMOTE_ADDR'] ?? 'unknown'));
         $recent=(int)(lc_one("SELECT COUNT(*) AS total FROM login_attempts WHERE ip_hash=? AND created_at > DATE_SUB(NOW(),INTERVAL 15 MINUTE)",[$hash])['total']??0);
-        if($recent>=10){lc_flash('Muitas tentativas. Aguarde 15 minutos.','error');lc_redirect('/entrar');}
+        if($recent>=10){if(lc_auth_async_request())lc_auth_json(false,'error','Muitas tentativas. Aguarde 15 minutos.','',429);lc_flash('Muitas tentativas. Aguarde 15 minutos.','error');lc_redirect('/entrar');}
         $login=mb_strtolower(trim(lc_post('email',190)));$user=lc_one('SELECT id,password_hash FROM users WHERE email=? OR nickname=? LIMIT 1',[$login,$login]);
         if(!$user||!password_verify((string)($_POST['password']??''),$user['password_hash'])){
             lc_query('INSERT INTO login_attempts(ip_hash) VALUES(?)',[$hash]);
+            if(lc_auth_async_request())lc_auth_json(false,'error','E-mail ou senha inválidos.','',401);
             lc_flash('E-mail ou senha inválidos.','error');lc_redirect('/entrar');
         }
         $id=(int)$user['id'];
         $_SESSION['remember_after_mfa']=!empty($_POST['remember_me']);
         if(lc_mfa_enabled($id)){
             lc_mfa_login_pending($id);
+            if(lc_auth_async_request())lc_auth_json(true,'mfa');
             lc_redirect('/seguranca/verificar');
         }
         session_regenerate_id(true);
@@ -197,7 +199,9 @@ function lc_public_routes(string $method,string $path): bool {
         }
         unset($_SESSION['remember_after_mfa']);
         $role=lc_one('SELECT role FROM users WHERE id=?',[$id])['role']??'clipador';
-        lc_redirect($role==='criador'?'/criador':'/dashboard');
+        $destination=$role==='criador'?'/criador':($role==='admin'?'/admin':'/dashboard');
+        if(lc_auth_async_request())lc_auth_json(true,'redirect','',$destination);
+        lc_redirect($destination);
     }
     if ($method==='POST' && $path==='/sair') {
         lc_remember_revoke_current();

@@ -2,9 +2,10 @@
 declare(strict_types=1);
 require_once __DIR__ . '/legal-entity.php';
 require_once __DIR__ . '/clipper-ui.php';
+require_once __DIR__ . '/admin-navigation.php';
 
 function lc_icon(string $name, string $class = ''): string {
-    static $allowed = ["play","compass","layout-dashboard","library","wallet","share-2","shield-check","log-out","users-round","user-round-cog","clapperboard","chart-column","hand-coins","trophy","palette","chevron-right","arrow-right","external-link","lock-keyhole","check","circle-check","sparkles","folder-open","clock-3","plus","upload-cloud","settings-2","bell","activity","clipboard-check","layers","circle-dollar-sign","menu","video","globe","shield"];
+    static $allowed = ["play","compass","layout-dashboard","library","wallet","share-2","shield-check","log-out","users-round","user-round-cog","clapperboard","chart-column","hand-coins","trophy","palette","chevron-right","arrow-right","external-link","lock-keyhole","check","circle-check","sparkles","folder-open","clock-3","plus","upload-cloud","settings-2","bell","activity","clipboard-check","layers","circle-dollar-sign","menu","video","globe","shield","eye","eye-off"];
     if (!in_array($name, $allowed, true)) $name = 'circle-check';
     $class = trim(preg_replace('/[^a-zA-Z0-9_ -]/', '', $class) ?? '');
     return '<svg class="lc-icon ' . lc_e($class) . '" aria-hidden="true" focusable="false"><use href="/assets/icons.svg#' . lc_e($name) . '"></use></svg>';
@@ -72,7 +73,7 @@ function lc_workspace_links(array $u): array {
            ['Modo demonstração','/admin/demo','sparkles'],
           ['Indicações e comissões','/admin/indicacoes','hand-coins'],
           ['Auditoria de contas','/admin/atividades','activity'],
-          ['Acessos e operações','/admin/auditoria','list-checks'],
+          ['Acessos e operações','/admin/auditoria','clipboard-check'],
           ['Solicitações LGPD','/admin/privacidade','shield-check'],
           ['Meus dados','/conta','user-round-cog'],
           ['Indicações','/indicacoes','users-round'],
@@ -110,6 +111,7 @@ function lc_workspace_links(array $u): array {
     ];
 }
 function lc_workspace_nav(array $u, string $current): void {
+    if($u['role']==='admin'){lc_admin_sidebar_navigation($u,$current);return;}
     $links=lc_workspace_links($u);
     $groups=$u['role']==='admin' ? ['Operação'=>array_slice($links,0,8),'Configuração'=>array_slice($links,8)] : ['Meu espaço'=>$links];
     foreach($groups as $label=>$items): ?>
@@ -123,7 +125,8 @@ function lc_workspace_nav(array $u, string $current): void {
           </a>
         <?php endforeach; ?>
       </div>
-    <?php endforeach;
+    <?php endforeach; ?>
+<?php
 }
 
 function lc_page(string $title, callable $body, string $active = ''): void {
@@ -177,6 +180,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/polish.css?v=10">
 <link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <link rel="stylesheet" href="/assets/ux-upgrade.css?v=2">
+<link rel="stylesheet" href="/assets/auth-mfa-modal.css?v=1">
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
 <link rel="stylesheet" href="/assets/arena.css?v=1">
@@ -184,7 +188,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/b4b-arena-polish.css?v=1">
 <link rel="stylesheet" href="/assets/rank-trophies.css?v=1">
 <?php if($path==='/admin/bonus-mensal'): ?><link rel="stylesheet" href="/assets/monthly-bonuses.css?v=1"><?php endif; ?>
-<?php if($u): ?><link rel="stylesheet" href="/assets/privacy-toggle.css?v=1"><?php endif; ?>
+<?php if($u): ?><link rel="stylesheet" href="/assets/privacy-toggle.css?v=2"><?php endif; ?>
 <?php if(in_array($path,['/indicacoes','/admin/indicacoes'],true)): ?><link rel="stylesheet" href="/assets/referrals.css?v=1"><?php endif; ?>
 <?php if($path==='/seguranca/2fa'): ?><link rel="stylesheet" href="/assets/mfa-qr.css?v=1"><?php endif; ?>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><link rel="stylesheet" href="/assets/flow-editor.css?v=2">
@@ -194,6 +198,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
 <link rel="stylesheet" href="/assets/clipper-ux-basics.css?v=1">
 <link rel="stylesheet" href="/assets/clipper-ux.css?v=1">
+<?php if($workspace): ?><link rel="stylesheet" href="/assets/admin-navigation.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
@@ -202,7 +207,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
 </head>
-<body class="<?=$workspace?'workspace-page':'public-page'?> <?=$u&&$u['role']==='clipador'&&$u['status']!=='approved'?'lc-awaiting-only':''?>">
+<body class="<?=$workspace?'workspace-page':'public-page'?> <?=$u&&$u['role']==='clipador'&&$u['status']!=='approved'?'lc-awaiting-only':''?> <?=$u&&$u['role']==='clipador'&&$path==='/dashboard'?'lc-clipper-dashboard-page':''?>">
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
@@ -223,6 +228,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
       <?php if ($u && $u['role']==='admin'): ?><a class="<?=$active==='admin'?'selected':''?>" <?=$active==='admin'?'aria-current="page"':''?> href="/admin"><?=lc_icon("shield-check")?> Administração</a><?php endif; ?>
     </nav><?php else: ?><div class="workspace-breadcrumb"><?=lc_icon("layers")?> <?=lc_e($areaTitle)?> <span class="workspace-breadcrumb-slash">/</span> <?=lc_e($title)?></div><?php endif; ?>
     <div class="header-right">
+      <?php if($u && $workspace): ?><button type="button" id="lc-privacy-toggle" class="lc-privacy-header-btn" aria-label="Mostrar dados" aria-pressed="false" title="Mostrar dados"><?=lc_icon("eye")?></button><?php endif; ?>
       <?php if($workspace): ?>
       <details class="rt-notifications" id="rt-notifications">
         <summary aria-label="Atualizações" title="Atualizações"><?=lc_icon('bell')?><span class="rt-unread" data-realtime-unread hidden>0</span></summary>
@@ -259,6 +265,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php endif; ?>
 <main id="conteudo" tabindex="-1">
   <?php if ($flash): ?><div class="toast <?=$flash['type']==='error'?'toast-error':''?>" role="<?=$flash['type']==='error'?'alert':'status'?>"><?=lc_e($flash['message'])?></div><?php endif; ?>
+  <?php if($workspace && $u['role']==='admin')lc_admin_context_tabs($u,$path); ?>
   <?php $body(); ?>
 </main>
 <?php if($workspace): ?></div></div><?php endif; ?>
@@ -283,7 +290,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($workspace && $u['role']==='clipador')lc_quick_clip_modal($u); ?>
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <?php lc_privacy_banner(); ?>
-<script src="/assets/ux-upgrade.js?v=1" defer></script>
+<script src="/assets/ux-upgrade.js?v=3" defer></script>
+<script src="/assets/auth-mfa-modal.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><script src="/assets/flow-canvas-v2.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/flow-editor.js?v=2" defer></script><?php endif; ?>
@@ -294,8 +302,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==="/admin/notificacoes" && $u && $u['role']==='admin'): ?><script src="/assets/admin-notices.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/notification-preferences.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/input-masks.js?v=1" defer></script>
-<?php if($u): ?><script src="/assets/privacy-toggle.js?v=2" defer></script><?php endif; ?>
-<?php if($workspace): ?><script src="/assets/clipper-ux.js?v=1" defer></script><?php endif; ?>
+<?php if($u): ?><script src="/assets/privacy-toggle.js?v=3" defer></script><?php endif; ?>
+<?php if($workspace): ?><script src="/assets/clipper-ux.js?v=1" defer></script><script src="/assets/admin-navigation.js?v=1" defer></script><?php endif; ?>
 </body></html><?php
 }
 function lc_tile(array $c): void {
@@ -346,7 +354,8 @@ function lc_auth_dialogs(string $path,?array $flash): void {
     <h2 id="lc-auth-title-<?=$kind?>"><?=$isSignup?'Junte-se aos criadores.':'Entre na sua arena.'?></h2>
     <p class="lc-auth-desc"><?=$isSignup?'Crie sua conta para participar de campanhas. Seu cadastro será analisado pela equipe.':'Acompanhe seus clipes, campanhas e recompensas em um só lugar.'?></p>
     <?php if($direct && $flash):?><p class="lc-auth-message <?=$flash['type']==='error'?'is-error':''?>" role="alert"><?=lc_e($flash['message'])?></p><?php endif;?>
-    <form method="post" action="/<?=$route?>" class="lc-auth-form"><?=lc_csrf()?>
+    <?php if(!$isSignup):?><p class="lc-auth-message is-error" data-auth-error role="alert" hidden></p><?php endif;?>
+    <form method="post" action="/<?=$route?>" class="lc-auth-form" <?=$isSignup?'':'data-auth-async="login"'?>><?=lc_csrf()?>
       <div class="form-grid">
       <?php if($isSignup):?>
         <?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
@@ -374,5 +383,24 @@ function lc_auth_dialogs(string $path,?array $flash): void {
     </form>
   </div>
 </dialog>
-<?php endforeach;
+<?php endforeach; ?>
+<dialog id="lc-auth-mfa" class="lc-auth-dialog lc-auth-mfa-dialog" aria-labelledby="lc-auth-mfa-title" aria-modal="true" <?=$path==='/seguranca/verificar'?'open':''?>>
+  <div class="lc-auth-dialog-inner">
+    <button class="lc-auth-close" type="button" aria-label="Fechar verificação" data-auth-close>×</button>
+    <span class="eyebrow">SEGURANÇA DA CONTA</span>
+    <div class="lc-auth-mfa-symbol"><?=lc_icon('shield-check')?></div>
+    <h2 id="lc-auth-mfa-title">Confirme seu acesso</h2>
+    <p class="lc-auth-desc">Digite o código de 6 dígitos do seu autenticador ou um código de recuperação.</p>
+    <p class="lc-auth-message is-error" data-auth-error role="alert" hidden></p>
+    <form method="post" action="/seguranca/verificar" class="lc-auth-form" data-auth-async="mfa"><?=lc_csrf()?>
+      <label class="field full"><span>Código de verificação</span><input type="text" name="mfa_code" inputmode="text" autocomplete="one-time-code" maxlength="60" required placeholder="000000 ou código de recuperação"></label>
+      <div class="form-actions">
+        <button class="btn" type="submit">Verificar e entrar <?=lc_icon('arrow-right')?></button>
+        <button type="button" class="lc-auth-mfa-back" data-auth-back>Voltar ao login</button>
+      </div>
+      <p class="form-note">O código muda a cada 30 segundos. Após 6 tentativas incorretas, aguarde 15 minutos.</p>
+    </form>
+  </div>
+</dialog>
+<?php
 }

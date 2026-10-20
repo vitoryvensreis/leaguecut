@@ -7,17 +7,19 @@ function lc_mfa_routes(string $method,string $path): bool {
     header('X-Robots-Tag: noindex, nofollow');
 
     if($path==='/seguranca/verificar'){
-        if(lc_user())lc_redirect('/dashboard');
+        if($signed=lc_user())lc_redirect($signed['role']==='admin'?'/admin':($signed['role']==='criador'?'/criador':'/dashboard'));
         $pending=(int)($_SESSION['mfa_pending_uid']??0);
         $started=(int)($_SESSION['mfa_pending_at']??0);
         if($pending<1||$started<time()-300||$started>time()){
             unset($_SESSION['mfa_pending_uid'],$_SESSION['mfa_pending_at']);
+            if(lc_auth_async_request())lc_auth_json(false,'login','Sessão expirada. Entre novamente para confirmar o segundo fator.','',419);
             lc_flash('Por segurança, entre novamente para confirmar o segundo fator.','error');
             lc_redirect('/entrar');
         }
         if($method==='POST'){
             $code=lc_post('mfa_code',60);
-            if(lc_mfa_consume($pending,$code))lc_mfa_finish_login($pending);
+            if(lc_mfa_consume($pending,$code))lc_mfa_finish_login($pending,lc_auth_async_request());
+            if(lc_auth_async_request())lc_auth_json(false,'mfa','Código inválido, expirado ou limite de tentativas atingido.','',401);
             lc_flash('Código inválido, expirado ou limite de tentativas atingido.','error');
             lc_redirect('/seguranca/verificar');
         }

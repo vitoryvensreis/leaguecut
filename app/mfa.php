@@ -116,7 +116,21 @@ function lc_mfa_login_pending(int $uid): void {
     $_SESSION['mfa_pending_uid']=$uid;
     $_SESSION['mfa_pending_at']=time();
 }
-function lc_mfa_finish_login(int $uid): never {
+/** Narrow JSON response for our own same-origin, CSRF-protected auth modal. */
+function lc_auth_async_request(): bool {
+    return ($_SERVER['HTTP_X_LC_AUTH']??'')==='1'
+        && str_contains((string)($_SERVER['HTTP_ACCEPT']??''),'application/json');
+}
+function lc_auth_json(bool $ok,string $step,string $message='',string $redirect='',int $code=200): never {
+    http_response_code($code);
+    header('Content-Type: application/json; charset=utf-8');
+    header('Cache-Control: no-store, private');
+    header('X-Content-Type-Options: nosniff');
+    echo json_encode(['ok'=>$ok,'step'=>$step,'message'=>$message,'redirect'=>$redirect],
+                     JSON_UNESCAPED_SLASHES|JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+    exit;
+}
+function lc_mfa_finish_login(int $uid,bool $async=false): never {
     $user=lc_one('SELECT id,role FROM users WHERE id=?',[$uid]);
     if(!$user)lc_redirect('/entrar');
     session_regenerate_id(true);
@@ -129,7 +143,9 @@ function lc_mfa_finish_login(int $uid): never {
         try{lc_remember_issue($uid);}catch(Throwable $e){error_log('LEAGUECUT_REMEMBER_ISSUE_FAILED');}
     }
     unset($_SESSION['remember_after_mfa']);
-    lc_redirect($user['role']==='criador'?'/criador':($user['role']==='admin'?'/admin':'/dashboard'));
+    $destination=$user['role']==='criador'?'/criador':($user['role']==='admin'?'/admin':'/dashboard');
+    if($async)lc_auth_json(true,'redirect','',$destination);
+    lc_redirect($destination);
 }
 /** A step-up challenge required for high-value operations. */
 function lc_mfa_stepup_or_password(array $u,string $code,string $password): bool {
