@@ -48,15 +48,12 @@ function lc_clipper_routes(string $method,string $path): bool {
         $stats=lc_one("SELECT COUNT(*) AS total,COALESCE(SUM(status='approved'),0) AS approved,COALESCE(SUM(status='pending'),0) AS pending,COALESCE(SUM(verified_views),0) AS views FROM clips WHERE user_id=?",[$u['id']]);
         $networks=(int)(lc_one("SELECT COUNT(*) AS total FROM social_accounts WHERE user_id=?",[$u['id']])['total']??0);
         $recent=lc_all("SELECT c.title,c.status,c.submitted_at,c.verified_views,p.title AS campaign_title FROM clips c JOIN campaigns p ON p.id=c.campaign_id WHERE c.user_id=? ORDER BY c.id DESC LIMIT 5",[$u['id']]);
-        $campaigns=lc_all("SELECT * FROM campaigns WHERE status='active' ORDER BY created_at DESC LIMIT 4");
-        lc_page('Minha área',function()use($u,$balance,$stats,$networks,$recent,$campaigns){?>
+        $campaigns=lc_all("SELECT * FROM campaigns WHERE status='active' AND (starts_at IS NULL OR starts_at<=CURRENT_DATE()) AND (ends_at IS NULL OR ends_at>=CURRENT_DATE()) ORDER BY created_at DESC LIMIT 4");
+        $infoBanners=lc_all("SELECT * FROM clipper_info_banners WHERE is_active=1 ORDER BY sort_order,id LIMIT 8");
+        $participating=lc_all("SELECT DISTINCT p.* FROM campaigns p JOIN clips c ON c.campaign_id=p.id WHERE c.user_id=? ORDER BY p.created_at DESC LIMIT 12",[(int)$u['id']]);
+        lc_page('Minha área',function()use($u,$balance,$stats,$networks,$recent,$campaigns,$infoBanners,$participating){?>
 <div class="container ws-dashboard">
-  <section class="ws-hero" aria-labelledby="creator-overview-title">
-    <div><span class="eyebrow">Painel do clipador</span><h1 id="creator-overview-title">Olá, <?=lc_e(explode(' ',$u['full_name'])[0])?>!</h1>
-      <p>Seu espaço para descobrir campanhas, organizar suas publicações e acompanhar entregas e créditos confirmados.</p>
-    </div>
-    <div class="ws-hero-actions"><a href="/explorar" class="btn">Explorar campanhas <?=lc_icon('arrow-right')?></a><a href="/biblioteca" class="btn btn-ghost">Meus clipes</a></div>
-  </section>
+  <?php lc_clipper_dashboard_hero($campaigns,$infoBanners); ?>
   <div class="ws-kpi-grid" aria-label="Indicadores da conta">
   <?php foreach([
      ['Saldo disponível',lc_money($balance['available']),'wallet','Créditos liberados para saque'],
@@ -92,9 +89,13 @@ function lc_clipper_routes(string $method,string $path): bool {
       <div class="ws-inline-notice">Os créditos são liberados somente quando os vídeos são aprovados e as metas da campanha são atingidas.</div>
     </section>
   </div>
-  <div class="ws-section-title"><h2>Campanhas em destaque</h2><a href="/explorar">Ver catálogo <?=lc_icon('arrow-right')?></a></div>
-  <?php if($campaigns):?><div class="catalog"><?php foreach($campaigns as $c)lc_tile($c);?></div>
-  <?php else:?><div class="ws-empty-note">Ainda não há campanhas ativas. Você pode preparar seus perfis e acompanhar as novidades.</div><?php endif;?>
+  <section class="ws-participating">
+   <div class="ws-section-title"><h2>Campanhas que você participa</h2><a href="/explorar">Ver todas <?=lc_icon('arrow-right')?></a></div>
+   <?php if($participating):?><div class="catalog"><?php foreach($participating as $c)lc_tile($c);?></div>
+   <?php else:?><div class="ws-participating-empty"><strong>Você ainda não participa de nenhuma campanha.</strong>
+    <p>Conheça as campanhas, leia as regras e envie seu primeiro clipe para começar.</p>
+    <a href="/explorar" class="btn">Participar de uma campanha <?=lc_icon('arrow-right')?></a></div><?php endif;?>
+  </section>
   <p class="ws-trace"><?=lc_icon('clock-3')?> Conexão: <strong data-realtime-connection>Conectando</strong> · Visualizações e créditos dependem de conferência.</p>
 </div>
 <?php },'dashboard');return true;
