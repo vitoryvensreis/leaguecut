@@ -40,7 +40,7 @@ function lc_seo_default_share_image(): string {
     return lc_seo_origin().'/assets/leaguecut-share-clean-2026.jpg';
 }
 function lc_seo_public_path(string $path): bool {
-    return in_array($path,['/','/explorar','/ranking','/planos'],true) ||
+    return in_array($path,['/','/explorar','/ranking','/planos','/feed'],true) ||
       (bool)preg_match('~^/campanhas/[a-z0-9-]{1,210}$~D',$path);
 }
 function lc_seo_absolute_asset(string $url): string {
