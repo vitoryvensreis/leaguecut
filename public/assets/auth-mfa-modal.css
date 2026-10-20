@@ -1,0 +1,13 @@
+.lc-auth-mfa-dialog{width:min(96vw,520px)!important}
+.lc-auth-mfa-dialog .lc-auth-dialog-inner{padding:clamp(20px,4vw,36px)}
+.lc-auth-mfa-symbol{display:grid;place-items:center;width:55px;height:55px;background:linear-gradient(140deg,#aa0b2c,#471425);border:1px solid #e32a4b55;border-radius:15px;margin:18px 0 10px}
+.lc-auth-mfa-symbol>.lc-icon{width:27px;height:27px;color:#ffc6d0}
+.lc-auth-mfa-dialog .lc-auth-form{display:grid;gap:14px}
+.lc-auth-mfa-dialog input[name="mfa_code"]{font-size:1.15rem;letter-spacing:.08em}
+.lc-auth-mfa-dialog .form-actions{margin-top:8px;gap:14px;align-items:center;flex-wrap:wrap}
+.lc-auth-mfa-dialog .lc-auth-mfa-back{border:0;background:transparent;color:#adb6c4;text-decoration:underline;text-underline-offset:4px;cursor:pointer;font-size:.85rem;padding:10px}
+.lc-auth-mfa-dialog .lc-auth-mfa-back:hover{color:#fff}
+.lc-auth-dialog [data-auth-error]:not([hidden]){display:block;padding:11px 14px;margin:12px 0;background:#d2193a20;color:#ffb7c3;border:1px solid #fa486477;border-radius:9px;line-height:1.5}
+.lc-auth-dialog [data-auth-error][hidden]{display:none!important}
+.lc-auth-dialog button[disabled]{opacity:.55;cursor:progress}
+@media(max-width:520px){.lc-auth-mfa-dialog .form-actions>.btn{width:100%;justify-content:center}}
