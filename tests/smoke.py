@@ -512,7 +512,7 @@ def main():
     assert match, "Expected pending creator"
     approval=submit(admin,match.group(1),{},"/admin/clipadores")
     assert "aprovado" in approval.lower(), "Approval response"
-    assert "Olá," in get(creator,"/"), "Authenticated clipper returns to own dashboard from home"
+    assert "Campanhas das quais participo" in get(creator,"/"), "Authenticated clipper returns to own dashboard from home"
     settings_page=get(creator,"/notificacoes")
     assert "Notificações e sons" in settings_page and 'data-notify-enable' in settings_page, "Signed-in foreground notification controls"
     assert 'data-notify-sound' in settings_page and '/assets/notification-preferences.js?v=1' in settings_page, "Sound UI wired"
@@ -548,7 +548,7 @@ def main():
     guest_ticket=get(make_client(),"/suporte/"+support_id.group(1))
     assert "Problema no envio de clipes" not in guest_ticket, "Guest cannot read ticket"
     creator_dashboard=get(creator,"/dashboard")
-    assert "Olá," in creator_dashboard
+    assert "Campanhas das quais participo" in creator_dashboard
     assert "Seu próximo passo" in creator_dashboard
     assert "Últimas publicações" in creator_dashboard
     assert "workspace-shell" in creator_dashboard
