@@ -188,6 +188,92 @@ def seo_upload_and_save(admin):
     print("B5_SEO_UPLOAD_OK")
 
 
+def campaign_cover_roundtrip(admin):
+    """Upload, render, edit and persist a campaign image across ordinary saves."""
+    import struct
+    import zlib
+
+    def image_png(width, height):
+        def chunk(kind, data):
+            return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
+        ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0)
+        row = b"\x00" + b"\x12\x34\x56" * width
+        return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(row * height)) + chunk(b"IEND", b"")
+
+    def multipart(path, source, fields, data, name="cover.png"):
+        boundary = "lc-ci-campaign-cover-2026"
+        values = dict(fields, _csrf=csrf_from(admin, source))
+        chunks = [
+            (f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{val}\r\n').encode()
+            for key, val in values.items()
+        ]
+        if data is not None:
+            chunks.append((f'--{boundary}\r\nContent-Disposition: form-data; name="cover_upload"; filename="{name}"\r\nContent-Type: image/png\r\n\r\n').encode() + data + b"\r\n")
+        chunks.append((f'--{boundary}--\r\n').encode())
+        request = urllib.request.Request(BASE + path, data=b"".join(chunks), method="POST",
+            headers={"Content-Type": f"multipart/form-data; boundary={boundary}"})
+        with admin.open(request, timeout=18) as response:
+            return response.read().decode("utf-8")
+
+    fields = {
+        "title": "Campanha CI com Capa",
+        "description": "Teste de imagem carregada diretamente no painel administrativo da campanha.",
+        "category": "Testes",
+        "status": "active",
+        "min_videos_week": "5",
+        "payment_per_video": "15,00",
+        "milestone_views": "1000000",
+        "milestone_bonus": "20,00",
+        "monthly_leader_bonus": "20,00",
+        "starts_at": "", "ends_at": ""
+    }
+    form = get(admin, "/admin/campanhas")
+    assert 'name="cover_upload"' in form and 'enctype="multipart/form-data"' in form
+    assert 'Capa (URL HTTPS)' not in form and 'name="cover_url"' not in form
+    created = multipart("/admin/campanhas", "/admin/campanhas", fields, image_png(640, 360))
+    assert "Campanha CI com Capa" in created, "Creation with file succeeded"
+    url = "/campanhas/campanha-ci-com-capa"
+    public = get(make_client(), url)
+    match = re.search(r'(/media/campaign/[a-f0-9]{36})', public)
+    assert match, "Uploaded cover is used on the public campaign page"
+    first = match.group(1)
+    with admin.open(BASE + first, timeout=12) as response:
+        assert response.headers.get("Content-Type") == "image/png"
+        assert response.read(8) == b"\x89PNG\r\n\x1a\n"
+    with make_client().open(BASE + first, timeout=12) as response:
+        assert response.headers.get("Content-Type") == "image/png"
+    from urllib.error import HTTPError
+    try:
+        get(make_client(), "/media/campaign/" + "a"*36)
+        raise AssertionError("Unreferenced private cover became public")
+    except HTTPError as e:
+        assert e.code == 404
+    catalog = get(make_client(), "/explorar")
+    assert first in catalog, "Public catalog displays uploaded cover"
+    assert first in get(admin, "/admin/campanhas"), "Admin catalog displays uploaded cover"
+    assert "https://leaguecut.com" + first in public, "Campaign Open Graph image uses uploaded cover"
+    around = created.find('href="/campanhas/campanha-ci-com-capa"')
+    assert around >= 0
+    edit = re.search(r'href="(/admin/campanhas/\d+/editar)"', created[around:around + 2500])
+    assert edit, "New campaign has admin edit link"
+    editurl = edit.group(1)
+    editform = get(admin, editurl)
+    assert first in editform and 'name="cover_upload"' in editform, "Edit retains current cover preview"
+    updated = multipart(editurl, editurl, fields, image_png(800, 450))
+    new = re.search(r'(/media/campaign/[a-f0-9]{36})', get(make_client(), url))
+    assert new and new.group(1) != first, "Editing with a new file replaces the image"
+    with admin.open(BASE + new.group(1), timeout=12) as response:
+        assert response.headers.get("Content-Type") == "image/png"
+    try:
+        with admin.open(BASE + first, timeout=12):
+            raise AssertionError("Old, unreferenced private cover should no longer be served")
+    except HTTPError as e:
+        assert e.code == 404
+    submit(admin, editurl, fields, editurl)
+    assert new.group(1) in get(make_client(), url), "Ordinary edit without file keeps existing image"
+    print("CAMPAIGN_COVER_UPLOAD_EDIT_OK")
+
+
 def main():
     creator=make_client()
     admin=make_client()
@@ -490,6 +576,7 @@ def main():
     assert "lc-catalog-showcase" in created and "lc-catalog-shelves" in created, "Admin Netflix catalog"
     assert 'href="/admin/campanhas/' in created and 'Editar campanha' in created
     assert "Criar nova campanha" in created, "Admin creation form still usable"
+    campaign_cover_roundtrip(admin)
     home=get(creator,"/")
     assert "Campanha Teste Real" not in home, "No campaign cards on marketing home"
     catalog=get(creator,"/explorar")
