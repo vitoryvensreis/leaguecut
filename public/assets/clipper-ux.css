@@ -68,3 +68,56 @@
  .workspace-header .ws-rank-link{padding:8px}
 }
 @media(prefers-reduced-motion:reduce){.lc-quick-dialog[open]{animation:none}.workspace-page .workspace-sidebar{transition:none}}
+
+
+/* Hero: vertical cuts on desktop, horizontal expansion on interaction. */
+.lc-clipper-hero{display:flex;gap:3px;width:100%;height:clamp(360px,33vw,520px);overflow:hidden;border:1px solid #ffffff1d;background:#090b10;border-radius:13px;box-shadow:0 20px 70px #0006}
+.lc-clipper-hero-card{flex:1 1 0;min-width:0;min-height:0;position:relative;isolation:isolate;overflow:hidden;transition:flex-grow .48s cubic-bezier(.2,.76,.25,1);outline-offset:-4px;background:radial-gradient(ellipse at 40% 26%,#9a1632,#171821 76%)}
+.lc-clipper-hero-card:nth-child(2n){background:radial-gradient(ellipse at 50% 25%,#493047,#121921 72%)}
+.lc-clipper-hero-card:hover,.lc-clipper-hero-card:focus-within,.lc-clipper-hero-card:focus-visible{flex-grow:2.6}
+.lc-clipper-hero-card::after{position:absolute;z-index:-1;content:"";inset:0;background:linear-gradient(180deg,#05070a1a 5%,#05070a44 45%,#06070cdb 100%);pointer-events:none}
+.lc-clipper-hero-card+.lc-clipper-hero-card{border-left:1px solid #ffffff31}
+.lc-clipper-hero-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;z-index:-2;filter:saturate(.85);transition:transform .6s ease,filter .6s ease}
+.lc-clipper-hero-card:hover .lc-clipper-hero-image,.lc-clipper-hero-card:focus-within .lc-clipper-hero-image{transform:scale(1.055);filter:saturate(1.12)}
+.lc-clipper-hero-copy{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:22px clamp(14px,2vw,32px) clamp(24px,2.4vw,37px)}
+.lc-clipper-hero-category{display:inline-block;font-size:.66rem;letter-spacing:.11em;font-weight:900;color:#ff8a9b;margin-bottom:10px}
+.lc-clipper-hero-copy h2{font-size:clamp(1.05rem,1.7vw,1.9rem);line-height:1.13;letter-spacing:-.04em;overflow-wrap:anywhere;margin:0 0 9px;max-width:420px;text-shadow:0 1px 14px #0009}
+.lc-clipper-hero-copy p{color:#e1e1eb;font-size:.79rem;line-height:1.45;max-width:400px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;margin:0 0 18px}
+.lc-clipper-hero-cta{transform:translateY(18px);opacity:0;transition:transform .35s ease,opacity .35s ease;pointer-events:none;display:inline-flex!important;align-items:center;gap:8px;max-width:100%;min-width:0;white-space:normal;font-size:.8rem!important}
+.lc-clipper-hero-card:hover .lc-clipper-hero-cta,.lc-clipper-hero-card:focus-within .lc-clipper-hero-cta,.lc-clipper-hero-card:focus-visible .lc-clipper-hero-cta{transform:translateY(0);opacity:1;pointer-events:auto}
+.lc-clipper-hero-hint{color:#7e889a;font-size:.74rem;text-align:right;margin:10px 0 22px}
+.lc-clipper-hero-empty{min-height:250px;padding:clamp(25px,5vw,60px);border:1px solid #ffffff26;border-radius:15px;background:radial-gradient(circle at 85% 15%,#9c10373d,transparent 55%),#141720}
+.lc-clipper-hero-empty h1{font-size:clamp(2rem,4vw,3.2rem);line-height:1.08;letter-spacing:-.06em;margin:12px 0}
+.lc-clipper-hero-empty p{color:#b9c1cf;line-height:1.55;max-width:620px}
+.lc-my-campaigns{margin:30px 0 32px}
+.lc-my-campaigns-empty{padding:29px;border:1px dashed #ffffff39;border-radius:11px;background:#ffffff05}
+.lc-my-campaigns-empty p{color:#adb7c5;margin:10px 0 20px}
+.lc-user-avatar-photo{display:block;width:100%;height:100%;object-fit:cover;border-radius:inherit}
+.workspace-header a.avatar,.ws-sidebar-avatar{overflow:hidden;text-decoration:none;border-radius:50%!important}
+.workspace-header a.avatar{display:grid;place-items:center}
+.lc-profile-photo-panel{display:flex;flex-direction:column;gap:13px}
+.lc-profile-photo-panel h2{margin:0 0 3px}
+.lc-profile-photo-panel p{color:#aab3bf;margin:0}
+.lc-profile-photo-form{display:flex;align-items:end;flex-wrap:wrap;gap:17px}
+.lc-profile-photo-form>.field{flex:1 1 200px}
+.lc-profile-photo-preview{width:82px;height:82px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(120deg,#f0163a,#421f35);color:#fff;font-size:1.9rem;font-weight:900;overflow:hidden;flex-shrink:0}
+.lc-profile-photo-preview img{width:100%;height:100%;object-fit:cover}
+.lc-banner-admin-card{margin:22px 0}
+.lc-banner-admin-head{display:flex;justify-content:space-between;gap:15px;align-items:center}
+.lc-banner-admin-image{width:100%;height:160px;object-fit:cover;border-radius:9px;margin:12px 0 20px}
+@media(max-width:970px){
+ .lc-clipper-hero{height:min(490px,67vh);min-height:350px;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:thin;scrollbar-color:#bd2542 #141821;gap:0;overscroll-behavior-x:contain}
+ .lc-clipper-hero-card,.lc-clipper-hero-card:hover,.lc-clipper-hero-card:focus-within{flex:0 0 100%;scroll-snap-align:start}
+ .lc-clipper-hero-card+.lc-clipper-hero-card{border-left:2px solid #ffffff28}
+ .lc-clipper-hero-copy{padding:25px 24px 31px}
+ .lc-clipper-hero-copy h2{font-size:clamp(1.6rem,5vw,2.3rem)}
+ .lc-clipper-hero-cta{opacity:1;transform:none;pointer-events:auto}
+ .lc-clipper-hero-hint{text-align:left}
+}
+@media(max-width:600px){
+ .lc-clipper-hero{height:440px;min-height:350px}
+ .lc-clipper-hero-copy{padding:23px 18px 30px}
+ .lc-my-campaigns{margin-top:24px}
+ .lc-profile-photo-form{align-items:stretch}
+}
+@media(prefers-reduced-motion:reduce){.lc-clipper-hero-card,.lc-clipper-hero-image,.lc-clipper-hero-cta{transition:none}}
