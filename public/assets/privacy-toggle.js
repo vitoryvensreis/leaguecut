@@ -2,6 +2,11 @@
   'use strict';
   const root = document.documentElement;
   const main = document.getElementById('conteudo');
+  // Per-account tab preference: persists across pages, not other sessions/devices.
+  const account = root.dataset.lcPrivacyAccount || '';
+  const key = account ? 'lc-privacy-revealed-v2-' + account : '';
+  const remembered = () => { try { return !!key && sessionStorage.getItem(key) === '1'; } catch (_) { return false; } };
+  const persist = value => { try { if (key) sessionStorage.setItem(key, value ? '1' : '0'); } catch (_) {} };
   if (!main || !main.querySelector('[data-lc-private], input[data-lc-private-input]')) {
     root.classList.remove('lc-privacy-ready');
     return;
@@ -32,9 +37,10 @@
       el.setAttribute('aria-label',revealed?el.textContent.trim():'Dado oculto');
     });
   }
-  update(false);
-  button.addEventListener('click',()=>update(!root.classList.contains('lc-privacy-visible')));
-  // Never persist visibility across navigation or reuse it on another account.
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)update(false);});
+  update(remembered());
+  button.addEventListener('click',()=>{ const next=!root.classList.contains('lc-privacy-visible'); persist(next); update(next); });
+  // Avoid exposing sensitive values in the background, then restore the user's
+  // per-tab choice when they return; no cross-account or cross-tab sharing.
+  document.addEventListener('visibilitychange',()=>update(document.hidden?false:remembered()));
   window.addEventListener('pagehide',()=>update(false));
 })();
