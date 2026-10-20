@@ -10,8 +10,7 @@ function lc_feed_safe_original(string $url,string $network): string {
     if(strlen($url)>800 || !lc_valid_https($url) ||
        preg_match('/[\x00-\x20\x7f]/D',$url))return '';
     $parts=parse_url($url);
-    if(!is_array($parts)||isset($parts['user'],$parts['pass'])||
-       isset($parts['user'])||isset($parts['pass'])||
+    if(!is_array($parts)||isset($parts['user'])||isset($parts['pass'])||
        isset($parts['port'])||isset($parts['fragment']))return '';
     $host=strtolower((string)($parts['host']??''));
     $allowed=$network==='instagram'?['instagram.com','www.instagram.com']:
@@ -118,11 +117,11 @@ function lc_social_feed_route(string $method,string $path): bool {
         <span class="lc-feed-network"><?=lc_e(ucfirst($platform))?></span>
         </div>
         <div class="lc-feed-info">
-          <div class="lc-feed-meta"><span><?=lc_icon('user-round')?> <?=lc_e($display)?></span><time datetime="<?=lc_e(substr((string)$entry['submitted_at'],0,10))?>"><?=date('d/m/Y',strtotime((string)$entry['submitted_at']))?></time></div>
+          <div class="lc-feed-meta"><span><?=lc_icon('users-round')?> <?=lc_e($display)?></span><time datetime="<?=lc_e(substr((string)$entry['submitted_at'],0,10))?>"><?=date('d/m/Y',strtotime((string)$entry['submitted_at']))?></time></div>
           <h2><?=lc_e((string)$entry['campaign_title'])?></h2>
           <p>Publicação de <?=lc_e('@'.$handle)?> · Clipe aprovado</p>
           <div class="lc-feed-card-actions">
-            <?php if($url!==''):?><a href="<?=lc_e($url)?>" target="_blank" rel="noopener noreferrer" class="lc-feed-original">Abrir no <?=lc_e(ucfirst($platform))?> <?=lc_icon('arrow-up-right')?></a><?php endif;?>
+            <?php if($url!==''):?><a href="<?=lc_e($url)?>" target="_blank" rel="noopener noreferrer" class="lc-feed-original">Abrir no <?=lc_e(ucfirst($platform))?> <?=lc_icon('external-link')?></a><?php endif;?>
             <?php if($entry['campaign_status']==='active'):?><a href="/campanhas/<?=lc_e((string)$entry['campaign_slug'])?>" class="lc-feed-campaign-link">Campanha <?=lc_icon('arrow-right')?></a><?php endif;?>
           </div>
         </div>
@@ -130,7 +129,7 @@ function lc_social_feed_route(string $method,string $path): bool {
       <?php endforeach; ?>
     </div>
     <nav class="lc-feed-pages" aria-label="Navegação das publicações">
-      <?php if($page>1):?><a href="<?=lc_e($queryPage($page-1))?>"><?=lc_icon('arrow-left')?> Anteriores</a><?php endif;?>
+      <?php if($page>1):?><a href="<?=lc_e($queryPage($page-1))?>">← Anteriores</a><?php endif;?>
       <span>Página <?=$page?> de <?=max(1,(int)ceil($total/$limit))?></span>
       <?php if($page*$limit<$total):?><a href="<?=lc_e($queryPage($page+1))?>">Próximas <?=lc_icon('arrow-right')?></a><?php endif;?>
     </nav>
