@@ -91,7 +91,7 @@ function lc_account_self_routes(string $method,string $path): bool {
 <div class="container container-md">
 <?php lc_heading('Minha conta','Dados e acesso','Edite suas informações com uma confirmação adicional de segurança.'); ?>
 <div class="panel lc-profile-photo-panel">
-  <div><h2>Foto de perfil</h2><p>JPG, PNG ou WebP, até 4 MB.</p></div>
+  <div><h2>Foto de perfil</h2><p>JPG, PNG ou WebP, até 10 MB.</p></div>
   <form action="/conta/foto" method="post" enctype="multipart/form-data" class="lc-profile-photo-form">
     <?=lc_csrf()?>
     <?php $photo=lc_avatar_src((int)$u['id']);?>

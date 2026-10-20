@@ -2,11 +2,20 @@
 declare(strict_types=1);
 
 /** Raster-only images stored in shared directories outside the document root. */
-function lc_clipper_image_store(array $upload,string $directory): array {
-    if(($upload['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_OK || !is_uploaded_file((string)($upload['tmp_name']??'')))
+// Avatar and banner limits are intentionally separate (10 MB and 4 MB).
+const LC_AVATAR_MAX_BYTES = 10 * 1024 * 1024;
+
+function lc_clipper_image_upload_size_valid(int $size,int $limit): bool {
+    return $size>=1 && $size<=$limit;
+}
+function lc_clipper_image_store(array $upload,string $directory,int $maxBytes=4*1024*1024): array {
+    $error=(int)($upload['error']??UPLOAD_ERR_NO_FILE);
+    if($error===UPLOAD_ERR_INI_SIZE || $error===UPLOAD_ERR_FORM_SIZE)
+        throw new InvalidArgumentException('O servidor não aceitou o tamanho do arquivo. Confira o limite de upload configurado.');
+    if($error!==UPLOAD_ERR_OK || !is_uploaded_file((string)($upload['tmp_name']??'')))
         throw new InvalidArgumentException('Selecione uma imagem válida.');
-    if((int)($upload['size']??0)<1||(int)$upload['size']>4*1024*1024)
-        throw new InvalidArgumentException('A imagem deve ter até 4 MB.');
+    if(!lc_clipper_image_upload_size_valid((int)($upload['size']??0),$maxBytes))
+        throw new InvalidArgumentException('A imagem deve ter até '.(int)($maxBytes/1048576).' MB.');
     $tmp=(string)$upload['tmp_name'];
     $mime=(new finfo(FILEINFO_MIME_TYPE))->file($tmp);
     $supported=['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp'];
@@ -67,7 +76,7 @@ function lc_avatar_routes(string $method,string $path): bool {
     $existing=lc_one('SELECT filename FROM user_avatars WHERE user_id=?',[(int)$u['id']]);
     $stored=null;
     try{
-        $stored=lc_clipper_image_store($_FILES['avatar']??[],lc_avatar_dir());
+        $stored=lc_clipper_image_store($_FILES['avatar']??[],lc_avatar_dir(),LC_AVATAR_MAX_BYTES);
         lc_query('INSERT INTO user_avatars(user_id,token,filename,mime) VALUES(?,?,?,?)
             ON DUPLICATE KEY UPDATE token=VALUES(token),filename=VALUES(filename),mime=VALUES(mime)',
             [(int)$u['id'],$stored['token'],$stored['filename'],$stored['mime']]);
