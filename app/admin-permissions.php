@@ -40,7 +40,7 @@ function lc_admin_area_for_path(string $path): ?string {
       '/admin/bonus-mensal'=>'finance','/admin/indicacoes'=>'finance',
       '/admin/pacotes'=>'creator','/admin/assinaturas'=>'creator',
       '/admin/automacoes'=>'automations','/admin/whatsapp'=>'automations',
-      '/admin/home'=>'branding','/admin/configuracoes'=>'branding',
+      '/admin/home'=>'branding','/admin/banners-clipador'=>'branding','/admin/configuracoes'=>'branding',
       '/admin/seo'=>'branding','/admin/integracoes'=>'integrations',
       '/admin/notificacoes'=>'notifications','/admin/demo'=>'demo'
     ];

@@ -5,6 +5,7 @@ function lc_public_routes(string $method,string $path): bool {
 
     // Public marketing landing. Campaigns are deliberately NOT queried here.
     if ($method==='GET' && $path==='/') {
+        if($current=lc_user())lc_redirect($current['role']==='admin'?'/admin':($current['status']!=='approved'?'/aguardando':($current['role']==='criador'?'/criador':'/dashboard')));
         $banner=lc_home_banner();
         $topRanking=lc_public_ranking(5);
         lc_page('Crie, publique e conquiste',function()use($banner,$topRanking){ ?>
@@ -208,8 +209,8 @@ function lc_public_routes(string $method,string $path): bool {
         lc_page('Status do cadastro',function()use($u){?>
 <div class="container container-sm"><span class="eyebrow">Análise de cadastro</span>
 <div class="large-surface"><h1><?= $u['status']==='pending'?'Estamos analisando seu perfil.':($u['status']==='rejected'?'Cadastro não aprovado.':'Conta suspensa.') ?></h1>
-<p><?= $u['status']==='pending'?'Seu cadastro foi recebido. Nossa equipe verificará os dados; quando aprovado, você terá acesso ao painel.':'Entre em contato com a administração para obter informações.' ?></p>
-<span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(strtoupper($u['status']))?></span><div class="form-actions"><a class="btn btn-ghost" href="/explorar">Ver campanhas disponíveis</a></div></div></div>
+<p><?= $u['status']==='pending'?'Cadastro recebido! Aguarde a aprovação da equipe. Avisaremos pelo WhatsApp cadastrado quando seu acesso estiver liberado.':'Entre em contato com a administração para obter informações.' ?></p>
+<span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(strtoupper($u['status']))?></span></div></div>
 <?php });return true;
     }
     if($method==='GET' && preg_match('~^/campanhas/([a-z0-9-]+)$~',$path,$m)){
@@ -244,7 +245,7 @@ function lc_public_routes(string $method,string $path): bool {
 <div class="panel"><h2>Enviar publicação</h2>
 <?php if(!$networks):?><div class="alert">Cadastre primeiro seu perfil do Instagram ou TikTok em <a href="/redes">Minhas redes →</a>.</div><?php else:?>
 <form id="lc-clip-form" method="post" action="/clipes" enctype="multipart/form-data"><?=lc_csrf()?><input type="hidden" name="campaign_id" value="<?=(int)$c['id']?>">
-<div class="form-grid"><?php lc_field('Título do clipe','title','text','',true,'Ex.: A fala mais forte do episódio'); ?>
+<div class="form-grid">
 <label class="field"><span>Rede usada</span><select name="social_account_id" required><?php foreach($networks as $n):?><option value="<?=(int)$n['id']?>"><?=lc_e(ucfirst($n['network']).' · @'.$n['username'])?></option><?php endforeach;?></select></label>
 <div class="full"><?php lc_field('Link do vídeo publicado','published_url','url','',true,'https://www.instagram.com/reel/...'); ?></div>
 <label class="field full"><span>Vídeo original (obrigatório)</span><input id="lc-clip-file" type="file" name="video" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm" required <?=lc_drive_ready()?'':'disabled'?>><small><?=lc_drive_ready()?'Obrigatório: MP4, MOV ou WebM. Arquivo deve respeitar os limites PHP/Nginx do servidor.':'Envios indisponíveis: o administrador precisa conectar o Google Drive.'?></small></label>

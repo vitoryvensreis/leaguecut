@@ -348,14 +348,11 @@ def main():
     assert 'privacy-toggle.js' not in get(make_client(),"/cadastrar"), "No private fields on public signup"
     creator_page=register(creator,"creator@leaguecut.test","Criador Teste")
     assert "analisando" in creator_page.lower(), "Creator pending page"
-    settings_page=get(creator,"/notificacoes")
-    assert "Notificações e sons" in settings_page and 'data-notify-enable' in settings_page, "Signed-in foreground notification controls"
-    assert 'data-notify-sound' in settings_page and '/assets/notification-preferences.js?v=1' in settings_page, "Sound UI wired"
-    assert 'id="lc-push-background"' in settings_page, "Background push settings available"
-    assert 'data-background-on' in settings_page and 'data-background-off' in settings_page, "Subscribe and revoke per device"
-    assert '/assets/background-push.js?v=1' in settings_page, "Background push browser registration JS"
-    assert 'data-vapid=""' in settings_page, "VAPID unavailable by default; disabled until configured"
-    assert 'Web Push aguardando' in settings_page, "Fail-closed push interface explains unavailability"
+    waiting=get(creator,"/aguardando")
+    assert "WhatsApp" in waiting and "Estamos analisando" in waiting, "Pending users see WhatsApp approval notice"
+    assert "Estamos analisando" in get(creator,"/notificacoes"), "Pending users cannot use notifications"
+    assert "Estamos analisando" in get(creator,"/"), "Pending users cannot see marketing home"
+    assert "Estamos analisando" in get(creator,"/dashboard"), "Pending users cannot see workspace"
     with creator.open(BASE+"/sw.js",timeout=12) as response:
         worker=response.read().decode("utf-8")
     assert "self.addEventListener('push'" in worker and "self.addEventListener('notificationclick'" in worker, "PWA handles background messages"
@@ -367,11 +364,7 @@ def main():
     subprocess.check_call(["php","bin/make-admin.php","admin@leaguecut.test"])
     seo_upload_and_save(admin)
     from urllib.error import HTTPError
-    try:
-        get(creator,"/admin/seo")
-        raise AssertionError("Clipador must never update site SEO")
-    except HTTPError as exc:
-        assert exc.code==403, "Admin SEO permissions enforced"
+    assert "Estamos analisando" in get(creator,"/admin/seo"), "Pending clipper cannot access SEO administration"
     from urllib.error import HTTPError
     # Bloco 7: Google Drive connection is admin-only and never exposes OAuth tokens.
     integrations=get(admin,"/admin/integracoes")
@@ -393,11 +386,7 @@ def main():
     assert "admin/integracoes/google/callback" in integrations, "Google OAuth redirect"
     assert 'name="_csrf"' in integrations
     assert "Abrir original no Drive" not in integrations
-    try:
-        get(creator,"/admin/integracoes")
-        raise AssertionError("Creator must not access Google Drive integration settings")
-    except HTTPError as exc:
-        assert exc.code==403, "Drive settings require admin role"
+    assert "Estamos analisando" in get(creator,"/admin/integracoes"), "Pending clipper cannot access integrations"
     guest_integrations=get(make_client(),"/admin/integracoes")
     assert "Entrar" in guest_integrations and "GOOGLE_CLIENT_ID" not in guest_integrations
     # Upload a real SVG logo to private storage and ensure the public URL is safe.
@@ -417,7 +406,7 @@ def main():
     with admin.open(request,timeout=15) as response:
         assert response.status==200
         assert "Marca atualizada" in response.read().decode()
-    header=get(creator,"/")
+    header=get(make_client(),"/")
     logo_match=re.search(r'src="(/media/brand/[a-f0-9]{36})"',header)
     assert logo_match,"Uploaded SVG must appear as public brand logo"
     with creator.open(BASE+logo_match.group(1),timeout=12) as logo_response:
@@ -437,11 +426,7 @@ def main():
     assert 'href="/admin/clipadores?status=pending"' in admin_view
     assert 'href="/dashboard"' not in admin_view, "Admin cannot receive creator workspace shortcuts"
     from urllib.error import HTTPError
-    try:
-        get(creator,"/admin")
-        raise AssertionError("Creators must not enter admin")
-    except HTTPError as exc:
-        assert exc.code==403, "Admin access control"
+    assert "Estamos analisando" in get(creator,"/admin"), "Pending clipper cannot enter admin"
     assert "Criador Teste" in get(admin,"/admin/clipadores?status=pending")
     assert "Criador Teste" not in get(admin,"/admin/clipadores?status=approved")
     assert "Pendente" in get(admin,"/admin/clipadores?status=pending")
@@ -472,7 +457,7 @@ def main():
       "overlay_opacity":"65","text_alignment":"center"
     }
     submit(admin,"/admin/home",dict(banner_form),"/admin/home")
-    custom=get(creator,"/")
+    custom=get(make_client(),"/")
     assert "Primeira linha teste" in custom and "Campanha em destaque" in custom
     assert 'src="https://cdn.example.com/demo.mp4"' in custom, "Video hero background"
     assert "--home-overlay:0.65" in custom, "Overlay control"
@@ -481,7 +466,7 @@ def main():
 
     invalid=dict(banner_form,cta_primary_url="javascript:alert(1)")
     submit(admin,"/admin/home",invalid,"/admin/home")
-    assert "Primeira linha teste" in get(creator,"/"), "Unsafe URL rejected"
+    assert "Primeira linha teste" in get(make_client(),"/"), "Unsafe URL rejected"
 
     # Stream a tiny uploaded valid PNG using the private storage endpoint.
     import base64
@@ -497,7 +482,7 @@ def main():
     request=urllib.request.Request(BASE+"/admin/home",data=b"".join(parts),method="POST",headers={"Content-Type":"multipart/form-data; boundary="+boundary})
     with admin.open(request,timeout=15) as resp:
         assert b"atualizado" in resp.read(), "Upload was accepted"
-    uploaded_home=get(creator,"/")
+    uploaded_home=get(make_client(),"/")
     found=re.search(r'src="(/media/home/[0-9a-f]{36})"',uploaded_home)
     assert found, "Uploaded asset appears on public hero"
     with creator.open(BASE+found.group(1),timeout=15) as response:
@@ -507,11 +492,11 @@ def main():
     disabled=dict(banner_form,media_type="default",media_url="")
     disabled.pop("enabled")
     submit(admin,"/admin/home",disabled,"/admin/home")
-    fallback=get(creator,"/")
+    fallback=get(make_client(),"/")
     assert "Seu talento." in fallback and "Primeira linha teste" not in fallback, "Disabled banner returns defaults"
     reset=dict(disabled,enabled="1")
     submit(admin,"/admin/home",reset,"/admin/home")
-    assert "Primeira linha teste" in get(creator,"/"), "Can reactivate custom banner"
+    assert "Primeira linha teste" in get(make_client(),"/"), "Can reactivate custom banner"
     # Restore the original text for the remaining smoke flow and initial publication.
     submit(admin,"/admin/home",{
       "enabled":"1","eyebrow":"Criadores no centro de tudo","title_top":"Seu talento.",
@@ -527,6 +512,16 @@ def main():
     assert match, "Expected pending creator"
     approval=submit(admin,match.group(1),{},"/admin/clipadores")
     assert "aprovado" in approval.lower(), "Approval response"
+    assert "Olá," in get(creator,"/"), "Authenticated clipper returns to own dashboard from home"
+    settings_page=get(creator,"/notificacoes")
+    assert "Notificações e sons" in settings_page and 'data-notify-enable' in settings_page, "Signed-in foreground notification controls"
+    assert 'data-notify-sound' in settings_page and '/assets/notification-preferences.js?v=1' in settings_page, "Sound UI wired"
+    assert 'id="lc-push-background"' in settings_page, "Background push settings available"
+    assert 'data-background-on' in settings_page and 'data-background-off' in settings_page, "Subscribe and revoke per device"
+    assert '/assets/background-push.js?v=1' in settings_page, "Background push browser registration JS"
+    assert 'data-vapid=""' in settings_page, "VAPID unavailable by default; disabled until configured"
+    assert 'Web Push aguardando' in settings_page, "Fail-closed push interface explains unavailability"
+
     assert 'href="/admin/chamados"' in get(admin,"/admin"), "Admin support inbox nav"
     assert 'href="/suporte"' in get(creator,"/dashboard"), "User support nav"
     assert 'name="subject"' in get(creator,"/suporte") and 'name="body"' in get(creator,"/suporte"), "Support form"
@@ -578,14 +573,14 @@ def main():
     assert "lc-catalog-showcase" in created and "lc-catalog-shelves" in created, "Admin Netflix catalog"
     assert 'href="/admin/campanhas/' in created and 'Editar campanha' in created
     assert "Criar nova campanha" in created, "Admin creation form still usable"
-    home=get(creator,"/")
+    home=get(make_client(),"/")
     assert "Campanha Teste Real" not in home, "No campaign cards on marketing home"
     catalog=get(creator,"/explorar")
     assert "Campanha Teste Real" in catalog, "Campaign in public catalog"
     assert 'lc-catalog-showcase' in catalog and 'lc-catalog-shelf' in catalog, "Cinema campaign catalog"
     assert 'campaign-experience.css' in catalog
     assert 'workspace-motion.css' not in catalog, "Landing/public pages must not receive panel animations"
-    assert 'workspace-motion.css' not in get(creator,"/"), "Marketing LP has no entry animation"
+    assert 'workspace-motion.css' not in get(make_client(),"/"), "Marketing LP has no entry animation"
     assert "Campanha Teste Real" in get(creator,"/explorar?q=Real"), "Search works"
     assert "Campanha Teste Real" in get(creator,"/explorar?categoria=Entrevistas"), "Category filter works"
     assert "Nenhuma campanha encontrada" in get(creator,"/explorar?q=termo-inexistente-123"), "Search no results"
@@ -773,7 +768,7 @@ def main():
     assert "withdrawal.requested" in [x["type"] for x in admin_latest["events"]]
     assert "creator.approved" not in [x["type"] for x in admin_latest["events"]], "No creator-only event leakage"
     assert "Campanha Teste Real" in get(creator,"/explorar")
-    assert "Campanha Teste Real" not in get(creator,"/")
+    assert "Campanha Teste Real" not in get(make_client(),"/")
     campaign_cover_roundtrip(admin)
     print("SMOKE PASSED: register -> admin approval -> campaigns -> social -> 5 clips -> rejection -> Drive deletion -> safe credits -> withdrawal")
 
