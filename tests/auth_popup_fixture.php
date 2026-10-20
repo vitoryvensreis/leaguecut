@@ -1,8 +1,11 @@
 <?php
 declare(strict_types=1);
 /** Disposable GitHub Actions fixture for popup login integration only. */
-if(PHP_SAPI!=='cli' || (getenv('LC_E2E_FAKE_DRIVE')?:'')!=='1' ||
-   (getenv('DB_NAME')?:'')!=='leaguecut')exit("CI fixture disabled\n");
+if(PHP_SAPI!=='cli' || (getenv('GITHUB_ACTIONS')?:'')!=='true' ||
+   (getenv('APP_URL')?:'')!=='http://127.0.0.1:8080' ||
+   (getenv('DB_NAME')?:'')!=='leaguecut'){
+    fwrite(STDERR,"CI fixture disabled: refusing database writes outside isolated Actions test.\n");exit(1);
+}
 require dirname(__DIR__).'/app/core.php';
 require dirname(__DIR__).'/app/mfa.php';
 $email='auth-popup-ci@leaguecut.test';
