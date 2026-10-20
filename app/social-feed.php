@@ -119,7 +119,7 @@ function lc_social_feed_route(string $method,string $path): bool {
         <div class="lc-feed-info">
           <div class="lc-feed-meta"><span><?=lc_icon('users-round')?> <?=lc_e($display)?></span><time datetime="<?=lc_e(substr((string)$entry['submitted_at'],0,10))?>"><?=date('d/m/Y',strtotime((string)$entry['submitted_at']))?></time></div>
           <h2><?=lc_e((string)$entry['campaign_title'])?></h2>
-          <p>Publicação de <?=lc_e('@'.$handle)?> · Clipe aprovado</p>
+          <p>Clipador <?=lc_e('@'.$handle)?> · Clipe aprovado</p>
           <div class="lc-feed-card-actions">
             <?php if($url!==''):?><a href="<?=lc_e($url)?>" target="_blank" rel="noopener noreferrer" class="lc-feed-original">Abrir no <?=lc_e(ucfirst($platform))?> <?=lc_icon('external-link')?></a><?php endif;?>
             <?php if($entry['campaign_status']==='active'):?><a href="/campanhas/<?=lc_e((string)$entry['campaign_slug'])?>" class="lc-feed-campaign-link">Campanha <?=lc_icon('arrow-right')?></a><?php endif;?>
