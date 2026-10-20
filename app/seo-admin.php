@@ -134,6 +134,7 @@ if($image!==''):?>
 </section>
 <section class="lc-editor-section" data-editor-panel="compartilhamento" role="tabpanel" id="seo-panel-compartilhamento" aria-labelledby="seo-tab-compartilhamento">
 <h2>Compartilhamento social</h2><p class="lc-editor-intro">Prévia aproximada do cartão enviado no WhatsApp e nas redes. Recomendado: 1200 × 630 px.</p>
+<p class="hint"><a href="<?=lc_e(lc_seo_default_share_image())?>" target="_blank" rel="noopener noreferrer">Ver imagem padrão atual ↗</a></p>
 <?php $socialImage=lc_seo_absolute_asset((string)$cfg['seo_social_image_url']);if($socialImage==='')$socialImage=lc_seo_default_share_image(); ?>
 <div class="lc-editor-preview-grid">
  <div class="lc-editor-preview-card"><small>Imagem ativa agora</small><img class="lc-editor-social-preview" src="<?=lc_e($socialImage)?>" alt="Imagem social ativa"></div>
