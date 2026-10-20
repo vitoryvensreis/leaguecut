@@ -214,6 +214,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/paint-mask-surfaces.css?v=1">
+<link rel="stylesheet" href="/assets/stable-scroll-layout.css?v=1">
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
