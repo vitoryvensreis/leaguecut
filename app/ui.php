@@ -211,6 +211,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
 <link rel="stylesheet" href="/assets/clipper-layout-fixes.css?v=1">
+<?php if($path==='/dashboard'): ?><link rel="stylesheet" href="/assets/clipper-dashboard.css?v=1"><?php endif; ?>
 <?php if($u&&$u['role']==='clipador'&&$u['status']==='approved'): ?><link rel="stylesheet" href="/assets/clipper-post-modal.css?v=1"><?php endif; ?>
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
@@ -293,6 +294,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($u&&$u['role']==='clipador'&&$u['status']==='approved'):lc_clipper_post_dialog($u);?><script src="/assets/clipper-post-modal.js?v=1" defer></script><?php endif;?>
 <?php lc_privacy_banner(); ?>
 <script src="/assets/ux-upgrade.js?v=1" defer></script>
+<?php if($path==='/dashboard'): ?><script src="/assets/clipper-dashboard.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/motion-glass.js?v=1" defer></script>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><script src="/assets/flow-canvas-v2.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/flow-editor.js?v=2" defer></script><?php endif; ?>
