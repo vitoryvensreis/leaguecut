@@ -542,6 +542,23 @@ try{
     }
     echo "MIGRACAO_ASAAS_FOUNDATION_OK\n";
 
+    // Additive clipper assets: always back up DB before first schema change.
+    $photoExists=(bool)lc_one("SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='users' AND COLUMN_NAME='profile_photo_url'");
+    if(!$photoExists){
+        lc_migration_backup();
+        $db->exec("ALTER TABLE users ADD COLUMN profile_photo_url VARCHAR(110) NULL");
+    }
+    $bannerExists=(bool)lc_one("SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='clipper_info_banners'");
+    if(!$bannerExists){
+        lc_migration_backup();
+        $bannerSql=trim((string)file_get_contents(dirname(__DIR__).'/database/migrations/20261020_clipper_banners.sql'));
+        if(!preg_match('/^CREATE TABLE IF NOT EXISTS clipper_info_banners\s*\(/i',$bannerSql))
+            throw new RuntimeException('Migração de banners clipadores inválida.');
+        $db->exec($bannerSql);
+    }
+    echo "MIGRACAO_CLIPPER_EXPERIENCE_OK\n";
+
+
 
 
 

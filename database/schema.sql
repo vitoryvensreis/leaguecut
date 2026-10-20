@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS users (
   approved_at DATETIME NULL,
   approved_by BIGINT UNSIGNED NULL,
   consent_whatsapp TINYINT(1) NOT NULL DEFAULT 0,
+  profile_photo_url VARCHAR(110) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_users_status (status, created_at),
@@ -688,3 +689,18 @@ CREATE TABLE IF NOT EXISTS privacy_request_audit (
  CONSTRAINT fk_privacy_req_audit_request FOREIGN KEY (request_id) REFERENCES privacy_subject_requests(id) ON DELETE CASCADE,
  CONSTRAINT fk_privacy_req_audit_actor FOREIGN KEY (actor_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Admin-managed fallback banners for the clipper dashboard.
+CREATE TABLE IF NOT EXISTS clipper_info_banners (
+ id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ title VARCHAR(160) NOT NULL,
+ description VARCHAR(500) NOT NULL DEFAULT '',
+ button_text VARCHAR(70) NOT NULL DEFAULT 'Saiba mais',
+ button_url VARCHAR(650) NOT NULL DEFAULT '/explorar',
+ image_url VARCHAR(110) NULL,
+ is_active TINYINT(1) NOT NULL DEFAULT 1,
+ sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 50,
+ created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ INDEX idx_clipper_banners_active (is_active,sort_order,id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

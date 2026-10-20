@@ -1,0 +1,24 @@
+// Smoke-check sources without network; full E2E is exercised by the integration runner.
+const fs=require('node:fs');
+const assert=require('node:assert/strict');
+const read=p=>fs.readFileSync(p,'utf8');
+const ui=read('app/ui.php'),routes=read('app/routes.php'),clips=read('app/routes-clipador.php');
+const modal=read('app/clipper-post-modal.php'),img=read('app/clipper-media.php'),hero=read('app/clipper-dashboard-hero.php');
+const schema=read('database/schema.sql'),migration=read('bin/migrate.php');
+assert(ui.includes('data-clipper-post-open'));
+assert(ui.includes('lc_clipper_post_dialog($u)'));
+assert(ui.includes('lc_clipper_rank_position'));
+assert(routes.includes("lc_profile_photo_routes($method,$path)"));
+assert(routes.includes("lc_clipper_banner_admin_routes($method,$path)"));
+assert(routes.includes("lc_clipper_image_response"));
+assert(routes.includes("lc_redirect('/aguardando')"));
+assert(!modal.includes('name="title"'));
+assert(clips.includes("'Clipe '.date('Ymd-His')"));
+assert(schema.includes('profile_photo_url VARCHAR(110)'));
+assert(schema.includes('CREATE TABLE IF NOT EXISTS clipper_info_banners'));
+assert(migration.includes('MIGRACAO_CLIPPER_EXPERIENCE_OK'));
+assert(img.includes('is_uploaded_file') && img.includes('move_uploaded_file'));
+assert(hero.includes('lc-spotlight-track') && hero.includes('lc-spotlight-cta'));
+assert(read('public/assets/privacy-toggle.js').includes('sessionStorage'));
+assert(read('public/assets/clipper-dashboard.css').includes('flex:2.4'));
+console.log('CLIPPER_WORKSPACE_EXPERIENCE_STATIC_OK');

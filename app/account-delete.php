@@ -153,10 +153,10 @@ function lc_account_delete_routes(string $method,string $path): bool {
       <label class="field full"><span>Código 2FA</span><input name="mfa_code" required autocomplete="one-time-code" maxlength="60"></label>
       <?php endif;?>
     </div>
-    <div class="form-actions"><button class="btn" type="submit">Excluir permanentemente</button><a class="btn btn-ghost" href="/admin/contas">Cancelar</a></div>
+    <div class="lc-delete-actions"><button class="btn" type="submit">Excluir permanentemente</button><a class="btn btn-ghost" href="/admin/contas">Cancelar</a><a class="lc-delete-back" href="/admin/contas">← Voltar às contas</a></div>
   </form>
   <?php endif;?>
-  <a class="btn btn-ghost" href="/admin/contas">← Voltar às contas</a>
+  <?php if($id===(int)$actor['id'] || ($blocker&&!$master)): ?><a class="lc-delete-back" href="/admin/contas">← Voltar às contas</a><?php endif;?>
 </div></div>
 <?php },'admin');return true;
     }

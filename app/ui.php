@@ -44,6 +44,19 @@ function lc_status_label(string $status): string {
     ][$status]??ucfirst($status);
 }
 
+/** Position among approved clippers according to the general public ranking. */
+function lc_clipper_rank_position(int $userId): ?int {
+    $rank=lc_one("SELECT pos FROM (
+      SELECT u.id,ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(COALESCE((
+       SELECT d.views FROM clip_daily_views d WHERE d.clip_id=c.id
+       ORDER BY d.snapshot_date DESC,d.id DESC LIMIT 1),0)),0) DESC,
+       COUNT(c.id) DESC,u.id ASC) AS pos
+      FROM users u JOIN clips c ON c.user_id=u.id AND c.status='approved'
+      WHERE u.role='clipador' AND u.status='approved' AND u.nickname IS NOT NULL
+      GROUP BY u.id
+    ) AS ranking WHERE id=?",[$userId]);
+    return $rank?(int)$rank['pos']:null;
+}
 function lc_workspace_links(array $u): array {
     if($u['role']==='admin'){
         $links=[
@@ -61,6 +74,7 @@ function lc_workspace_links(array $u): array {
           ['Automações','/admin/automacoes','activity'],
           ['Conexão WhatsApp','/admin/whatsapp','share-2'],
           ['Banner da Home','/admin/home','layers'],
+          ['Banners do clipador','/admin/banners-clipador','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['SEO e compartilhamento','/admin/seo','globe'],
           ['Integrações','/admin/integracoes','settings-2'],
@@ -96,6 +110,7 @@ function lc_workspace_links(array $u): array {
     }
     return [
       ['Visão geral','/dashboard','layout-dashboard'],
+      ['Publicar clipe','/publicar','upload-cloud'],
       ['Explorar campanhas','/explorar','compass'],
       ['Ranking geral','/ranking','trophy'],
       ['Minha biblioteca','/biblioteca','library'],
@@ -115,10 +130,10 @@ function lc_workspace_nav(array $u, string $current): void {
         <p class="ws-nav-label"><?=lc_e($label)?></p>
         <?php foreach($items as [$name,$url,$icon]):
             $selected=$current===$url||($url!=='/admin'&&$url!=='/dashboard'&&$url!=='/explorar'&&str_starts_with($current,$url.'/')); ?>
-          <a href="<?=lc_e($url)?>" class="ws-nav-link <?=$selected?'is-current':''?>" <?=$selected?'aria-current="page"':''?>>
+          <?php if($url==='/publicar'): ?><button type="button" class="ws-nav-link ws-post-open" data-clipper-post-open><?=lc_icon('upload-cloud')?><span>Publicar clipe</span></button><?php else: ?><a href="<?=lc_e($url)?>" class="ws-nav-link <?=$selected?'is-current':''?>" <?=$selected?'aria-current="page"':''?>>
             <?=lc_icon($icon)?><span><?=lc_e($name)?></span>
             <?php if($selected): ?><span class="ws-current-dot" aria-hidden="true"></span><?php endif; ?>
-          </a>
+          </a><?php endif; ?>
         <?php endforeach; ?>
       </div>
     <?php endforeach;
@@ -132,7 +147,10 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $primary)) $primary = '#e50914';
     $logo = (string)($s['logo_url'] ?? '');
     $flash = lc_take_flash();
-    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && in_array($active,['admin','dashboard','library','social','finance','creator'],true);
+    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') &&
+       (in_array($active,['admin','dashboard','library','social','finance','creator'],true) ||
+        ($u['role']==='clipador' && ($currentPath=parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)) &&
+         (in_array($currentPath,['/explorar','/ranking','/notificacoes','/conta','/indicacoes','/suporte','/seguranca/2fa','/privacidade/solicitacoes'],true)||str_starts_with($currentPath,'/campanhas/'))));
     $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
     $seo=lc_seo_meta($title,$s,$path,(int)(http_response_code()?:200));
     $areaTitle=$u && $u['role']==='admin'?'Administração':($u&&$u['role']==='criador'?'Área do criador':'Área do clipador');
@@ -144,7 +162,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     $needsBanner=$isHome||$isHomeEditor;
     $needsCampaignExperience=$isExplore||$path==='/admin/campanhas'||str_starts_with($path,'/campanhas/');
 ?><!doctype html>
-<html lang="pt-BR"><head>
+<html lang="pt-BR" data-lc-privacy-account="<?=$u?(int)$u['id']:''?>"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="<?=lc_e($primary)?>">
 <link rel="manifest" href="/pwa/manifest?v=4">
@@ -192,6 +210,9 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
+<link rel="stylesheet" href="/assets/clipper-layout-fixes.css?v=1">
+<?php if($path==='/dashboard'): ?><link rel="stylesheet" href="/assets/clipper-dashboard.css?v=1"><?php endif; ?>
+<?php if($u&&$u['role']==='clipador'&&$u['status']==='approved'): ?><link rel="stylesheet" href="/assets/clipper-post-modal.css?v=1"><?php endif; ?>
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
@@ -201,7 +222,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
-    <a class="brand" href="/" aria-label="<?=lc_e($brand)?>, página inicial">
+    <a class="brand" href="<?=$u?($u['role']==='admin'?'/admin':($u['role']==='criador'?'/criador':($u['status']==='approved'?'/dashboard':'/aguardando'))):'/'?>" aria-label="<?=lc_e($brand)?>, início da sua área">
       <?php if (lc_brand_logo_src($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>" width="175" height="44" decoding="async"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
     </a>
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
@@ -224,11 +245,11 @@ function lc_page(string $title, callable $body, string $active = ''): void {
         <div class="rt-notification-panel"><div class="rt-panel-head"><strong>Atualizações</strong><span class="rt-connection-state" data-realtime-connection>Conectando</span></div>
         <div class="rt-notification-list" data-realtime-feed><p>Nenhuma atualização recente.</p></div></div>
       </details>
-      <a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a>
+      <?php if($u['role']==='clipador'): $place=lc_clipper_rank_position((int)$u['id']); ?><a class="ws-site-link ws-rank-position" href="/ranking"><?=lc_icon('trophy')?> <span><?=$place?'Ranking: '.$place.'º lugar':'Ranking: sem posição'?></span></a><?php else: ?><a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a><?php endif; ?>
       <?php endif; ?>
       <?php if ($u): ?>
       <span class="user-short"><?=lc_e(explode(' ', $u['full_name'])[0])?></span>
-      <span class="avatar" title="<?=lc_e($u['full_name'])?>"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></span>
+      <a href="/conta" class="avatar" title="Editar foto e meus dados"><?php if(!empty($u['profile_photo_url'])):?><img src="<?=lc_e($u['profile_photo_url'])?>" alt="Minha foto de perfil" class="lc-avatar-image"><?php else:?><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?><?php endif;?></a>
       <form method="post" action="/sair" class="inline-form"><?=lc_csrf()?><button class="text-button" type="submit" aria-label="Sair da conta"><?=lc_icon("log-out")?> <span>Sair</span></button></form>
       <?php else: ?>
       <a class="header-login" href="/entrar">Entrar</a><a class="btn btn-sm" href="/cadastrar">Ser clipador <?=lc_icon("arrow-right")?></a>
@@ -241,7 +262,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
   <aside class="workspace-sidebar" aria-label="Navegação da <?=lc_e($areaTitle)?>">
     <div class="ws-sidebar-top"><div class="ws-area-icon"><?=lc_icon($u['role']==='admin'?'shield-check':($u['role']==='criador'?'video':'clapperboard'))?></div><div><strong><?=lc_e($areaTitle)?></strong><span>Central LeagueCut</span></div></div>
     <nav aria-label="Menu de <?=lc_e($areaTitle)?>"><?php lc_workspace_nav($u,$path); ?></nav>
-    <div class="ws-sidebar-bottom"><div class="ws-sidebar-avatar"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></div><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
+    <div class="ws-sidebar-bottom"><a class="ws-sidebar-avatar" href="/conta"><?php if(!empty($u['profile_photo_url'])):?><img src="<?=lc_e($u['profile_photo_url'])?>" alt="Minha foto de perfil" class="lc-avatar-image"><?php else:?><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?><?php endif;?></a><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
   </aside>
   <div class="ws-mobile-menu"><details><summary><?=lc_icon("menu")?> Menu do painel <?=lc_icon("chevron-right")?></summary><nav aria-label="Menu mobile do painel"><?php lc_workspace_nav($u,$path); ?></nav></details></div>
   <div class="workspace-body">
@@ -270,8 +291,10 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php foreach($footerSocials as $social): ?><a href="<?=lc_e($social['url'])?>" target="_blank" rel="noopener noreferrer external"><?=lc_icon('external-link')?> <?=lc_e($social['label'])?></a><?php endforeach;?></nav>
 <?php endif; ?></footer>
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
+<?php if($u&&$u['role']==='clipador'&&$u['status']==='approved'):lc_clipper_post_dialog($u);?><script src="/assets/clipper-post-modal.js?v=1" defer></script><?php endif;?>
 <?php lc_privacy_banner(); ?>
 <script src="/assets/ux-upgrade.js?v=1" defer></script>
+<?php if($path==='/dashboard'): ?><script src="/assets/clipper-dashboard.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/motion-glass.js?v=1" defer></script>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><script src="/assets/flow-canvas-v2.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/flow-editor.js?v=2" defer></script><?php endif; ?>
@@ -344,7 +367,7 @@ function lc_auth_dialogs(string $path,?array $flash): void {
         <?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'(85) 99999-9999','autocomplete="tel" inputmode="tel"'); ?>
         <?php lc_field('Portfólio (HTTPS, opcional)','portfolio_url','url','',false,'https://...'); ?>
         <div class="full"><?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?></div>
-        <label class="field full lc-auth-consent"><span><input type="checkbox" name="consent_whatsapp" value="1"> Quero receber mensagens operacionais opcionais pelo WhatsApp. Posso pedir a revogação em <a href="/privacidade/solicitacoes">Meus direitos LGPD</a> ou pelo contato da Política de Privacidade.</span></label>
+        <label class="field full lc-auth-consent"><input type="checkbox" name="consent_whatsapp" value="1"><span>Quero receber mensagens operacionais opcionais pelo WhatsApp. Posso pedir revogação em <a href="/privacidade/solicitacoes">Meus direitos LGPD</a> ou pela <a href="/politica-de-privacidade">Política de Privacidade</a>.</span></label>
         <p class="form-note full">Ao enviar seu cadastro, seus dados serão utilizados para criar e analisar a conta e executar os serviços solicitados, conforme os <a href="/termos-de-uso">Termos de Uso</a> e a <a href="/politica-de-privacidade">Política de Privacidade</a>. Esta informação não é um consentimento para publicidade.</p>
       <?php else:?>
         <div class="full"><?php lc_field('E-mail ou nickname','email','text','',true,'seunick ou voce@exemplo.com','autocomplete="username"'); ?></div>

@@ -1,0 +1,22 @@
+.ws-post-open{display:flex;gap:12px;align-items:center}
+.lc-quick-post{position:fixed;margin:auto;border:1px solid #ffffff29;border-radius:19px;background:linear-gradient(135deg,#1e222d,#0e1118);color:#fff;box-shadow:0 18px 80px #000c;width:min(620px,calc(100vw - 24px));max-height:92dvh;padding:0;overflow:auto}
+.lc-quick-post::backdrop{background:#000c;backdrop-filter:blur(7px)}
+.lc-quick-inner{padding:clamp(20px,3vw,35px)}
+.lc-quick-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:25px}
+.lc-quick-head h2{font-size:clamp(1.5rem,3vw,2rem);margin:8px 0}
+.lc-quick-close{border:1px solid #ffffff25;border-radius:9px;background:#ffffff0b;color:#fff;width:40px;height:40px;cursor:pointer;font-size:1.5rem}
+.lc-quick-drop{min-height:258px;border:2px dashed #ffffff48;border-radius:14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px;padding:24px;background:#ffffff05;transition:.2s}
+.lc-quick-drop:hover,.lc-quick-drop.is-dragging{border-color:#fb566e;background:#df244016}
+.lc-quick-drop input{position:absolute;clip:rect(0,0,0,0);width:1px;height:1px}
+.lc-quick-drop-icon .lc-icon{width:54px;height:54px;color:#ff506b}
+.lc-quick-drop strong{font-size:1.16rem}.lc-quick-drop span,.lc-quick-drop small{color:#aeb6c8}
+.lc-quick-next{width:100%;margin-top:20px}
+.lc-quick-step[hidden],.lc-quick-progress[hidden]{display:none!important}
+.lc-quick-step .field{display:flex;flex-direction:column;gap:8px;margin-bottom:17px}
+.lc-quick-step input:not([type=file]),.lc-quick-step select{width:100%;max-width:100%}
+.lc-quick-selected{font-size:.79rem;color:#aab5c7;overflow-wrap:anywhere}
+.lc-quick-actions{display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-top:25px}.lc-quick-actions .btn{min-width:0;white-space:normal}
+.lc-quick-progress progress{width:100%;accent-color:#ef2d4b}.lc-quick-progress{display:grid;grid-template-columns:1fr auto;gap:12px}
+.lc-quick-progress progress,.lc-quick-progress small{grid-column:1/-1}
+@media(max-width:600px){.lc-quick-post{width:100%;max-width:100%;height:100dvh;max-height:100dvh;border-radius:0}.lc-quick-drop{min-height:220px}}
+@media(prefers-reduced-motion:reduce){.lc-quick-drop{transition:none}}

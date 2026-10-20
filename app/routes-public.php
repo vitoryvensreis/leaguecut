@@ -208,7 +208,7 @@ function lc_public_routes(string $method,string $path): bool {
         lc_page('Status do cadastro',function()use($u){?>
 <div class="container container-sm"><span class="eyebrow">Análise de cadastro</span>
 <div class="large-surface"><h1><?= $u['status']==='pending'?'Estamos analisando seu perfil.':($u['status']==='rejected'?'Cadastro não aprovado.':'Conta suspensa.') ?></h1>
-<p><?= $u['status']==='pending'?'Seu cadastro foi recebido. Nossa equipe verificará os dados; quando aprovado, você terá acesso ao painel.':'Entre em contato com a administração para obter informações.' ?></p>
+<p><?= $u['status']==='pending'?'Seu cadastro está em análise. Aguarde a aprovação da equipe. Avisaremos sobre o resultado pelo WhatsApp informado no cadastro; mantenha seu número atualizado.':'Entre em contato com a administração para obter informações.' ?></p>
 <span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(strtoupper($u['status']))?></span><div class="form-actions"><a class="btn btn-ghost" href="/explorar">Ver campanhas disponíveis</a></div></div></div>
 <?php });return true;
     }
@@ -244,7 +244,7 @@ function lc_public_routes(string $method,string $path): bool {
 <div class="panel"><h2>Enviar publicação</h2>
 <?php if(!$networks):?><div class="alert">Cadastre primeiro seu perfil do Instagram ou TikTok em <a href="/redes">Minhas redes →</a>.</div><?php else:?>
 <form id="lc-clip-form" method="post" action="/clipes" enctype="multipart/form-data"><?=lc_csrf()?><input type="hidden" name="campaign_id" value="<?=(int)$c['id']?>">
-<div class="form-grid"><?php lc_field('Título do clipe','title','text','',true,'Ex.: A fala mais forte do episódio'); ?>
+<div class="form-grid">
 <label class="field"><span>Rede usada</span><select name="social_account_id" required><?php foreach($networks as $n):?><option value="<?=(int)$n['id']?>"><?=lc_e(ucfirst($n['network']).' · @'.$n['username'])?></option><?php endforeach;?></select></label>
 <div class="full"><?php lc_field('Link do vídeo publicado','published_url','url','',true,'https://www.instagram.com/reel/...'); ?></div>
 <label class="field full"><span>Vídeo original (obrigatório)</span><input id="lc-clip-file" type="file" name="video" accept=".mp4,.mov,.webm,video/mp4,video/quicktime,video/webm" required <?=lc_drive_ready()?'':'disabled'?>><small><?=lc_drive_ready()?'Obrigatório: MP4, MOV ou WebM. Arquivo deve respeitar os limites PHP/Nginx do servidor.':'Envios indisponíveis: o administrador precisa conectar o Google Drive.'?></small></label>

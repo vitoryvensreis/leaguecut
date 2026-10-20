@@ -36,6 +36,7 @@ function lc_admin_area_for_path(string $path): ?string {
       '/admin/privacidade'=>'privacy','/admin/contas'=>'people',
       '/admin/clipadores'=>'clippers','/admin/clipes'=>'clips',
       '/admin/chamados'=>'support','/admin/campanhas'=>'campaigns',
+       '/admin/banners-clipador'=>'branding',
       '/admin/saques'=>'finance','/admin/financeiro'=>'finance',
       '/admin/bonus-mensal'=>'finance','/admin/indicacoes'=>'finance',
       '/admin/pacotes'=>'creator','/admin/assinaturas'=>'creator',

@@ -41,6 +41,9 @@ require __DIR__ . '/routes-clipador.php';
 require __DIR__ . '/clip-admin-actions.php';
 require __DIR__ . '/clip-creator-actions.php';
 require __DIR__ . '/campaign-experience.php';
+require __DIR__ . '/clipper-post-modal.php';
+require __DIR__ . '/clipper-media.php';
+require __DIR__ . '/clipper-dashboard-hero.php';
 require __DIR__ . '/routes-admin.php';
 require __DIR__ . '/account-admin.php';
 require_once __DIR__ . '/admin-permissions.php';
@@ -70,11 +73,36 @@ if($method==='GET' && preg_match('~^/media/seo/(icon|social)/([a-f0-9]{36})$~D',
 if($method==='GET' && preg_match('~^/media/brand/([a-f0-9]{36})$~D',$path,$brandMatch)) {
     lc_brand_logo_response($brandMatch[1]);
 }
+if($method==='GET' && preg_match('~^/media/clipper/(avatar|banner)/([a-f0-9]{36})$~D',$path,$clipperMedia)) {
+    lc_clipper_image_response($clipperMedia[1],$clipperMedia[2]);
+}
 if($method==='GET' && preg_match('~^/media/campaign/([a-f0-9]{36})$~D',$path,$coverMatch)) {
     lc_campaign_cover_response($coverMatch[1]);
 }
 if($method==='GET' && preg_match('~^/media/home/([a-f0-9]{36})$~D',$path,$mediaMatch)) {
     lc_home_media_response($mediaMatch[1]);
+}
+// Logged-in users enter their own workspace instead of the public marketing LP.
+// Accounts pending review cannot browse approved clipper pages by URL.
+if($method==='GET' && $path==='/'){
+    if($current=lc_user()){
+        lc_redirect($current['role']==='admin'?'/admin':
+            ($current['role']==='criador'?'/criador':
+            ($current['status']==='approved'?'/dashboard':'/aguardando')));
+    }
+}
+if(($pendingUser=lc_user())&&$pendingUser['role']==='clipador'
+   &&$pendingUser['status']!=='approved'){
+    $allowedPending=in_array($path,[
+        '/aguardando','/sair','/politica-de-privacidade','/politica-de-cookies',
+        '/termos-de-uso','/exclusao-de-dados','/privacidade/cookies','/preferencias-de-privacidade'
+    ],true);
+    if(!$allowedPending && !str_starts_with($path,'/media/') &&
+       !str_starts_with($path,'/pwa/') && !str_starts_with($path,'/seguranca/') &&
+       !str_starts_with($path,'/redes/oauth/')){
+        if($method==='GET')lc_redirect('/aguardando');
+        http_response_code(403);exit('Seu cadastro ainda aguarda aprovação.');
+    }
 }
 if ($path==='/health' && $method==='GET') {
     header('Content-Type: text/plain; charset=UTF-8');
@@ -100,6 +128,7 @@ if(lc_request_audit_routes($method,$path))return;
 if(lc_mfa_routes($method,$path))return;
 if(lc_password_reset_routes($method,$path))return;
 if(lc_otp_routes($method,$path))return;
+if(lc_profile_photo_routes($method,$path))return;
 if(lc_account_self_routes($method,$path))return;
 if(lc_devices_routes($method,$path))return;
 if(lc_foreground_notices_routes($method,$path))return;
@@ -114,6 +143,7 @@ if(lc_demo_routes($method,$path))return;
 if(lc_admin_roles_routes($method,$path))return;
 if(lc_account_admin_routes($method,$path))return;
 if(lc_monthly_bonus_routes($method,$path))return;
+if(lc_clipper_banner_admin_routes($method,$path))return;
 if(lc_admin_routes($method,$path))return;
 if(lc_creator_routes($method,$path))return;
 if(lc_clipper_routes($method,$path))return;

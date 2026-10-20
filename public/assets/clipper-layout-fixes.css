@@ -1,0 +1,40 @@
+/* User removal actions. Three controls in one row on desktop; two columns on mobile. */
+.lc-delete-actions{display:grid;grid-template-columns:max-content max-content 1fr;gap:10px;align-items:center;margin-top:18px}
+.lc-delete-actions>.btn{display:inline-flex;justify-content:center;align-items:center;min-height:44px}
+.lc-delete-back{justify-self:end;display:inline-flex;align-items:center;padding:10px 12px;color:#8e98a9;font-size:.79rem;text-decoration:none}
+.lc-delete-back:hover{color:#fff;text-decoration:underline}
+.lc-auth-consent{display:flex!important;flex-direction:row!important;align-items:flex-start!important;gap:10px}
+.lc-auth-consent>input[type=checkbox]{flex:0 0 auto;margin-top:3px}
+.lc-auth-consent>span{flex:1 1 auto;min-width:0;display:block;line-height:1.65;overflow-wrap:normal;word-break:normal}
+.lc-auth-consent>span a,.lc-auth-form .form-note a{display:inline;white-space:normal;overflow-wrap:normal}
+@media(max-width:650px){.lc-delete-actions{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.lc-delete-actions>.btn{padding:10px 8px;min-width:0;text-align:center;white-space:normal;font-size:.82rem}.lc-delete-actions>.lc-delete-back{grid-column:1/-1;justify-self:stretch;justify-content:center}}
+
+/* Workspace keeps a left vertical sidebar for every clipper route. */
+.ws-nav-group button.ws-nav-link{font:inherit;cursor:pointer;width:100%;border:1px solid transparent;text-align:left;background:transparent;color:inherit}
+.ws-nav-group button.ws-nav-link:hover{border-color:#ffffff22;background:#ffffff12;color:#fff}
+.workspace-page .ws-rank-position{color:#ffe1a0;white-space:nowrap;font-variant-numeric:tabular-nums}
+@media(max-width:970px){
+ .workspace-page .ws-mobile-menu{position:fixed;inset:0 auto auto 0;display:block!important;padding:0!important;background:none!important;z-index:71;pointer-events:none}
+ .workspace-page .ws-mobile-menu details{border:0;background:transparent;pointer-events:none}
+ .workspace-page .ws-mobile-menu summary{position:fixed;left:8px;top:79px;z-index:74;width:40px;height:40px;padding:0;display:grid;place-items:center;border:1px solid #ffffff29;border-radius:8px;background:#171a24;box-shadow:0 5px 24px #0009;pointer-events:auto;font-size:0;color:#fff}
+ .workspace-page .ws-mobile-menu summary .lc-icon:last-child{display:none}
+ .workspace-page .ws-mobile-menu details[open]::before{content:"";position:fixed;inset:0;background:#0009;pointer-events:auto;z-index:70}
+ .workspace-page .ws-mobile-menu details[open] summary{left:min(314px,83vw);top:15px}
+ .workspace-page .ws-mobile-menu nav{position:fixed;left:0;top:0;bottom:0;z-index:72;width:min(310px,82vw);overflow-y:auto;display:block!important;padding:76px 16px 32px;background:#11151e;border-right:1px solid #ffffff22;box-shadow:10px 0 32px #0009;pointer-events:auto}
+ .workspace-page .ws-mobile-menu:not(:has(details[open])) nav{display:none!important}
+ .workspace-page .ws-mobile-menu .ws-nav-group{margin:0 0 20px}
+ .workspace-page .ws-mobile-menu .ws-nav-link{display:flex;align-items:center;gap:10px;min-height:43px}
+ .workspace-page .workspace-body .container{padding-top:max(65px,4vw)}
+ .workspace-page .ws-mobile-menu details[open] summary .lc-icon{transform:none}
+}
+@media(max-width:610px){.workspace-page .ws-rank-position{padding:7px;font-size:.73rem}.workspace-page .ws-rank-position span{display:inline!important}.workspace-page .ws-mobile-menu summary{top:79px}}
+
+/* Small round profile pictures in header and desktop sidebar everywhere. */
+.header-right .avatar{overflow:hidden;flex:0 0 32px;border-radius:50%;text-decoration:none}
+.header-right .avatar img,.ws-sidebar-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.ws-sidebar-avatar{border-radius:50%;overflow:hidden;text-decoration:none}
+.lc-photo-current{display:flex;align-items:center;gap:17px;margin-bottom:20px}
+.lc-photo-current>img,.lc-photo-placeholder{width:90px;height:90px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#a81931;font-size:2rem;font-weight:800}
+.lc-photo-panel{margin-bottom:20px}
+.lc-photo-panel form{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.lc-photo-panel form .field{flex:1;min-width:210px}
