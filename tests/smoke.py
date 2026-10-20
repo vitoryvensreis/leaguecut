@@ -578,7 +578,6 @@ def main():
     assert "lc-catalog-showcase" in created and "lc-catalog-shelves" in created, "Admin Netflix catalog"
     assert 'href="/admin/campanhas/' in created and 'Editar campanha' in created
     assert "Criar nova campanha" in created, "Admin creation form still usable"
-    campaign_cover_roundtrip(admin)
     home=get(creator,"/")
     assert "Campanha Teste Real" not in home, "No campaign cards on marketing home"
     catalog=get(creator,"/explorar")
@@ -775,6 +774,7 @@ def main():
     assert "creator.approved" not in [x["type"] for x in admin_latest["events"]], "No creator-only event leakage"
     assert "Campanha Teste Real" in get(creator,"/explorar")
     assert "Campanha Teste Real" not in get(creator,"/")
+    campaign_cover_roundtrip(admin)
     print("SMOKE PASSED: register -> admin approval -> campaigns -> social -> 5 clips -> rejection -> Drive deletion -> safe credits -> withdrawal")
 
 
