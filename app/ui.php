@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/legal-entity.php';
+require_once __DIR__ . '/clipper-ui.php';
 
 function lc_icon(string $name, string $class = ''): string {
     static $allowed = ["play","compass","layout-dashboard","library","wallet","share-2","shield-check","log-out","users-round","user-round-cog","clapperboard","chart-column","hand-coins","trophy","palette","chevron-right","arrow-right","external-link","lock-keyhole","check","circle-check","sparkles","folder-open","clock-3","plus","upload-cloud","settings-2","bell","activity","clipboard-check","layers","circle-dollar-sign","menu","video","globe","shield"];
@@ -132,7 +133,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $primary)) $primary = '#e50914';
     $logo = (string)($s['logo_url'] ?? '');
     $flash = lc_take_flash();
-    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && in_array($active,['admin','dashboard','library','social','finance','creator'],true);
+    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && (in_array($active,['admin','dashboard','library','social','finance','creator'],true)||$u['role']==='clipador');
     $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
     $seo=lc_seo_meta($title,$s,$path,(int)(http_response_code()?:200));
     $areaTitle=$u && $u['role']==='admin'?'Administração':($u&&$u['role']==='criador'?'Área do criador':'Área do clipador');
@@ -189,6 +190,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
+<link rel="stylesheet" href="/assets/clipper-ux.css?v=1">
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
@@ -201,7 +203,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
-    <a class="brand" href="/" aria-label="<?=lc_e($brand)?>, página inicial">
+    <a class="brand" href="<?=!$u?'/':($u['role']==='admin'?'/admin':($u['role']==='criador'?'/criador':($u['status']==='approved'?'/dashboard':'/aguardando')))?>" aria-label="<?=lc_e($brand)?>, minha área">
       <?php if (lc_brand_logo_src($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>" width="175" height="44" decoding="async"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
     </a>
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
@@ -224,7 +226,10 @@ function lc_page(string $title, callable $body, string $active = ''): void {
         <div class="rt-notification-panel"><div class="rt-panel-head"><strong>Atualizações</strong><span class="rt-connection-state" data-realtime-connection>Conectando</span></div>
         <div class="rt-notification-list" data-realtime-feed><p>Nenhuma atualização recente.</p></div></div>
       </details>
-      <a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a>
+      <?php if($u['role']==='clipador'): ?>
+       <?php $position=null;foreach(lc_public_ranking(50) as $rankIndex=>$person){if((string)($person['nickname']??'')===(string)($u['nickname']??'')){$position=$rankIndex+1;break;}} ?>
+       <a class="ws-site-link ws-rank-link" href="/ranking"><?=lc_icon('trophy')?> <span><?=$position!==null?$position.'º no ranking': 'Sem posição no ranking'?></span></a>
+       <?php else: ?><a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a><?php endif; ?>
       <?php endif; ?>
       <?php if ($u): ?>
       <span class="user-short"><?=lc_e(explode(' ', $u['full_name'])[0])?></span>
@@ -238,12 +243,15 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 </header>
 <?php if($workspace): ?>
 <div class="workspace-shell">
-  <aside class="workspace-sidebar" aria-label="Navegação da <?=lc_e($areaTitle)?>">
+  <button type="button" class="ws-sidebar-mobile-toggle" data-sidebar-toggle aria-controls="lc-workspace-sidebar" aria-expanded="false"><?=lc_icon('menu')?> Menu</button>
+  <button type="button" class="ws-sidebar-backdrop" data-sidebar-close aria-label="Fechar menu" hidden></button>
+  <aside id="lc-workspace-sidebar" class="workspace-sidebar" aria-label="Navegação da <?=lc_e($areaTitle)?>">
     <div class="ws-sidebar-top"><div class="ws-area-icon"><?=lc_icon($u['role']==='admin'?'shield-check':($u['role']==='criador'?'video':'clapperboard'))?></div><div><strong><?=lc_e($areaTitle)?></strong><span>Central LeagueCut</span></div></div>
+    <?php if($u['role']==='clipador'): ?><button type="button" class="ws-publish-clip" data-clip-open><?=lc_icon('upload-cloud')?> Publicar clipe <?=lc_icon('plus')?></button><?php endif; ?>
     <nav aria-label="Menu de <?=lc_e($areaTitle)?>"><?php lc_workspace_nav($u,$path); ?></nav>
     <div class="ws-sidebar-bottom"><div class="ws-sidebar-avatar"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></div><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
   </aside>
-  <div class="ws-mobile-menu"><details><summary><?=lc_icon("menu")?> Menu do painel <?=lc_icon("chevron-right")?></summary><nav aria-label="Menu mobile do painel"><?php lc_workspace_nav($u,$path); ?></nav></details></div>
+
   <div class="workspace-body">
 <?php endif; ?>
 <main id="conteudo" tabindex="-1">
@@ -269,6 +277,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <nav class="lc-footer-socials" aria-label="Redes sociais oficiais">
 <?php foreach($footerSocials as $social): ?><a href="<?=lc_e($social['url'])?>" target="_blank" rel="noopener noreferrer external"><?=lc_icon('external-link')?> <?=lc_e($social['label'])?></a><?php endforeach;?></nav>
 <?php endif; ?></footer>
+<?php if($workspace && $u['role']==='clipador')lc_quick_clip_modal($u); ?>
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <?php lc_privacy_banner(); ?>
 <script src="/assets/ux-upgrade.js?v=1" defer></script>
@@ -282,7 +291,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==="/admin/notificacoes" && $u && $u['role']==='admin'): ?><script src="/assets/admin-notices.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/notification-preferences.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/input-masks.js?v=1" defer></script>
-<?php if($u): ?><script src="/assets/privacy-toggle.js?v=1" defer></script><?php endif; ?>
+<?php if($u): ?><script src="/assets/privacy-toggle.js?v=2" defer></script><?php endif; ?>
+<?php if($workspace): ?><script src="/assets/clipper-ux.js?v=1" defer></script><?php endif; ?>
 </body></html><?php
 }
 function lc_tile(array $c): void {
