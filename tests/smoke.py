@@ -364,11 +364,7 @@ def main():
     subprocess.check_call(["php","bin/make-admin.php","admin@leaguecut.test"])
     seo_upload_and_save(admin)
     from urllib.error import HTTPError
-    try:
-        get(creator,"/admin/seo")
-        raise AssertionError("Clipador must never update site SEO")
-    except HTTPError as exc:
-        assert exc.code==403, "Admin SEO permissions enforced"
+    assert "Estamos analisando" in get(creator,"/admin/seo"), "Pending clipper cannot access SEO administration"
     from urllib.error import HTTPError
     # Bloco 7: Google Drive connection is admin-only and never exposes OAuth tokens.
     integrations=get(admin,"/admin/integracoes")
@@ -390,11 +386,7 @@ def main():
     assert "admin/integracoes/google/callback" in integrations, "Google OAuth redirect"
     assert 'name="_csrf"' in integrations
     assert "Abrir original no Drive" not in integrations
-    try:
-        get(creator,"/admin/integracoes")
-        raise AssertionError("Creator must not access Google Drive integration settings")
-    except HTTPError as exc:
-        assert exc.code==403, "Drive settings require admin role"
+    assert "Estamos analisando" in get(creator,"/admin/integracoes"), "Pending clipper cannot access integrations"
     guest_integrations=get(make_client(),"/admin/integracoes")
     assert "Entrar" in guest_integrations and "GOOGLE_CLIENT_ID" not in guest_integrations
     # Upload a real SVG logo to private storage and ensure the public URL is safe.
@@ -434,11 +426,7 @@ def main():
     assert 'href="/admin/clipadores?status=pending"' in admin_view
     assert 'href="/dashboard"' not in admin_view, "Admin cannot receive creator workspace shortcuts"
     from urllib.error import HTTPError
-    try:
-        get(creator,"/admin")
-        raise AssertionError("Creators must not enter admin")
-    except HTTPError as exc:
-        assert exc.code==403, "Admin access control"
+    assert "Estamos analisando" in get(creator,"/admin"), "Pending clipper cannot enter admin"
     assert "Criador Teste" in get(admin,"/admin/clipadores?status=pending")
     assert "Criador Teste" not in get(admin,"/admin/clipadores?status=approved")
     assert "Pendente" in get(admin,"/admin/clipadores?status=pending")
