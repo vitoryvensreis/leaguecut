@@ -41,6 +41,7 @@ require __DIR__ . '/routes-clipador.php';
 require __DIR__ . '/clip-admin-actions.php';
 require __DIR__ . '/clip-creator-actions.php';
 require __DIR__ . '/campaign-experience.php';
+require __DIR__ . '/clipper-post-modal.php';
 require __DIR__ . '/routes-admin.php';
 require __DIR__ . '/account-admin.php';
 require_once __DIR__ . '/admin-permissions.php';
