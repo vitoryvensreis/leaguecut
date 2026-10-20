@@ -40,7 +40,7 @@ function lc_seo_default_share_image(): string {
     return lc_seo_origin().'/assets/leaguecut-share-clean-2026.jpg';
 }
 function lc_seo_public_path(string $path): bool {
-    return in_array($path,['/','/explorar','/ranking','/planos'],true) ||
+    return in_array($path,['/','/explorar','/ranking','/planos','/feed'],true) ||
       (bool)preg_match('~^/campanhas/[a-z0-9-]{1,210}$~D',$path);
 }
 function lc_seo_absolute_asset(string $url): string {
@@ -234,7 +234,7 @@ function lc_seo_sitemap(): never {
     echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
     if($settings['seo_index_enabled']==='1'){
         $base=rtrim((string)$settings['seo_canonical_base'],'/');
-        foreach(['/','/explorar','/ranking','/planos'] as $path)
+        foreach(['/','/explorar','/feed','/ranking','/planos'] as $path)
            echo '<url><loc>'.lc_e($base.$path).'</loc></url>'."\n";
         foreach(lc_all("SELECT slug,updated_at FROM campaigns WHERE status='active' ORDER BY id DESC LIMIT 5000") as $c){
            $slug=(string)$c['slug'];
