@@ -9,6 +9,34 @@ function lc_clipper_banners_active(int $limit=4): array {
     $limit=max(1,min(12,$limit));
     return lc_all('SELECT * FROM clipper_banners WHERE is_active=1 ORDER BY sort_order ASC,id DESC LIMIT '.(int)$limit);
 }
+/** Preview is deliberately an inert mock card: no campaign stats or publication state are invented. */
+function lc_clipper_banner_preview(array $banner=[]): void {
+    $src=lc_clipper_banner_image_src($banner);
+    $title=(string)($banner['title']??'Novo banner informativo');
+    $description=(string)($banner['description']??'Confira as novidades e campanhas na LeagueCut.');
+    $cta=(string)($banner['cta_label']??'Saiba mais');
+    ?>
+    <div class="lc-banner-preview" data-banner-preview data-banner-view="desktop">
+      <div class="lc-banner-preview-head"><span>Pré-visualização do banner <small>• Não publicado</small></span>
+        <div class="lc-banner-preview-actions" role="group" aria-label="Visualizar no dispositivo">
+          <button type="button" data-banner-mode="desktop" aria-pressed="true">Desktop</button>
+          <button type="button" data-banner-mode="mobile" aria-pressed="false">Mobile</button>
+        </div>
+      </div>
+      <div class="lc-banner-stage">
+        <img data-banner-image src="<?=lc_e($src)?>" alt="Imagem de fundo do banner" <?=!$src?'hidden':''?> loading="lazy">
+        <div class="lc-banner-stage-copy">
+          <small>BANNER INFORMATIVO</small>
+          <h3 data-banner-title><?=lc_e($title)?></h3>
+          <p data-banner-description><?=lc_e($description)?></p>
+          <span class="lc-banner-cta" data-banner-cta><?=lc_e($cta)?></span>
+        </div>
+      </div>
+      <p class="lc-editor-preview-caption">Simulação do card de destaque. No painel do clipador, as campanhas ativas têm prioridade e os banners ocupam os espaços restantes.</p>
+    </div>
+    <?php
+}
+
 /** Admin controls text, CTA, background artwork and ordering of spare dashboard hero slots. */
 function lc_clipper_banner_routes(string $method,string $path): bool {
     if($path!=='/admin/banners-clipador')return false;
@@ -61,14 +89,15 @@ function lc_clipper_banner_routes(string $method,string $path): bool {
         $banners=lc_all('SELECT * FROM clipper_banners ORDER BY sort_order ASC,id DESC LIMIT 80');
         lc_page('Banners do clipador',function()use($banners){?>
         <div class="container container-md lc-banner-admin">
-          <?php lc_heading('Personalização','Banners do clipador','Preencha os espaços do hero quando houver menos de quatro campanhas ativas.'); ?>
+          <?php lc_heading('Personalização','Banners do clipador','Configure imagens, texto e botão com uma prévia desktop ou mobile antes de salvar.'); ?>
           <p class="hint">Até quatro cartões aparecem no topo do painel, priorizando as campanhas. Os banners informativos preenchem os espaços restantes. Use imagens horizontais ou verticais de alta resolução.</p>
           <?php foreach($banners as $b):?>
           <div class="panel lc-banner-admin-card">
             <div class="lc-banner-admin-head"><h2><?=lc_e($b['title'])?></h2><span class="tag"><?=(int)$b['is_active']?'ATIVO':'OCULTO'?></span></div>
-            <?php if($src=lc_clipper_banner_image_src($b)):?><img class="lc-banner-admin-image" src="<?=lc_e($src)?>" alt="Arte do banner"><?php endif;?>
+
             <form action="/admin/banners-clipador" method="post" enctype="multipart/form-data"><?=lc_csrf()?>
               <input type="hidden" name="banner_id" value="<?=(int)$b['id']?>">
+              <?php lc_clipper_banner_preview($b); ?>
               <div class="form-grid">
                 <label class="field full"><span>Título</span><input name="title" required maxlength="160" value="<?=lc_e($b['title'])?>"></label>
                 <label class="field full"><span>Texto de apoio</span><textarea name="description" maxlength="500"><?=lc_e($b['description'])?></textarea></label>
@@ -84,6 +113,7 @@ function lc_clipper_banner_routes(string $method,string $path): bool {
           <?php endforeach;?>
           <div class="panel lc-banner-admin-card"><h2>Adicionar banner informativo</h2>
           <form action="/admin/banners-clipador" method="post" enctype="multipart/form-data"><?=lc_csrf()?>
+          <?php lc_clipper_banner_preview(); ?>
           <div class="form-grid">
             <label class="field full"><span>Título</span><input name="title" required maxlength="160" placeholder="Nova oportunidade chegando"></label>
             <label class="field full"><span>Texto</span><textarea name="description" maxlength="500" placeholder="Conte o que seu clipador precisa saber."></textarea></label>

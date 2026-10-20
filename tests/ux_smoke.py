@@ -119,8 +119,16 @@ def main():
     assert 'data-live="pending_users"' in dashboard
     assert any(a.get("action")=="/sair" for a in MarkupForm(dashboard).forms)
     verify(admin,"/admin/home",["workspace.css","banner.css","realtime.css"],["landing.css"])
+    identity=verify(admin,"/admin/configuracoes",["workspace.css","interface-refine.css"],["landing.css"])
+    assert 'data-brand-preview' in identity and 'data-brand-image' in identity and 'data-preview-upload' in identity, "Brand editing previews active logo and selected file"
+    assert 'assets/personalization-preview.js?v=1' in identity, "Live brand previews script loaded"
+    seo=verify(admin,"/admin/seo",["workspace.css","seo-admin.css","interface-refine.css"],["landing.css"])
+    assert seo.count('data-editor-tab=')==6 and seo.count('data-editor-panel=')==6, "SEO settings are divided into six internal tabs"
+    assert 'data-preview-image="seo_favicon_upload"' in seo and 'data-preview-image="seo_social_image_upload"' in seo, "Active/favicon/social previews visible"
+    assert 'name="admin_password"' in seo and 'name="seo_home_title"' in seo and 'name="seo_canonical_base"' in seo, "SEO keeps all inputs and administrative confirmation"
     hero_manager=verify(admin,"/admin/banners-clipador",["workspace.css","clipper-ux.css"],["landing.css"])
     assert 'name="cta_label"' in hero_manager and 'name="image"' in hero_manager, "Admin can manage clipper hero media and CTA"
+    assert 'data-banner-preview' in hero_manager and 'data-banner-mode="mobile"' in hero_manager, "Clipper banners have desktop and mobile previews"
     verify(admin,"/admin/clipadores?status=pending",["workspace.css"],["landing.css"])
     verify(admin,"/admin/clipes?status=pending",["workspace.css"],["landing.css"])
 
@@ -133,6 +141,8 @@ def main():
     assert 'name="video"' in clipper and 'data-clip-open' in clipper, "Sidebar has quick clip publishing"
     assert 'lc-clipper-hero' in clipper and 'Campanhas das quais participo' in clipper, "Campaign hero and joined campaign section"
     assert 'lc-clipper-dashboard-page' in clipper and 'id="lc-privacy-toggle"' in clipper, "Full-bleed clipper hero and compact privacy button"
+    assert 'lc-clipper-mobile-dock' in clipper and 'lc-dock-create' in clipper, "Clipper mobile dock offers account, publish and menu"
+    assert clipper.count('data-sidebar-toggle')==1, "Only one drawer trigger per clipper layout"
     assert 'name="title"' not in clipper.split('id="lc-quick-form"',1)[1].split('</form>',1)[0], "Quick upload does not request a title"
     clipper_catalog=verify(creator,"/explorar",["workspace.css","clipper-ux.css"],[])
     assert 'class="workspace-shell"' in clipper_catalog, "Logged-in clipper always uses lateral navigation"

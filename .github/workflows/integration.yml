@@ -140,6 +140,7 @@ jobs:
           node --check public/assets/clipper-ux.js
           node --check public/assets/admin-navigation.js
           node --check public/assets/auth-mfa-modal.js
+          node --check public/assets/personalization-preview.js
           node --check public/assets/privacy-toggle.js
           node --check public/assets/ux-upgrade.js
           php tests/campaign_ranking.php || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }

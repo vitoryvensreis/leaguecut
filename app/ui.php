@@ -198,6 +198,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
 <link rel="stylesheet" href="/assets/clipper-ux-basics.css?v=1">
 <link rel="stylesheet" href="/assets/clipper-ux.css?v=1">
+<link rel="stylesheet" href="/assets/interface-refine.css?v=1">
 <?php if($workspace): ?><link rel="stylesheet" href="/assets/admin-navigation.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
@@ -252,7 +253,15 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 </header>
 <?php if($workspace): ?>
 <div class="workspace-shell">
+  <?php if($u['role']==='clipador'): ?>
+  <nav class="lc-clipper-mobile-dock" aria-label="Ações rápidas do clipador">
+    <a class="lc-dock-link <?=$path==='/conta'?'is-active':''?>" href="/conta" <?=$path==='/conta'?'aria-current="page"':''?>><?=lc_icon('user-round-cog')?><span>Minha conta</span></a>
+    <button class="lc-dock-create" type="button" data-clip-open aria-label="Publicar clipe" title="Publicar clipe"><?=lc_icon('plus')?></button>
+    <button class="lc-dock-link lc-dock-menu" type="button" data-sidebar-toggle aria-controls="lc-workspace-sidebar" aria-expanded="false"><?=lc_icon('menu')?><span>Menu</span></button>
+  </nav>
+  <?php else: ?>
   <button type="button" class="ws-sidebar-mobile-toggle" data-sidebar-toggle aria-controls="lc-workspace-sidebar" aria-expanded="false"><?=lc_icon('menu')?> Menu</button>
+  <?php endif; ?>
   <button type="button" class="ws-sidebar-backdrop" data-sidebar-close aria-label="Fechar menu" hidden></button>
   <aside id="lc-workspace-sidebar" class="workspace-sidebar" aria-label="Navegação da <?=lc_e($areaTitle)?>">
     <div class="ws-sidebar-top"><div class="ws-area-icon"><?=lc_icon($u['role']==='admin'?'shield-check':($u['role']==='criador'?'video':'clapperboard'))?></div><div><strong><?=lc_e($areaTitle)?></strong><span>Central LeagueCut</span></div></div>
@@ -302,6 +311,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==="/admin/notificacoes" && $u && $u['role']==='admin'): ?><script src="/assets/admin-notices.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/notification-preferences.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/input-masks.js?v=1" defer></script>
+<?php if($u && in_array($path,['/admin/seo','/admin/configuracoes','/admin/banners-clipador'],true)): ?><script src="/assets/personalization-preview.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/privacy-toggle.js?v=3" defer></script><?php endif; ?>
 <?php if($workspace): ?><script src="/assets/clipper-ux.js?v=1" defer></script><script src="/assets/admin-navigation.js?v=1" defer></script><?php endif; ?>
 </body></html><?php

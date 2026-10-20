@@ -434,18 +434,42 @@ function lc_admin_routes(string $method,string $path): bool {
         lc_flash($winner?'Apuração realizada. Repetições não geram pagamento duplo.':'Sem vídeos aprovados com views nesse período.');lc_redirect('/admin/bonus-mensal');
     }
     if($method==='GET'&&$path==='/admin/configuracoes'){
-        $s=lc_settings();
-        lc_page('Personalização',function()use($s){?><div class="container container-md"><?php lc_heading('Sua marca','Personalização','Ajuste nome, cor primária e logo por URL HTTPS.'); ?>
-<div class="panel"><form method="post" action="/admin/configuracoes" enctype="multipart/form-data"><?=lc_csrf()?><div class="form-grid">
-<?php lc_field('Nome da plataforma','brand_name','text',(string)($s['brand_name']??'LeagueCut'),true); ?>
-<?php lc_field('Cor principal','primary_color','color',(string)($s['primary_color']??'#e50914'),true); ?>
-<label class="field full"><span>Enviar arquivo da logo</span>
-<input name="logo_upload" type="file" accept="image/*,.svg,image/svg+xml">
-<small>Envie PNG, JPG, WebP, GIF, AVIF ou SVG (até 5 MB). O arquivo é guardado de forma privada e exibido em toda a plataforma. SVG é higienizado para impedir scripts.</small></label>
-<?php if(!empty($s['logo_url'])&&lc_brand_logo_src((string)$s['logo_url'])):?>
-<div class="full"><strong>Logo atual</strong><div class="brand-settings-preview"><img src="<?=lc_e($s['logo_url'])?>" alt="Logo atual" loading="lazy"></div></div><?php endif;?>
-<div class="full"><?php lc_field('URL HTTPS da logo (alternativa ao upload)','logo_url','text',(string)($s['logo_url']??''),false,'https://.../logo.svg'); ?><small>Você pode manter a logo atual, informar uma URL HTTPS ou enviar um novo arquivo acima.</small></div>
-</div><div class="form-actions"><button class="btn" type="submit">Salvar identidade visual →</button></div></form></div></div>
+        $s=lc_settings();$currentLogo=(string)($s['logo_url']??'');
+        lc_page('Personalização',function()use($s,$currentLogo){?>
+<div class="container container-md lc-visual-admin lc-brand-admin">
+<?php lc_heading('Identidade visual','Personalização','Veja a marca ativa, simule as alterações e salve somente quando estiver satisfeito.'); ?>
+<div class="lc-editor-tabbar lc-editor-static-tabs" aria-label="Áreas de personalização">
+  <span class="lc-editor-tab is-current" aria-current="page"><?=lc_icon('palette')?> Marca</span>
+  <a class="lc-editor-tab lc-editor-tab-link" href="/admin/seo#icones"><?=lc_icon('layers')?> Ícones e favicon</a>
+  <a class="lc-editor-tab lc-editor-tab-link" href="/admin/seo#compartilhamento"><?=lc_icon('share-2')?> Compartilhamento</a>
+  <a class="lc-editor-tab lc-editor-tab-link" href="/admin/seo#metadados"><?=lc_icon('globe')?> SEO e metadados</a>
+</div>
+<div class="panel lc-editor-panel">
+<form method="post" action="/admin/configuracoes" enctype="multipart/form-data" data-brand-editor><?=lc_csrf()?>
+  <div class="lc-brand-preview" data-brand-preview style="--brand-preview-accent:<?=lc_e((string)($s['primary_color']??'#e50914'))?>">
+    <div class="lc-brand-preview-title">Prévia da marca no cabeçalho</div>
+    <div class="lc-brand-live-header">
+      <img src="<?=lc_e(lc_brand_logo_src($currentLogo)?$currentLogo:'/assets/leaguecut-icon.svg')?>" alt="Marca ativa ou escolhida" data-brand-image>
+      <strong data-brand-text><?=lc_e((string)($s['brand_name']??'LeagueCut'))?></strong>
+    </div><div class="lc-brand-live-accent"></div>
+    <p class="lc-editor-preview-caption">Visualização local: nada será publicado até clicar em Salvar.</p>
+  </div>
+  <div class="form-grid">
+    <?php lc_field('Nome da plataforma','brand_name','text',(string)($s['brand_name']??'LeagueCut'),true,'LeagueCut','maxlength="80"'); ?>
+    <?php lc_field('Cor principal','primary_color','color',(string)($s['primary_color']??'#e50914'),true); ?>
+    <label class="field full"><span>Nova logo</span>
+      <input name="logo_upload" type="file" accept="image/*,.svg,image/svg+xml" data-preview-upload>
+      <small>PNG, JPG, WebP, GIF, AVIF ou SVG (até 5 MB). SVG é higienizado no servidor antes de salvar.</small>
+    </label>
+    <div class="full"><div class="lc-editor-preview-card"><small>Logo ativa agora</small>
+      <img src="<?=lc_e(lc_brand_logo_src($currentLogo)?$currentLogo:'/assets/leaguecut-icon.svg')?>" alt="Logo ativa" style="max-height:88px;object-fit:contain">
+      <p class="lc-editor-preview-caption"><?=lc_e($currentLogo!==''?'Arquivo da marca configurado':'Usando a marca padrão LeagueCut')?></p></div></div>
+    <div class="full"><?php lc_field('URL HTTPS da logo (alternativa ao upload)','logo_url','text',$currentLogo,false,'https://.../logo.svg','maxlength="800"'); ?>
+      <p class="hint">Se não selecionar arquivo, uma URL HTTPS válida substituirá a logo atual.</p>
+    </div>
+  </div>
+  <div class="lc-editor-save"><small>Prévia instantânea sem alterar o site.</small><button class="btn" type="submit">Salvar identidade visual <?=lc_icon('check')?></button></div>
+</form></div></div>
 <?php },'admin');return true;
     }
     if($method==='POST'&&$path==='/admin/configuracoes'){
