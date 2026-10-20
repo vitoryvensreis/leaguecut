@@ -144,6 +144,8 @@ jobs:
           node --check public/assets/privacy-toggle.js
           node --check public/assets/ux-upgrade.js
           node --check public/assets/signup-nickname.js
+          node --check public/assets/social-feed.js
+          php tests/social_feed.php
           php tests/campaign_ranking.php || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           php tests/automation_rules.php
           php tests/automation_visual.php
