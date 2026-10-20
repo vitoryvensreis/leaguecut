@@ -293,7 +293,7 @@ def main():
     assert "Política de Cookies" in get(make_client(),"/politica-de-cookies"), "Cookie policy is public"
 
     import json
-    assert re.search(r'<link rel="manifest" href="/pwa/manifest(?:\?v=\d+)?">', home), "PWA discoverable"
+    assert re.search(r'<link rel="manifest" href="/pwa/manifest(?:\?v=[a-f0-9]+)?">', home), "PWA discoverable"
     with creator.open(BASE+"/pwa/manifest",timeout=12) as response:
         manifest=json.loads(response.read())
         assert response.headers.get("Content-Type","").startswith("application/manifest+json")
