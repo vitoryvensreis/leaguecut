@@ -81,21 +81,6 @@ if ($path==='/health' && $method==='GET') {
     lc_db()->query('SELECT 1');
     echo 'LeagueCut OK';return;
 }
-// Logged-in users stay in their workspace; pending clippers see only approval status.
-if($method==='GET' && $path==='/'){
-    $visitor=lc_user();
-    if($visitor){
-        if($visitor['role']==='admin')lc_redirect('/admin');
-        if($visitor['status']!=='approved')lc_redirect('/aguardando');
-        lc_redirect($visitor['role']==='criador'?'/criador':'/dashboard');
-    }
-}
-if(!in_array($path,['/aguardando','/sair'],true) && !str_starts_with($path,'/seguranca/') &&
-   !str_starts_with($path,'/media/')){
-    $visitor=lc_user();
-    if($visitor && $visitor['role']==='clipador' && $visitor['status']!=='approved')
-        lc_redirect('/aguardando');
-}
 if(lc_meta_deauthorization_route($method,$path))return;
 if(lc_social_oauth_route($method,$path))return;
 if(lc_clip_video_route($method,$path))return;
