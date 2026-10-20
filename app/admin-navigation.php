@@ -19,6 +19,15 @@ function lc_admin_navigation_is_active(string $current,string $url): bool {
     // A section's base URL only matches its own descendants, never siblings such as /chamados/relatorios.
     return $url!=='/admin' && str_starts_with($current,$url.'/');
 }
+/** Only one child can be marked as the active page, even for nested URLs. */
+function lc_admin_navigation_selected_path(array $links,string $current): string {
+    $best='';
+    foreach($links as $link){
+        if(lc_admin_navigation_is_active($current,$link[1]) && strlen($link[1])>strlen($best))
+            $best=$link[1];
+    }
+    return $best;
+}
 function lc_admin_navigation_visible(array $u,array $links): array {
     $available=[];
     foreach(lc_workspace_links($u) as $link) $available[$link[1]]=$link;
@@ -53,11 +62,12 @@ function lc_admin_sidebar_navigation(array $u,string $current): void {
         $visible=lc_admin_navigation_visible($u,$group['links']);
         if(!$visible)continue;
         $active=$currentGroup!==null && $currentGroup['key']===$group['key'];
+        $selectedPath=lc_admin_navigation_selected_path($visible,$current);
       ?>
         <details class="lc-admin-nav-group <?=$active?'is-active':''?>" data-admin-group="<?=lc_e($group['key'])?>" <?=$active?'open':''?>>
           <summary class="lc-admin-nav-summary"><?=lc_icon($group['icon'])?><span><?=lc_e($group['title'])?></span><?=lc_icon('chevron-right','lc-admin-chevron')?></summary>
           <div class="lc-admin-nav-submenu">
-            <?php foreach($visible as [$name,$url,$icon]):$selected=lc_admin_navigation_is_active($current,$url);?>
+            <?php foreach($visible as [$name,$url,$icon]):$selected=$url===$selectedPath;?>
               <a href="<?=lc_e($url)?>" class="lc-admin-nav-child <?=$selected?'is-current':''?>" <?=$selected?'aria-current="page"':''?>>
                 <?=lc_icon($icon)?> <span><?=lc_e($name)?></span>
                 <?php if($selected):?><span class="ws-current-dot" aria-hidden="true"></span><?php endif;?>
@@ -83,10 +93,11 @@ function lc_admin_context_tabs(array $u,string $path): void {
     $group=lc_admin_navigation_group_for_path($u,$path);
     if(!$group || count($group['visible'])<2)return;
     ?>
+    <?php $selectedPath=lc_admin_navigation_selected_path($group['visible'],$path); ?>
     <nav class="lc-admin-internal-tabs" aria-label="<?=lc_e($group['title'])?>">
       <strong><?=lc_icon($group['icon'])?> <?=lc_e($group['title'])?></strong>
       <div class="lc-admin-tabs-scroll">
-        <?php foreach($group['visible'] as [$name,$url,$icon]):$selected=lc_admin_navigation_is_active($path,$url);?>
+        <?php foreach($group['visible'] as [$name,$url,$icon]):$selected=$url===$selectedPath;?>
           <a href="<?=lc_e($url)?>" class="lc-admin-tab <?=$selected?'is-current':''?>" <?=$selected?'aria-current="page"':''?>>
             <?=lc_icon($icon)?> <?=lc_e($name)?>
           </a>
