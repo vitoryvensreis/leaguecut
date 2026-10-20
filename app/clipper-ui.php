@@ -45,3 +45,44 @@ function lc_quick_clip_modal(array $u): void {
 </dialog>
 <?php
 }
+
+
+/** Expandable four-slot hero: live campaigns first, then admin-managed information banners. */
+function lc_clipper_dashboard_hero(array $campaigns): void {
+    $items=[];
+    foreach(array_slice($campaigns,0,4) as $campaign)$items[]=['kind'=>'campaign','data'=>$campaign];
+    if(count($items)<4){
+        foreach(lc_clipper_banners_active(4-count($items)) as $banner)$items[]=['kind'=>'banner','data'=>$banner];
+    }
+    if(!$items):?>
+        <section class="lc-clipper-hero-empty">
+            <span class="eyebrow">Sua próxima oportunidade</span>
+            <h1>Novas campanhas a caminho.</h1>
+            <p>Assim que uma campanha estiver ativa, ela aparece aqui. Continue acompanhando as novidades!</p>
+            <a href="/explorar" class="btn">Ver catálogo <?=lc_icon('arrow-right')?></a>
+        </section>
+    <?php return;endif;?>
+    <section class="lc-clipper-hero" aria-label="Campanhas e novidades">
+      <?php foreach($items as $i=>$item):
+        $data=$item['data'];
+        $isCampaign=$item['kind']==='campaign';
+        $src=$isCampaign && lc_campaign_cover_valid((string)($data['cover_url']??''))?(string)$data['cover_url']:(!$isCampaign?lc_clipper_banner_image_src($data):'');
+        $title=(string)$data['title'];
+        $description=$isCampaign?(string)($data['category']??'Campanha ativa'):(string)($data['description']??'');
+        $link=$isCampaign?'/campanhas/'.(string)$data['slug']:(string)$data['cta_url'];
+        $cta=$isCampaign?'Participar da campanha':(string)$data['cta_label'];
+        ?>
+        <article class="lc-clipper-hero-card <?= $isCampaign?'is-campaign':'is-info' ?>" tabindex="0">
+          <?php if($src!==''):?><img class="lc-clipper-hero-image" src="<?=lc_e($src)?>" alt="" loading="<?=$i===0?'eager':'lazy'?>" decoding="async"><?php endif;?>
+          <div class="lc-clipper-hero-copy">
+            <span class="lc-clipper-hero-category"><?=$isCampaign?'CAMPANHA ATIVA':'NOVIDADE LEAGUECUT'?></span>
+            <h2><?=lc_e($title)?></h2>
+            <?php if($description!==''):?><p><?=lc_e($description)?></p><?php endif;?>
+            <a class="btn lc-clipper-hero-cta" href="<?=lc_e($link)?>"><?=lc_e($cta)?> <?=lc_icon('arrow-right')?></a>
+          </div>
+        </article>
+      <?php endforeach;?>
+    </section>
+    <?php if(count($items)>1):?><p class="lc-clipper-hero-hint">Explore os destaques<?=count($items)>1?' • Deslize para o lado no celular':''?></p><?php endif;?>
+<?php
+}
