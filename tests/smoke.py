@@ -196,7 +196,7 @@ def campaign_cover_roundtrip(admin):
     def image_png(width, height):
         def chunk(kind, data):
             return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xffffffff)
-        ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0)
+        ihdr = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
         row = b"\x00" + b"\x12\x34\x56" * width
         return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", zlib.compress(row * height)) + chunk(b"IEND", b"")
 
