@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """LeagueCut end-to-end smoke test using only stdlib and disposable CI MySQL."""
 import http.cookiejar
+import json
 import re
 import urllib.parse
 import urllib.request
