@@ -34,11 +34,11 @@ function lc_feed_embed_url(string $url,string $network): string {
 function lc_social_feed_route(string $method,string $path): bool {
     if($method!=='GET'||$path!=='/feed')return false;
 
-    $network=strtolower(trim((string)($_GET['rede']??'')));
+    $network=''; // A timeline reúne todas as redes, sem filtros.
     if(!in_array($network,['instagram','tiktok'],true))$network='';
     $pageInput=(string)($_GET['pagina']??'1');
     $page=ctype_digit($pageInput)?max(1,min((int)$pageInput,100)):1;
-    $limit=12;$offset=($page-1)*$limit;
+    $limit=10;$offset=($page-1)*$limit;
     $conditions=["c.status='approved'","u.status='approved'","u.role='clipador'"];
     $params=[];
     if($network!==''){$conditions[]="s.network=?";$params[]=$network;}
@@ -57,21 +57,21 @@ function lc_social_feed_route(string $method,string $path): bool {
         return '/feed?'.http_build_query(array_filter(['rede'=>$network,'pagina'=>$n],static fn($v)=>$v!==''));
     };
 
-    lc_page('Feed da comunidade',function()use($rows,$total,$page,$limit,$network,$queryPage){ ?>
+    $leaders=lc_public_ranking(15);
+    lc_page('Feed da comunidade',function()use($rows,$total,$page,$limit,$network,$queryPage,$leaders){ ?>
 <div class="lc-feed" aria-labelledby="lc-feed-title">
-  <section class="lc-feed-hero">
-    <div class="lc-feed-wrap">
-      <span class="eyebrow">COMUNIDADE LEAGUECUT · CLIPES APROVADOS</span>
-      <h1 id="lc-feed-title">O talento ganha <em>espaço.</em></h1>
-      <p>Assista aos conteúdos publicados pelos clipadores nas campanhas LeagueCut. Tudo aqui passou pela conferência da plataforma.</p>
-      <div class="lc-feed-hero-bottom">
-        <nav class="lc-feed-filters" aria-label="Filtrar feed por rede">
-          <a href="/feed" <?=$network===''?'aria-current="page"':''?>>Todos</a>
-          <a href="/feed?rede=instagram" <?=$network==='instagram'?'aria-current="page"':''?>>Instagram</a>
-          <a href="/feed?rede=tiktok" <?=$network==='tiktok'?'aria-current="page"':''?>>TikTok</a>
-        </nav>
-        <span class="lc-feed-total"><?=number_format($total,0,',','.')?> <?= $total===1?'publicação aprovada':'publicações aprovadas' ?></span>
-      </div>
+  <section class="lc-feed-top lc-feed-wrap" aria-label="Comunidade e destaques">
+    <div class="lc-feed-top-heading"><h1 id="lc-feed-title">Feed</h1><span>Comunidade LeagueCut</span></div>
+    <div class="lc-feed-stories-heading"><strong><?=lc_icon('trophy')?> Destaques do ranking</strong><a href="/ranking">Ver ranking completo <?=lc_icon('arrow-right')?></a></div>
+    <div class="lc-feed-stories" role="list" aria-label="Melhores clipadores do ranking geral">
+      <?php foreach($leaders as $i=>$leader): $nick=(string)($leader['nickname']??''); if($nick==='')continue; ?>
+        <a href="/ranking" role="listitem" class="lc-feed-story" title="<?=lc_e(($i+1).'º · @'.$nick)?>">
+          <span class="lc-feed-story-ring"><span class="lc-feed-story-avatar"><?=lc_e(strtoupper(substr($nick,0,1)))?></span></span>
+          <span class="lc-feed-story-nick">@<?=lc_e($nick)?></span>
+          <small><?=$i+1?>º lugar</small>
+        </a>
+      <?php endforeach; ?>
+      <?php if(!$leaders):?><p class="lc-feed-story-empty">Os destaques aparecem aqui quando houver clipes aprovados.</p><?php endif; ?>
     </div>
   </section>
   <section class="lc-feed-wrap lc-feed-content" aria-label="Publicações dos clipadores">
@@ -83,7 +83,7 @@ function lc_social_feed_route(string $method,string $path): bool {
       <a href="<?=$network!==''?'/feed':'/explorar'?>" class="btn btn-ghost"><?=$network!==''?'Ver todas as redes':'Explorar campanhas'?> <?=lc_icon('arrow-right')?></a>
     </div>
   <?php else:?>
-    <div class="lc-feed-grid">
+    <div class="lc-feed-grid" id="lc-feed-timeline" aria-live="polite">
       <?php foreach($rows as $entry):
          $id=(int)$entry['id'];
          $platform=(string)$entry['network'];
@@ -128,11 +128,13 @@ function lc_social_feed_route(string $method,string $path): bool {
       </article>
       <?php endforeach; ?>
     </div>
-    <nav class="lc-feed-pages" aria-label="Navegação das publicações">
+    <nav class="lc-feed-pages" aria-label="Navegação das publicações" data-feed-pagination>
       <?php if($page>1):?><a href="<?=lc_e($queryPage($page-1))?>">← Anteriores</a><?php endif;?>
-      <span>Página <?=$page?> de <?=max(1,(int)ceil($total/$limit))?></span>
+      <span class="lc-feed-page-indicator">Página <?=$page?> de <?=max(1,(int)ceil($total/$limit))?></span>
       <?php if($page*$limit<$total):?><a href="<?=lc_e($queryPage($page+1))?>">Próximas <?=lc_icon('arrow-right')?></a><?php endif;?>
     </nav>
+    <div class="lc-feed-loading" data-feed-loading aria-live="polite"></div>
+    <div class="lc-feed-sentinel" data-feed-sentinel aria-hidden="true"></div>
   <?php endif;?>
   <p class="lc-feed-disclaimer">Os vídeos são reproduzidos diretamente das plataformas de origem, após você clicar em assistir. Contas privadas, conteúdo removido ou incorporação desativada podem impedir a reprodução. Nesse caso, abra a publicação na rede social.</p>
   </section>
