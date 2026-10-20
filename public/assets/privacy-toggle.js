@@ -32,9 +32,15 @@
       el.setAttribute('aria-label',revealed?el.textContent.trim():'Dado oculto');
     });
   }
-  update(false);
-  button.addEventListener('click',()=>update(!root.classList.contains('lc-privacy-visible')));
-  // Never persist visibility across navigation or reuse it on another account.
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)update(false);});
-  window.addEventListener('pagehide',()=>update(false));
+  // Persist only for this tab and user; never use a global cross-account key.
+  const userId = root.getAttribute('data-lc-user-id') || 'guest';
+  const storageKey = 'lc-private-visible-user-' + userId;
+  let initiallyVisible = false;
+  try { initiallyVisible = sessionStorage.getItem(storageKey) === '1'; } catch (_) {}
+  update(initiallyVisible);
+  button.addEventListener('click',()=>{
+    const visible = !root.classList.contains('lc-privacy-visible');
+    update(visible);
+    try { sessionStorage.setItem(storageKey,visible?'1':'0'); } catch (_) {}
+  });
 })();
