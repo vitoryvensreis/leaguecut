@@ -212,7 +212,7 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         $campaign=lc_one('SELECT title FROM campaigns WHERE id=?',[(int)$clip['campaign_id']]);
         lc_page('Editar envio',function()use($clip,$accounts,$campaign){?>
 <div class="container container-md">
-<?php lc_heading('Biblioteca','Editar envio','Você pode corrigir os dados e substituir o vídeo original enquanto o clipe não for aprovado.'); ?>
+<?php lc_heading('Biblioteca','Editar envio','Você pode corrigir a publicação ou substituir o vídeo original enquanto não for aprovado.'); ?>
 <div class="panel">
 <p class="hint">Campanha: <strong><?=lc_e($campaign['title']??'Campanha')?></strong>. Ao salvar, o clipe ficará pendente de nova conferência. Após aprovação, edição e exclusão são bloqueadas.</p>
 <form id="lc-clip-form" data-optional-video="<?=$clip['drive_file_id']?'1':'0'?>" method="post" action="/clipes/<?=(int)$clip['id']?>/editar" enctype="multipart/form-data">
