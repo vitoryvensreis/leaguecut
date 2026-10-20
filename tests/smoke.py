@@ -101,10 +101,11 @@ def replace_clip_video(client, clip_id, account_id, title, url):
         assert payload.get("ok") is True,payload
 
 def register(client,email,name):
+    nick="admin_teste" if email.startswith("admin@") else "criador_teste"
     return submit(client,"/cadastrar",{
       "full_name":name,"email":email,"password":"This-Is-A-Test-Password-123",
       "instagram":"testcreator","whatsapp":"85999998888","portfolio_url":"",
-      "pix_key":"test@example.com","consent_whatsapp":"1"
+      "nickname":nick, "pix_key":"test@example.com","consent_whatsapp":"1"
     },"/cadastrar")
 
 
@@ -346,8 +347,36 @@ def main():
     assert 'name="code"' in confirm and 'name="new_password"' in confirm, "New password requires one-time code"
 
     assert 'privacy-toggle.js' not in get(make_client(),"/cadastrar"), "No private fields on public signup"
+    import json
+    availability=lambda nick: json.loads(get(make_client(),"/api/nicknames/disponibilidade?nickname="+urllib.parse.quote(nick)))
+    assert availability("criador_teste")["available"] is True, "Free nick shown available"
+    assert availability("admin")["available"] is False and availability("admin")["valid"] is False, "Reserved nick rejected"
+    assert availability("lc_123")["valid"] is False, "Legacy reserved prefix rejected"
+    assert availability("a")["valid"] is False, "Short nick rejected"
+    assert availability("bad nickname")["valid"] is False, "Invalid syntax rejected"
+    signup=get(make_client(),"/cadastrar")
+    assert 'name="nickname"' in signup and 'id="lc-nickname-status"' in signup, "Live nickname field visible"
+    assert re.search(r'<input[^>]*name="nickname"[^>]*required', signup), "Nickname is required in form"
+    assert 'signup-nickname-check.js' in signup and 'signup-modal-polish.css' in signup, "Nickname and modal assets loaded"
+    assert 'Chave Pix' in signup and 'nickname público (opcional)' not in signup.lower()
+    without_nick=submit(make_client(),"/cadastrar",{
+      "full_name":"Sem Nick","email":"sem-nick@leaguecut.test",
+      "password":"This-Is-A-Test-Password-123","instagram":"testcreator",
+      "whatsapp":"85999998888","pix_key":"test@example.com"
+    },"/cadastrar")
+    assert "nickname é obrigatório" in without_nick.lower(), "Backend enforces mandatory nickname"
     creator_page=register(creator,"creator@leaguecut.test","Criador Teste")
     assert "analisando" in creator_page.lower(), "Creator pending page"
+    assert availability("CRIADOR_TESTE")["available"] is False, "Case-insensitive duplicate blocked"
+    assert availability("criador_teste")["valid"] is True, "Existing nickname is a valid identifier"
+    collision=submit(make_client(),"/cadastrar",{
+      "full_name":"Outro Criador","email":"outro-criador@leaguecut.test",
+      "nickname":"CRIADOR_TESTE",
+      "password":"This-Is-A-Test-Password-123","instagram":"testcreator",
+      "whatsapp":"85999998888","pix_key":"test@example.com"
+    },"/cadastrar")
+    assert "nickname já está em uso" in collision.lower(), "DB rejects duplicate even if JS is bypassed"
+
     waiting=get(creator,"/aguardando")
     assert "WhatsApp" in waiting and "Estamos analisando" in waiting, "Pending users see WhatsApp approval notice"
     assert "Estamos analisando" in get(creator,"/notificacoes"), "Pending users cannot use notifications"
