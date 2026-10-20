@@ -288,7 +288,7 @@ function lc_tile(array $c): void {
     $cover = (string)($c['cover_url'] ?? '');
 ?><?php $isDemo=!empty($c['is_demo']); ?><a class="campaign-card" href="<?=$isDemo?'/demo/campanhas/':'/campanhas/'?><?=lc_e($c['slug'])?>">
   <div class="campaign-cover">
-    <?php if(lc_valid_https($cover)):?><img src="<?=lc_e($cover)?>" alt="" loading="lazy" decoding="async"><?php else:?><div class="default-art"><span><?=lc_e(mb_strtoupper(mb_substr($c['title'],0,1)))?></span><i><?=lc_icon("play")?></i></div><?php endif;?>
+    <?php if(lc_campaign_cover_valid($cover)):?><img src="<?=lc_e($cover)?>" alt="" loading="lazy" decoding="async"><?php else:?><div class="default-art"><span><?=lc_e(mb_strtoupper(mb_substr($c['title'],0,1)))?></span><i><?=lc_icon("play")?></i></div><?php endif;?>
     <div class="cover-overlay"></div><span class="cover-play"><?=lc_icon("play")?></span>
     <span class="cover-tag"><?=!empty($c['is_demo'])?'DEMONSTRAÇÃO':lc_e($c['status']==='active'?'EM ALTA':'CAMPANHA')?></span>
   </div>
