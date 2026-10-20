@@ -73,7 +73,7 @@ function lc_workspace_links(array $u): array {
            ['Modo demonstração','/admin/demo','sparkles'],
           ['Indicações e comissões','/admin/indicacoes','hand-coins'],
           ['Auditoria de contas','/admin/atividades','activity'],
-          ['Acessos e operações','/admin/auditoria','list-checks'],
+          ['Acessos e operações','/admin/auditoria','clipboard-check'],
           ['Solicitações LGPD','/admin/privacidade','shield-check'],
           ['Meus dados','/conta','user-round-cog'],
           ['Indicações','/indicacoes','users-round'],
