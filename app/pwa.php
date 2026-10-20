@@ -2,6 +2,54 @@
 declare(strict_types=1);
 /** B6D1 PWA: private pages and their API/data responses are always online-only. */
 require_once __DIR__ . '/brand-images.php';
+require_once __DIR__ . '/seo.php';
+
+/** Resolve the saved favicon without fetching arbitrary remote assets on the VPS. */
+function lc_pwa_active_icon(?array $settings=null): ?array {
+    $cfg=lc_seo_config($settings??lc_settings());
+    $src=trim((string)($cfg['seo_favicon_url']??''));
+    if($src==='' || !lc_seo_valid_asset($src,'icon'))return null;
+    if(preg_match('~^/media/seo/icon/([a-f0-9]{36})$~D',$src,$m)){
+        $matches=glob(lc_seo_media_dir().'/icon-'.$m[1].'.*')?:[];
+        if(count($matches)!==1 || !is_file($matches[0]))return null;
+        $info=@getimagesize($matches[0]);
+        if(!$info || ($info[0]??0)!==($info[1]??0) || !in_array($info['mime']??'',['image/png','image/jpeg','image/webp'],true))
+            return null;
+        $size=(int)$info[0];
+        return ['src'=>$src,'type'=>(string)$info['mime'],'sizes'=>$size.'x'.$size,'width'=>$size];
+    }
+    // Admin may opt for an HTTPS asset. Never proxy or download it server-side.
+    if(lc_valid_https($src))return ['src'=>$src,'type'=>null,'sizes'=>'any','width'=>0];
+    return null;
+}
+function lc_pwa_icon_revision(?array $active): string {
+    return substr(hash('sha256',(string)($active['src']??'default')),0,12);
+}
+function lc_pwa_manifest_icons(?array $active): array {
+    $standard=[
+        ['src'=>'/pwa/icon/192','type'=>'image/png','sizes'=>'192x192','purpose'=>'any'],
+        ['src'=>'/pwa/icon/512','type'=>'image/png','sizes'=>'512x512','purpose'=>'any'],
+        ['src'=>'/pwa/icon/192-maskable','type'=>'image/png','sizes'=>'192x192','purpose'=>'maskable'],
+        ['src'=>'/pwa/icon/512-maskable','type'=>'image/png','sizes'=>'512x512','purpose'=>'maskable']
+    ];
+    if(!$active)return $standard;
+    $chosen=['src'=>$active['src'],'sizes'=>$active['sizes'],'purpose'=>'any'];
+    if($active['type'])$chosen['type']=$active['type'];
+    // For a high-resolution square image, the customized icon becomes the primary
+    // app artwork. Smaller favicons retain the installable built-in fallback.
+    if($active['width']>=512){
+        // Keep exact 192x192 fallbacks for installation engines which require both
+        // 192 and 512 sizes. The configured high-resolution image remains primary.
+        return [
+            $chosen,
+            ['src'=>'/pwa/icon/192','type'=>'image/png','sizes'=>'192x192','purpose'=>'any'],
+            array_merge($chosen,['purpose'=>'maskable']),
+            ['src'=>'/pwa/icon/192-maskable','type'=>'image/png','sizes'=>'192x192','purpose'=>'maskable']
+        ];
+    }
+    return array_merge([$chosen],$standard);
+}
+
 function lc_pwa_icon_png(int $size,bool $maskable=false): string {
     return lc_brand_icon_png($size,$maskable);
 }
@@ -74,18 +122,14 @@ function lc_pwa_routes(string $method,string $path): bool {
     if($path==='/pwa/manifest' || $path==='/manifest.webmanifest'){
         $s=lc_settings();
         $name=(string)($s['brand_name']??'LeagueCut');
+        $selectedIcon=lc_pwa_active_icon($s);
         header('Content-Type: application/manifest+json; charset=UTF-8');
         header('Cache-Control: public, max-age=300');
         echo json_encode([
             'id'=>'/','name'=>$name,'short_name'=>'LeagueCut','start_url'=>'/',
             'scope'=>'/','display'=>'standalone','background_color'=>'#080a0e',
             'theme_color'=>'#e50914','lang'=>'pt-BR',
-            'icons'=>[
-                ['src'=>'/pwa/icon/192','type'=>'image/png','sizes'=>'192x192','purpose'=>'any'],
-                ['src'=>'/pwa/icon/512','type'=>'image/png','sizes'=>'512x512','purpose'=>'any'],
-                ['src'=>'/pwa/icon/192-maskable','type'=>'image/png','sizes'=>'192x192','purpose'=>'maskable'],
-                ['src'=>'/pwa/icon/512-maskable','type'=>'image/png','sizes'=>'512x512','purpose'=>'maskable']
-            ],
+            'icons'=>lc_pwa_manifest_icons($selectedIcon),
             'description'=>'Acesse suas campanhas, clipes e recompensas LeagueCut.'
         ],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
         return true;

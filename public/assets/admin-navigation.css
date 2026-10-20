@@ -30,3 +30,8 @@
 .lc-admin-internal-tabs+.container{padding-top:21px!important}
 @media(max-width:970px){.lc-admin-internal-tabs{padding:0 17px;margin-top:20px}.lc-admin-nav-summary{min-height:48px}}
 @media(prefers-reduced-motion:reduce){.lc-admin-chevron{transition:none}}
+
+@media(min-width:971px){
+ .workspace-page .lc-admin-nav-summary>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+ .workspace-page .lc-admin-nav-summary{font-size:.82rem}
+}

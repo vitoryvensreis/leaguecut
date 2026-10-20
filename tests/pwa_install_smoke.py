@@ -19,8 +19,9 @@ manifest = json.loads(body)
 assert manifest["display"] == "standalone"
 assert manifest["scope"] == "/"
 assert manifest["start_url"] == "/"
-assert {i["sizes"] for i in manifest["icons"]} == {"192x192", "512x512"}
-assert all(i["src"].startswith("/pwa/icon/") for i in manifest["icons"])
+assert {"192x192", "512x512"}.issubset({i["sizes"] for i in manifest["icons"]})
+assert all(i["src"].startswith(("/pwa/icon/","/media/seo/icon/")) for i in manifest["icons"])
+assert any(i["src"].startswith("/media/seo/icon/") for i in manifest["icons"]), "Uploaded admin favicon must reach PWA manifest"
 assert {"any", "maskable"}.issubset({i["purpose"] for i in manifest["icons"]})
 
 status, headers, worker = get("/pwa/worker")
@@ -43,7 +44,9 @@ for icon in manifest["icons"]:
 status, headers, homepage = get("/")
 html = homepage.decode("utf-8")
 assert status == 200
-assert re.search(r'<link rel="manifest" href="/pwa/manifest\?v=4"', html)
+assert re.search(r'<link rel="manifest" href="/pwa/manifest\?v=[a-f0-9]+"', html)
+assert re.search(r'<link rel="icon"[^>]+href="/media/seo/icon/[a-f0-9]{36}"',html), "Active admin favicon must appear in page head"
+assert 'rel="apple-touch-icon" href="/media/seo/icon/' in html, "Apple home screen icon follows admin setting"
 assert 'data-pwa-install' in html
 assert 'lc-pwa-install-help' in html
 assert '/assets/pwa.js?v=4' in html

@@ -157,7 +157,7 @@ def seo_upload_and_save(admin):
     assert 'name="social_tiktok" value="https://www.tiktok.com/@leaguecut"' in panel, "Saved TikTok remains visible in SEO form"
 
     homepage=get(make_client(),"/")
-    assert '/assets/b6-layout.css?v=2' in homepage, "Responsive logo/sidebar/header stylesheet"
+    assert '/assets/b6-layout.css?v=3' in homepage, "Responsive logo/sidebar/header stylesheet"
     assert 'href="https://www.instagram.com/leaguecut/"' in homepage and 'href="https://www.tiktok.com/@leaguecut"' in homepage, "Configured footer social links"
     assert '/politica-de-privacidade' in homepage and '/exclusao-de-dados' in homepage and '/termos-de-uso' in homepage, "Legal footer pages linked"
     assert "ESCOTILHA PRODUTORA LTDA" in homepage and "64.069.224/0001-32" in homepage, "Legal owner visible in site footer"
@@ -293,7 +293,7 @@ def main():
     assert "Política de Cookies" in get(make_client(),"/politica-de-cookies"), "Cookie policy is public"
 
     import json
-    assert re.search(r'<link rel="manifest" href="/pwa/manifest(?:\?v=\d+)?">', home), "PWA discoverable"
+    assert re.search(r'<link rel="manifest" href="/pwa/manifest(?:\?v=[a-f0-9]+)?">', home), "PWA discoverable"
     with creator.open(BASE+"/pwa/manifest",timeout=12) as response:
         manifest=json.loads(response.read())
         assert response.headers.get("Content-Type","").startswith("application/manifest+json")

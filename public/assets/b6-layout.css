@@ -137,3 +137,14 @@
 @media(max-width:700px){
  .site-footer .lc-footer-company{flex:0 0 auto;width:100%}
 }
+
+/* Extra width ensures desktop admin groups do not wrap when scrollbar is visible. */
+@media(min-width:971px){
+  .workspace-page{--lc-fixed-sidebar-width:320px}
+  .workspace-page .workspace-shell{--sidebar:var(--lc-fixed-sidebar-width);grid-template-columns:var(--lc-fixed-sidebar-width) minmax(0,1fr)}
+  .workspace-page .workspace-sidebar{width:var(--lc-fixed-sidebar-width)}
+  .workspace-page .site-footer{margin-left:var(--lc-fixed-sidebar-width)}
+}
+@media(min-width:971px) and (max-width:1310px){
+  .workspace-page{--lc-fixed-sidebar-width:306px}
+}
