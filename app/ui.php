@@ -125,7 +125,26 @@ function lc_workspace_nav(array $u, string $current): void {
           </a>
         <?php endforeach; ?>
       </div>
-    <?php endforeach;
+    <?php endforeach; ?>
+<dialog id="lc-auth-mfa" class="lc-auth-dialog lc-auth-mfa-dialog" aria-labelledby="lc-auth-mfa-title" aria-modal="true" <?=$path==='/seguranca/verificar'?'open':''?>>
+  <div class="lc-auth-dialog-inner">
+    <button class="lc-auth-close" type="button" aria-label="Fechar verificação" data-auth-close>×</button>
+    <span class="eyebrow">SEGURANÇA DA CONTA</span>
+    <div class="lc-auth-mfa-symbol"><?=lc_icon('shield-check')?></div>
+    <h2 id="lc-auth-mfa-title">Confirme seu acesso</h2>
+    <p class="lc-auth-desc">Digite o código de 6 dígitos do seu autenticador ou um código de recuperação.</p>
+    <p class="lc-auth-message is-error" data-auth-error role="alert" hidden></p>
+    <form method="post" action="/seguranca/verificar" class="lc-auth-form" data-auth-async="mfa"><?=lc_csrf()?>
+      <label class="field full"><span>Código de verificação</span><input type="text" name="mfa_code" inputmode="text" autocomplete="one-time-code" maxlength="60" required placeholder="000000 ou código de recuperação"></label>
+      <div class="form-actions">
+        <button class="btn" type="submit">Verificar e entrar <?=lc_icon('arrow-right')?></button>
+        <button type="button" class="lc-auth-mfa-back" data-auth-back>Voltar ao login</button>
+      </div>
+      <p class="form-note">O código muda a cada 30 segundos. Após 6 tentativas incorretas, aguarde 15 minutos.</p>
+    </form>
+  </div>
+</dialog>
+<?php
 }
 
 function lc_page(string $title, callable $body, string $active = ''): void {
@@ -179,6 +198,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/polish.css?v=10">
 <link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <link rel="stylesheet" href="/assets/ux-upgrade.css?v=2">
+<link rel="stylesheet" href="/assets/auth-mfa-modal.css?v=1">
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
 <link rel="stylesheet" href="/assets/arena.css?v=1">
@@ -288,7 +308,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($workspace && $u['role']==='clipador')lc_quick_clip_modal($u); ?>
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <?php lc_privacy_banner(); ?>
-<script src="/assets/ux-upgrade.js?v=1" defer></script>
+<script src="/assets/ux-upgrade.js?v=3" defer></script>
+<script src="/assets/auth-mfa-modal.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><script src="/assets/flow-canvas-v2.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/flow-editor.js?v=2" defer></script><?php endif; ?>
@@ -351,7 +372,8 @@ function lc_auth_dialogs(string $path,?array $flash): void {
     <h2 id="lc-auth-title-<?=$kind?>"><?=$isSignup?'Junte-se aos criadores.':'Entre na sua arena.'?></h2>
     <p class="lc-auth-desc"><?=$isSignup?'Crie sua conta para participar de campanhas. Seu cadastro será analisado pela equipe.':'Acompanhe seus clipes, campanhas e recompensas em um só lugar.'?></p>
     <?php if($direct && $flash):?><p class="lc-auth-message <?=$flash['type']==='error'?'is-error':''?>" role="alert"><?=lc_e($flash['message'])?></p><?php endif;?>
-    <form method="post" action="/<?=$route?>" class="lc-auth-form"><?=lc_csrf()?>
+    <?php if(!$isSignup):?><p class="lc-auth-message is-error" data-auth-error role="alert" hidden></p><?php endif;?>
+    <form method="post" action="/<?=$route?>" class="lc-auth-form" <?=$isSignup?'':'data-auth-async="login"'?>><?=lc_csrf()?>
       <div class="form-grid">
       <?php if($isSignup):?>
         <?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
