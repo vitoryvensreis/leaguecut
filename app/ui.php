@@ -100,6 +100,7 @@ function lc_workspace_links(array $u): array {
     return [
       ['Visão geral','/dashboard','layout-dashboard'],
       ['Explorar campanhas','/explorar','compass'],
+      ['Feed','/feed','clapperboard'],
       ['Ranking geral','/ranking','trophy'],
       ['Minha biblioteca','/biblioteca','library'],
       ['Minhas redes','/redes','share-2'],
@@ -179,6 +180,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($needsLanding): ?><link rel="stylesheet" href="/assets/landing.css?v=11"><?php endif; ?>
 <?php if($needsBanner): ?><link rel="stylesheet" href="/assets/banner.css?v=11"><?php endif; ?>
 <?php if($needsCampaignExperience): ?><link rel="stylesheet" href="/assets/campaign-experience.css?v=1"><?php endif; ?>
+<?php if($path==='/feed'): ?><link rel="stylesheet" href="/assets/social-feed.css?v=1"><?php endif; ?>
 <?php if($path==='/admin/campanhas'||str_starts_with($path,'/admin/campanhas/')): ?><link rel="stylesheet" href="/assets/campaign-cover-admin.css?v=1"><?php endif; ?>
 <?php if($workspace): ?>
 <link rel="stylesheet" href="/assets/workspace.css?v=10">
@@ -229,6 +231,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
       <a class="<?=$active==='home'?'selected':''?>" <?=$active==='home'?'aria-current="page"':''?> href="/"><?=lc_icon("play")?> Início</a>
       <a class="<?=$active==='explore'?'selected':''?>" <?=$active==='explore'?'aria-current="page"':''?> href="/explorar"><?=lc_icon("compass")?> Campanhas</a>
+      <a class="<?=$active==='feed'?'selected':''?>" <?=$active==='feed'?'aria-current="page"':''?> href="/feed"><?=lc_icon("clapperboard")?> Feed</a>
       <a class="<?=$active==='ranking'?'selected':''?>" href="/ranking"><?=lc_icon('trophy')?> Ranking</a>
       <?php if($u && $u['role']==='criador'): ?><a class="<?=$active==='creator'?'selected':''?>" href="/criador"><?=lc_icon('layout-dashboard')?> Minha área</a><?php endif; ?>
       <?php if ($u && $u['status']==='approved' && $u['role']!=='criador'): ?>
@@ -311,6 +314,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <?php lc_privacy_banner(); ?>
 <script src="/assets/ux-upgrade.js?v=3" defer></script>
+<?php if($path==='/feed'): ?><script src="/assets/social-feed.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/signup-nickname.js?v=1" defer></script>
 <script src="/assets/auth-mfa-modal.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>
