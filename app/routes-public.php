@@ -209,8 +209,8 @@ function lc_public_routes(string $method,string $path): bool {
         lc_page('Status do cadastro',function()use($u){?>
 <div class="container container-sm"><span class="eyebrow">Análise de cadastro</span>
 <div class="large-surface"><h1><?= $u['status']==='pending'?'Estamos analisando seu perfil.':($u['status']==='rejected'?'Cadastro não aprovado.':'Conta suspensa.') ?></h1>
-<p><?= $u['status']==='pending'?'Seu cadastro foi recebido. Nossa equipe verificará os dados; quando aprovado, você terá acesso ao painel.':'Entre em contato com a administração para obter informações.' ?></p>
-<span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(strtoupper($u['status']))?></span><div class="form-actions"><a class="btn btn-ghost" href="/explorar">Ver campanhas disponíveis</a></div></div></div>
+<p><?= $u['status']==='pending'?'Cadastro recebido! Aguarde a aprovação da equipe. Avisaremos pelo WhatsApp cadastrado quando seu acesso estiver liberado.':'Entre em contato com a administração para obter informações.' ?></p>
+<span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(strtoupper($u['status']))?></span></div></div>
 <?php });return true;
     }
     if($method==='GET' && preg_match('~^/campanhas/([a-z0-9-]+)$~',$path,$m)){
