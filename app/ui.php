@@ -62,6 +62,7 @@ function lc_workspace_links(array $u): array {
           ['Automações','/admin/automacoes','activity'],
           ['Conexão WhatsApp','/admin/whatsapp','share-2'],
           ['Banner da Home','/admin/home','layers'],
+          ['Banners do clipador','/admin/banners-clipador','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['SEO e compartilhamento','/admin/seo','globe'],
           ['Integrações','/admin/integracoes','settings-2'],
