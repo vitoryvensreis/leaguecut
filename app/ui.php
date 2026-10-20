@@ -5,7 +5,7 @@ require_once __DIR__ . '/clipper-ui.php';
 require_once __DIR__ . '/admin-navigation.php';
 
 function lc_icon(string $name, string $class = ''): string {
-    static $allowed = ["play","compass","layout-dashboard","library","wallet","share-2","shield-check","log-out","users-round","user-round-cog","clapperboard","chart-column","hand-coins","trophy","palette","chevron-right","arrow-right","external-link","lock-keyhole","check","circle-check","sparkles","folder-open","clock-3","plus","upload-cloud","settings-2","bell","activity","clipboard-check","layers","circle-dollar-sign","menu","video","globe","shield"];
+    static $allowed = ["play","compass","layout-dashboard","library","wallet","share-2","shield-check","log-out","users-round","user-round-cog","clapperboard","chart-column","hand-coins","trophy","palette","chevron-right","arrow-right","external-link","lock-keyhole","check","circle-check","sparkles","folder-open","clock-3","plus","upload-cloud","settings-2","bell","activity","clipboard-check","layers","circle-dollar-sign","menu","video","globe","shield","eye","eye-off"];
     if (!in_array($name, $allowed, true)) $name = 'circle-check';
     $class = trim(preg_replace('/[^a-zA-Z0-9_ -]/', '', $class) ?? '');
     return '<svg class="lc-icon ' . lc_e($class) . '" aria-hidden="true" focusable="false"><use href="/assets/icons.svg#' . lc_e($name) . '"></use></svg>';
@@ -186,7 +186,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/b4b-arena-polish.css?v=1">
 <link rel="stylesheet" href="/assets/rank-trophies.css?v=1">
 <?php if($path==='/admin/bonus-mensal'): ?><link rel="stylesheet" href="/assets/monthly-bonuses.css?v=1"><?php endif; ?>
-<?php if($u): ?><link rel="stylesheet" href="/assets/privacy-toggle.css?v=1"><?php endif; ?>
+<?php if($u): ?><link rel="stylesheet" href="/assets/privacy-toggle.css?v=2"><?php endif; ?>
 <?php if(in_array($path,['/indicacoes','/admin/indicacoes'],true)): ?><link rel="stylesheet" href="/assets/referrals.css?v=1"><?php endif; ?>
 <?php if($path==='/seguranca/2fa'): ?><link rel="stylesheet" href="/assets/mfa-qr.css?v=1"><?php endif; ?>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><link rel="stylesheet" href="/assets/flow-editor.css?v=2">
@@ -205,7 +205,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
 </head>
-<body class="<?=$workspace?'workspace-page':'public-page'?> <?=$u&&$u['role']==='clipador'&&$u['status']!=='approved'?'lc-awaiting-only':''?>">
+<body class="<?=$workspace?'workspace-page':'public-page'?> <?=$u&&$u['role']==='clipador'&&$u['status']!=='approved'?'lc-awaiting-only':''?> <?=$u&&$u['role']==='clipador'&&$path==='/dashboard'?'lc-clipper-dashboard-page':''?>">
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
@@ -226,6 +226,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
       <?php if ($u && $u['role']==='admin'): ?><a class="<?=$active==='admin'?'selected':''?>" <?=$active==='admin'?'aria-current="page"':''?> href="/admin"><?=lc_icon("shield-check")?> Administração</a><?php endif; ?>
     </nav><?php else: ?><div class="workspace-breadcrumb"><?=lc_icon("layers")?> <?=lc_e($areaTitle)?> <span class="workspace-breadcrumb-slash">/</span> <?=lc_e($title)?></div><?php endif; ?>
     <div class="header-right">
+      <?php if($u && $workspace): ?><button type="button" id="lc-privacy-toggle" class="lc-privacy-header-btn" aria-label="Mostrar dados" aria-pressed="false" title="Mostrar dados"><?=lc_icon("eye")?></button><?php endif; ?>
       <?php if($workspace): ?>
       <details class="rt-notifications" id="rt-notifications">
         <summary aria-label="Atualizações" title="Atualizações"><?=lc_icon('bell')?><span class="rt-unread" data-realtime-unread hidden>0</span></summary>
@@ -298,7 +299,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==="/admin/notificacoes" && $u && $u['role']==='admin'): ?><script src="/assets/admin-notices.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/notification-preferences.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/input-masks.js?v=1" defer></script>
-<?php if($u): ?><script src="/assets/privacy-toggle.js?v=2" defer></script><?php endif; ?>
+<?php if($u): ?><script src="/assets/privacy-toggle.js?v=3" defer></script><?php endif; ?>
 <?php if($workspace): ?><script src="/assets/clipper-ux.js?v=1" defer></script><script src="/assets/admin-navigation.js?v=1" defer></script><?php endif; ?>
 </body></html><?php
 }
