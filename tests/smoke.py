@@ -232,7 +232,9 @@ def campaign_cover_roundtrip(admin):
     assert 'Capa (URL HTTPS)' not in form and 'name="cover_url"' not in form
     created = multipart("/admin/campanhas", "/admin/campanhas", fields, image_png(640, 360))
     assert "Campanha CI com Capa" in created, "Creation with file succeeded"
-    url = "/campanhas/campanha-ci-com-capa"
+    slug_match = re.search(r'href="(/campanhas/campanha-ci-com-capa-[a-f0-9]{6})"', created)
+    assert slug_match, "Campaign created with a unique slug"
+    url = slug_match.group(1)
     public = get(make_client(), url)
     match = re.search(r'(/media/campaign/[a-f0-9]{36})', public)
     assert match, "Uploaded cover is used on the public campaign page"
@@ -252,7 +254,7 @@ def campaign_cover_roundtrip(admin):
     assert first in catalog, "Public catalog displays uploaded cover"
     assert first in get(admin, "/admin/campanhas"), "Admin catalog displays uploaded cover"
     assert "https://leaguecut.com" + first in public, "Campaign Open Graph image uses uploaded cover"
-    around = created.find('href="/campanhas/campanha-ci-com-capa"')
+    around = created.find('href="' + url + '"')
     assert around >= 0
     edit = re.search(r'href="(/admin/campanhas/\d+/editar)"', created[around:around + 2500])
     assert edit, "New campaign has admin edit link"
