@@ -82,6 +82,14 @@ if ($path==='/health' && $method==='GET') {
     echo 'LeagueCut OK';return;
 }
 if(lc_meta_deauthorization_route($method,$path))return;
+// Pending or suspended clippers cannot browse any private/public area except their status and sign-out.
+$restrictedClipper=lc_user();
+if($restrictedClipper && $restrictedClipper['role']==='clipador' && $restrictedClipper['status']!=='approved'
+   && !($method==='GET' && $path==='/aguardando')
+   && !($method==='POST' && $path==='/sair')) {
+    if($method==='GET')lc_redirect('/aguardando');
+    http_response_code(403);exit('Sua conta aguarda aprovação antes de enviar dados.');
+}
 if(lc_social_oauth_route($method,$path))return;
 if(lc_clip_video_route($method,$path))return;
 if(lc_realtime_route($method,$path))return;
