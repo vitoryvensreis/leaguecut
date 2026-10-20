@@ -76,6 +76,28 @@ if($method==='GET' && preg_match('~^/media/campaign/([a-f0-9]{36})$~D',$path,$co
 if($method==='GET' && preg_match('~^/media/home/([a-f0-9]{36})$~D',$path,$mediaMatch)) {
     lc_home_media_response($mediaMatch[1]);
 }
+// Logged-in users enter their own workspace instead of the public marketing LP.
+// Accounts pending review cannot browse approved clipper pages by URL.
+if($method==='GET' && $path==='/'){
+    if($current=lc_user()){
+        lc_redirect($current['role']==='admin'?'/admin':
+            ($current['role']==='criador'?'/criador':
+            ($current['status']==='approved'?'/dashboard':'/aguardando')));
+    }
+}
+if(($pendingUser=lc_user())&&$pendingUser['role']==='clipador'
+   &&$pendingUser['status']!=='approved'){
+    $allowedPending=in_array($path,[
+        '/aguardando','/sair','/politica-de-privacidade','/politica-de-cookies',
+        '/termos-de-uso','/exclusao-de-dados','/privacidade/cookies','/preferencias-de-privacidade'
+    ],true);
+    if(!$allowedPending && !str_starts_with($path,'/media/') &&
+       !str_starts_with($path,'/pwa/') && !str_starts_with($path,'/seguranca/') &&
+       !str_starts_with($path,'/redes/oauth/')){
+        if($method==='GET')lc_redirect('/aguardando');
+        http_response_code(403);exit('Seu cadastro ainda aguarda aprovação.');
+    }
+}
 if ($path==='/health' && $method==='GET') {
     header('Content-Type: text/plain; charset=UTF-8');
     lc_db()->query('SELECT 1');
