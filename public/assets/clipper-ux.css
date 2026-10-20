@@ -124,3 +124,18 @@
 
 /* Pending accounts show only their status, identity and sign-out controls. */
 .lc-awaiting-only .main-nav,.lc-awaiting-only .site-footer{display:none!important}
+
+/* Full-bleed campaign cinema. The panels below still use readable page padding. */
+.lc-clipper-dashboard-page .workspace-body .ws-dashboard{width:100%;max-width:none;padding:0 0 88px!important;margin:0}
+.lc-clipper-dashboard-page .ws-dashboard>.lc-clipper-hero,
+.lc-clipper-dashboard-page .ws-dashboard>.lc-clipper-hero-empty{width:100%;max-width:none;margin:0;border-radius:0;border-left:0;border-right:0;border-top:0;box-shadow:none}
+.lc-clipper-dashboard-page .ws-dashboard>.lc-clipper-hero{height:clamp(340px,37vw,560px)}
+.lc-clipper-dashboard-page .ws-dashboard>.lc-my-campaigns,
+.lc-clipper-dashboard-page .ws-dashboard>.ws-kpi-grid,
+.lc-clipper-dashboard-page .ws-dashboard>.ws-dual,
+.lc-clipper-dashboard-page .ws-dashboard>.ws-trace{margin-left:clamp(18px,3.1vw,53px);margin-right:clamp(18px,3.1vw,53px)}
+.lc-clipper-dashboard-page .ws-dashboard>.lc-clipper-hero-hint{padding:0 clamp(18px,3.1vw,53px)}
+@media(max-width:970px){
+ .lc-clipper-dashboard-page .ws-dashboard>.lc-clipper-hero{height:min(520px,68vh);min-height:350px}
+ .lc-clipper-dashboard-page .ws-dashboard>.lc-my-campaigns,.lc-clipper-dashboard-page .ws-dashboard>.ws-kpi-grid,.lc-clipper-dashboard-page .ws-dashboard>.ws-dual,.lc-clipper-dashboard-page .ws-dashboard>.ws-trace{margin-left:18px;margin-right:18px}
+}
