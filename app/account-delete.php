@@ -54,6 +54,8 @@ function lc_account_delete_execute(int $actorId,int $subjectId,string $typedEmai
             lc_query('DELETE FROM ledger_entries WHERE user_id=? OR clip_id IN (SELECT id FROM clips WHERE user_id=?)',[$subjectId,$subjectId]);
             lc_query('DELETE FROM withdrawals WHERE user_id=?',[$subjectId]);
         }
+        // Remember the avatar before the cascading account deletion. Remove its file only after SQL commits.
+        $avatar=(string)(lc_one('SELECT filename FROM user_avatars WHERE user_id=?',[$subjectId])['filename']??'');
         $clips=lc_all('SELECT id,drive_file_id,original_filename FROM clips WHERE user_id=? FOR UPDATE',[$subjectId]);
         // Google Drive is outside the SQL transaction: any API error prevents
         // account deletion. Never silently claim external files were removed.
@@ -77,6 +79,8 @@ function lc_account_delete_execute(int $actorId,int $subjectId,string $typedEmai
             lc_account_admin_audit($actorId,'account.deleted',null,
                 ['fields'=>$eraseFinancial?['account','clips','linked_records','financial_history_purged']:['account','clips','linked_records']]);
             $db->commit();
+            if(preg_match('/^[a-f0-9]{36}\\.(?:jpg|png|webp)$/D',$avatar))
+                @unlink(lc_env('AVATAR_MEDIA_DIR','/home/leaguecut/shared/storage/avatars').'/'.$avatar);
         }
     }catch(Throwable $e){
         if($db->inTransaction())$db->rollBack();
