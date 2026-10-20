@@ -28,3 +28,13 @@
  .workspace-page .ws-mobile-menu details[open] summary .lc-icon{transform:none}
 }
 @media(max-width:610px){.workspace-page .ws-rank-position{padding:7px;font-size:.73rem}.workspace-page .ws-rank-position span{display:inline!important}.workspace-page .ws-mobile-menu summary{top:79px}}
+
+/* Small round profile pictures in header and desktop sidebar everywhere. */
+.header-right .avatar{overflow:hidden;flex:0 0 32px;border-radius:50%;text-decoration:none}
+.header-right .avatar img,.ws-sidebar-avatar img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.ws-sidebar-avatar{border-radius:50%;overflow:hidden;text-decoration:none}
+.lc-photo-current{display:flex;align-items:center;gap:17px;margin-bottom:20px}
+.lc-photo-current>img,.lc-photo-placeholder{width:90px;height:90px;border-radius:50%;object-fit:cover;display:grid;place-items:center;background:#a81931;font-size:2rem;font-weight:800}
+.lc-photo-panel{margin-bottom:20px}
+.lc-photo-panel form{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.lc-photo-panel form .field{flex:1;min-width:210px}
