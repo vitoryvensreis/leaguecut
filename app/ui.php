@@ -202,7 +202,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
 </head>
-<body class="<?=$workspace?'workspace-page':'public-page'?>">
+<body class="<?=$workspace?'workspace-page':'public-page'?> <?=$u&&$u['role']==='clipador'&&$u['status']!=='approved'?'lc-awaiting-only':''?>">
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
