@@ -72,6 +72,20 @@ def main():
                 ["workspace.css","realtime.css"],"/")
     assert "Pular para o conteúdo" in home
     catalog=verify(guest,"/explorar",["landing.css","polish.css"],["workspace.css","banner.css"],"/explorar")
+    feed=verify(guest,"/feed",["social-feed.css"],["workspace.css"],"/feed")
+    assert 'href="/feed"' in home and 'Feed</a>' in home, "Feed link is visible in public top navigation"
+    assert 'id="lc-feed-title"' in feed and 'lc-feed-filters' in feed, "Feed has heading and network filters"
+    assert 'assets/social-feed.js?v=1' in feed, "Feed embeds are loaded only on click"
+    instagram_feed=verify(guest,"/feed?rede=instagram",["social-feed.css"],["workspace.css"],"/feed")
+    tiktok_feed=verify(guest,"/feed?rede=tiktok",["social-feed.css"],["workspace.css"],"/feed")
+    assert 'aria-current="page"' in instagram_feed and 'Instagram' in instagram_feed
+    assert 'aria-current="page"' in tiktok_feed and 'TikTok' in tiktok_feed
+    with guest.open(BASE+"/assets/social-feed.js?v=1",timeout=10) as response:
+        js=response.read().decode("utf-8")
+        assert 'data-feed-play' in js and 'dataset.embed' in js and 'replaceChildren(frame)' in js, "Embeds opt in on click"
+    with guest.open(BASE+"/assets/social-feed.css?v=1",timeout=10) as response:
+        css=response.read().decode("utf-8")
+        assert 'grid-template-columns:repeat(4' in css and '@media(max-width:520px)' in css, "Feed adapts 4 desktop cards to one mobile card"
     signup=verify(guest,"/cadastrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
     signin=verify(guest,"/entrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
     assert 'id="lc-auth-signup"' in signup and 'action="/cadastrar"' in signup, "Signup must load directly in modal"
@@ -164,6 +178,7 @@ def main():
     login(creator,"creator@leaguecut.test")
     clipper=verify(creator,"/dashboard",["workspace.css","realtime.css","polish.css"],["landing.css","banner.css"])
     assert 'data-live="available_cents"' in clipper
+    assert 'href="/feed"' in clipper and 'Feed' in clipper, "Approved clipper has Feed in sidebar"
     assert 'workspace-motion.css' in clipper, "Creator panel animation loaded"
     assert 'id="lc-quick-clip"' in clipper and 'name="campaign_id"' in clipper and 'name="published_url"' in clipper, "Two-step clip uploader is available"
     assert 'name="video"' in clipper and 'data-clip-open' in clipper, "Sidebar has quick clip publishing"
