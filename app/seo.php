@@ -44,7 +44,7 @@ function lc_seo_public_path(string $path): bool {
       (bool)preg_match('~^/campanhas/[a-z0-9-]{1,210}$~D',$path);
 }
 function lc_seo_absolute_asset(string $url): string {
-    if(preg_match('~^/media/seo/(?:icon|social)/[a-f0-9]{36}$~D',$url))return lc_seo_origin().$url;
+    if(preg_match('~^/media/(?:seo/(?:icon|social)|campaign)/[a-f0-9]{36}$~D',$url))return lc_seo_origin().$url;
     if(lc_valid_https($url) && !parse_url($url,PHP_URL_USER) && !parse_url($url,PHP_URL_PASS))
         return $url;
     return '';
@@ -104,7 +104,8 @@ function lc_seo_meta(string $routeTitle,array $s,string $path,int $httpStatus=20
     }
     $image=lc_seo_absolute_asset((string)$cfg['seo_social_image_url']);
     if($image==='')$image=lc_seo_default_share_image();
-    if(isset($campaign)&&$public && lc_seo_valid_asset((string)$campaign['cover_url'],'social')){
+    if(isset($campaign)&&$public && (lc_seo_valid_asset((string)$campaign['cover_url'],'social') ||
+       (bool)preg_match('~^/media/campaign/[a-f0-9]{36}$~D',(string)$campaign['cover_url']))){
         $cover=lc_seo_absolute_asset((string)$campaign['cover_url']);
         if($cover!=='')$image=$cover;
     }
