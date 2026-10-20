@@ -44,6 +44,19 @@ function lc_status_label(string $status): string {
     ][$status]??ucfirst($status);
 }
 
+/** Position among approved clippers according to the general public ranking. */
+function lc_clipper_rank_position(int $userId): ?int {
+    $rank=lc_one("SELECT pos FROM (
+      SELECT u.id,ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(COALESCE((
+       SELECT d.views FROM clip_daily_views d WHERE d.clip_id=c.id
+       ORDER BY d.snapshot_date DESC,d.id DESC LIMIT 1),0)),0) DESC,
+       COUNT(c.id) DESC,u.id ASC) AS pos
+      FROM users u JOIN clips c ON c.user_id=u.id AND c.status='approved'
+      WHERE u.role='clipador' AND u.status='approved' AND u.nickname IS NOT NULL
+      GROUP BY u.id
+    ) AS ranking WHERE id=?",[$userId]);
+    return $rank?(int)$rank['pos']:null;
+}
 function lc_workspace_links(array $u): array {
     if($u['role']==='admin'){
         $links=[
@@ -96,6 +109,7 @@ function lc_workspace_links(array $u): array {
     }
     return [
       ['Visão geral','/dashboard','layout-dashboard'],
+      ['Publicar clipe','/publicar','upload-cloud'],
       ['Explorar campanhas','/explorar','compass'],
       ['Ranking geral','/ranking','trophy'],
       ['Minha biblioteca','/biblioteca','library'],
@@ -115,10 +129,10 @@ function lc_workspace_nav(array $u, string $current): void {
         <p class="ws-nav-label"><?=lc_e($label)?></p>
         <?php foreach($items as [$name,$url,$icon]):
             $selected=$current===$url||($url!=='/admin'&&$url!=='/dashboard'&&$url!=='/explorar'&&str_starts_with($current,$url.'/')); ?>
-          <a href="<?=lc_e($url)?>" class="ws-nav-link <?=$selected?'is-current':''?>" <?=$selected?'aria-current="page"':''?>>
+          <?php if($url==='/publicar'): ?><button type="button" class="ws-nav-link ws-post-open" data-clipper-post-open><?=lc_icon('upload-cloud')?><span>Publicar clipe</span></button><?php else: ?><a href="<?=lc_e($url)?>" class="ws-nav-link <?=$selected?'is-current':''?>" <?=$selected?'aria-current="page"':''?>>
             <?=lc_icon($icon)?><span><?=lc_e($name)?></span>
             <?php if($selected): ?><span class="ws-current-dot" aria-hidden="true"></span><?php endif; ?>
-          </a>
+          </a><?php endif; ?>
         <?php endforeach; ?>
       </div>
     <?php endforeach;
@@ -132,7 +146,10 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $primary)) $primary = '#e50914';
     $logo = (string)($s['logo_url'] ?? '');
     $flash = lc_take_flash();
-    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && in_array($active,['admin','dashboard','library','social','finance','creator'],true);
+    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') &&
+       (in_array($active,['admin','dashboard','library','social','finance','creator'],true) ||
+        ($u['role']==='clipador' && ($currentPath=parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)) &&
+         (in_array($currentPath,['/explorar','/ranking','/notificacoes','/conta','/indicacoes','/suporte','/seguranca/2fa','/privacidade/solicitacoes'],true)||str_starts_with($currentPath,'/campanhas/'))));
     $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
     $seo=lc_seo_meta($title,$s,$path,(int)(http_response_code()?:200));
     $areaTitle=$u && $u['role']==='admin'?'Administração':($u&&$u['role']==='criador'?'Área do criador':'Área do clipador');
@@ -192,6 +209,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
+<link rel="stylesheet" href="/assets/clipper-layout-fixes.css?v=1">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
@@ -201,7 +219,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
-    <a class="brand" href="/" aria-label="<?=lc_e($brand)?>, página inicial">
+    <a class="brand" href="<?=$u?($u['role']==='admin'?'/admin':($u['role']==='criador'?'/criador':($u['status']==='approved'?'/dashboard':'/aguardando'))):'/'?>" aria-label="<?=lc_e($brand)?>, início da sua área">
       <?php if (lc_brand_logo_src($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>" width="175" height="44" decoding="async"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
     </a>
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
@@ -224,7 +242,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
         <div class="rt-notification-panel"><div class="rt-panel-head"><strong>Atualizações</strong><span class="rt-connection-state" data-realtime-connection>Conectando</span></div>
         <div class="rt-notification-list" data-realtime-feed><p>Nenhuma atualização recente.</p></div></div>
       </details>
-      <a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a>
+      <?php if($u['role']==='clipador'): $place=lc_clipper_rank_position((int)$u['id']); ?><a class="ws-site-link ws-rank-position" href="/ranking"><?=lc_icon('trophy')?> <span><?=$place?'Ranking: '.$place.'º lugar':'Ranking: sem posição'?></span></a><?php else: ?><a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a><?php endif; ?>
       <?php endif; ?>
       <?php if ($u): ?>
       <span class="user-short"><?=lc_e(explode(' ', $u['full_name'])[0])?></span>
