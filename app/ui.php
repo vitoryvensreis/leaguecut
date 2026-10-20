@@ -165,6 +165,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($needsLanding): ?><link rel="stylesheet" href="/assets/landing.css?v=11"><?php endif; ?>
 <?php if($needsBanner): ?><link rel="stylesheet" href="/assets/banner.css?v=11"><?php endif; ?>
 <?php if($needsCampaignExperience): ?><link rel="stylesheet" href="/assets/campaign-experience.css?v=1"><?php endif; ?>
+<?php if($path==='/admin/campanhas'||str_starts_with($path,'/admin/campanhas/')): ?><link rel="stylesheet" href="/assets/campaign-cover-admin.css?v=1"><?php endif; ?>
 <?php if($workspace): ?>
 <link rel="stylesheet" href="/assets/workspace.css?v=10">
 <link rel="stylesheet" href="/assets/workspace-motion.css?v=1">
