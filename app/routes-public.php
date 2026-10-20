@@ -3,6 +3,32 @@ declare(strict_types=1);
 
 function lc_public_routes(string $method,string $path): bool {
 
+    // Public, read-only nickname availability. Final registration remains protected
+    // by the database UNIQUE constraint so concurrent registrations cannot collide.
+    if($method==='GET' && $path==='/api/nickname/disponibilidade'){
+        header('Content-Type: application/json; charset=UTF-8');
+        header('Cache-Control: no-store, private');
+        header('X-Content-Type-Options: nosniff');
+        $window=(int)floor(time()/60);
+        $calls=(array)($_SESSION['nickname_check_rate']??[]);
+        $count=(int)($calls['window']??0)===$window?(int)($calls['count']??0):0;
+        $_SESSION['nickname_check_rate']=['window'=>$window,'count'=>++$count];
+        if($count>75){
+            http_response_code(429);
+            echo json_encode(['status'=>'limit','message'=>'Muitas consultas. Aguarde um minuto e tente novamente.'],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+            return true;
+        }
+        try{
+            $candidate=lc_nickname_validate((string)($_GET['nickname']??''));
+            $busy=(bool)lc_one('SELECT 1 FROM users WHERE nickname=? LIMIT 1',[$candidate]);
+            echo json_encode(['status'=>$busy?'taken':'available',
+                              'message'=>$busy?'Este nickname já está em uso.':'Nickname disponível!'],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+        }catch(InvalidArgumentException $e){
+            echo json_encode(['status'=>'invalid','message'=>$e->getMessage()],JSON_UNESCAPED_UNICODE|JSON_THROW_ON_ERROR);
+        }
+        return true;
+    }
+
     // Public marketing landing. Campaigns are deliberately NOT queried here.
     if ($method==='GET' && $path==='/') {
         if($current=lc_user())lc_redirect($current['role']==='admin'?'/admin':($current['status']!=='approved'?'/aguardando':($current['role']==='criador'?'/criador':'/dashboard')));
@@ -141,13 +167,16 @@ function lc_public_routes(string $method,string $path): bool {
         $name=lc_post('full_name',160);$email=mb_strtolower(lc_post('email',190));$password=(string)($_POST['password'] ?? '');
         $instagram=ltrim(lc_post('instagram',80),'@');$whatsapp=preg_replace('/\D/','',lc_post('whatsapp',24));
         $portfolio=lc_post('portfolio_url',500);$pix=lc_post('pix_key',150);
+        $candidate=trim((string)($_POST['nickname']??''));
         if(mb_strlen($name)<3||!filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($password)<10||strlen($password)>128||!preg_match('/^[a-zA-Z0-9._]{2,80}$/',$instagram)||strlen($whatsapp)<10||strlen($whatsapp)>13||strlen($pix)<4||($portfolio!==''&&!lc_valid_https($portfolio))){
             lc_flash('Confira seus dados: nome, e-mail, senha, Instagram, WhatsApp, portfólio e Pix.','error');lc_redirect('/cadastrar');
         }
         if(lc_one('SELECT id FROM users WHERE email=?',[$email])){lc_flash('Este e-mail já possui cadastro. Faça login.','error');lc_redirect('/entrar');}
         try {
-            $candidate=trim((string)($_POST['nickname']??''));
-            if($candidate!=='')lc_nickname_validate($candidate);
+            if($candidate==='')throw new InvalidArgumentException('Informe um nickname público para continuar.');
+            $candidate=lc_nickname_validate($candidate);
+            if(lc_one('SELECT 1 FROM users WHERE nickname=? LIMIT 1',[$candidate]))
+                throw new InvalidArgumentException('Este nickname já está em uso. Escolha outro.');
             $db=lc_db();$db->beginTransaction();
             lc_query("INSERT INTO users(full_name,email,password_hash,instagram,whatsapp,portfolio_url,pix_key_enc,consent_whatsapp) VALUES(?,?,?,?,?,?,?,?)",
                 [$name,$email,password_hash($password,PASSWORD_DEFAULT),$instagram,$whatsapp,$portfolio?:null,lc_encrypt($pix),lc_bool('consent_whatsapp')?1:0]);
