@@ -91,3 +91,5 @@
 }
 @keyframes lc-editor-in{from{opacity:.65;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @media(prefers-reduced-motion:reduce){.lc-editor-section,.lc-banner-stage{animation:none;transition:none}}
+
+.lc-banner-stage img[hidden]{display:none!important}
