@@ -78,6 +78,7 @@ jobs:
           BRAND_MEDIA_DIR: /tmp/leaguecut-brand-media
           SEO_MEDIA_DIR: /tmp/leaguecut-seo-media
           CAMPAIGN_MEDIA_DIR: /tmp/leaguecut-campaign-covers
+          CLIPPER_MEDIA_DIR: /tmp/leaguecut-clipper-media
           LC_E2E_FAKE_DRIVE: '1'
           ASAAS_WEBHOOK_TOKEN: ci_webhook_auth_token_only_for_tests_2026
         run: |
@@ -150,6 +151,9 @@ jobs:
           php tests/mfa_qr_audit.php
           php tests/otp_security.php
           php tests/wpp_status.php
+          node --check public/assets/clipper-post-modal.js
+          node --check public/assets/clipper-dashboard.js
+          node tests/clipper_workspace_experience.cjs
           node --check public/assets/input-masks.js
           node tests/masks-b4b.cjs
           node --check public/assets/flow-editor.js
