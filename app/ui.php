@@ -133,6 +133,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $primary)) $primary = '#e50914';
     $logo = (string)($s['logo_url'] ?? '');
     $flash = lc_take_flash();
+    $avatarSrc=$u&&function_exists('lc_avatar_src')?lc_avatar_src((int)$u['id']):'';
     $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && (in_array($active,['admin','dashboard','library','social','finance','creator'],true)||$u['role']==='clipador');
     $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
     $seo=lc_seo_meta($title,$s,$path,(int)(http_response_code()?:200));
@@ -233,7 +234,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
       <?php endif; ?>
       <?php if ($u): ?>
       <span class="user-short"><?=lc_e(explode(' ', $u['full_name'])[0])?></span>
-      <span class="avatar" title="<?=lc_e($u['full_name'])?>"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></span>
+      <a class="avatar" href="/conta" title="Alterar foto do perfil"><?php if($avatarSrc):?><img src="<?=lc_e($avatarSrc)?>" alt="" class="lc-user-avatar-photo"><?php else:?><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?><?php endif;?></a>
       <form method="post" action="/sair" class="inline-form"><?=lc_csrf()?><button class="text-button" type="submit" aria-label="Sair da conta"><?=lc_icon("log-out")?> <span>Sair</span></button></form>
       <?php else: ?>
       <a class="header-login" href="/entrar">Entrar</a><a class="btn btn-sm" href="/cadastrar">Ser clipador <?=lc_icon("arrow-right")?></a>
@@ -249,7 +250,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     <div class="ws-sidebar-top"><div class="ws-area-icon"><?=lc_icon($u['role']==='admin'?'shield-check':($u['role']==='criador'?'video':'clapperboard'))?></div><div><strong><?=lc_e($areaTitle)?></strong><span>Central LeagueCut</span></div></div>
     <?php if($u['role']==='clipador'): ?><button type="button" class="ws-publish-clip" data-clip-open><?=lc_icon('upload-cloud')?> Publicar clipe <?=lc_icon('plus')?></button><?php endif; ?>
     <nav aria-label="Menu de <?=lc_e($areaTitle)?>"><?php lc_workspace_nav($u,$path); ?></nav>
-    <div class="ws-sidebar-bottom"><div class="ws-sidebar-avatar"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></div><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
+    <div class="ws-sidebar-bottom"><a class="ws-sidebar-avatar" href="/conta" title="Alterar foto de perfil"><?php if($avatarSrc):?><img src="<?=lc_e($avatarSrc)?>" alt="" class="lc-user-avatar-photo"><?php else:?><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?><?php endif;?></a><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
   </aside>
 
   <div class="workspace-body">
