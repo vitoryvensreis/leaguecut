@@ -74,6 +74,7 @@ function lc_workspace_links(array $u): array {
           ['Automações','/admin/automacoes','activity'],
           ['Conexão WhatsApp','/admin/whatsapp','share-2'],
           ['Banner da Home','/admin/home','layers'],
+          ['Banners do clipador','/admin/banners-clipador','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['SEO e compartilhamento','/admin/seo','globe'],
           ['Integrações','/admin/integracoes','settings-2'],
@@ -247,7 +248,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
       <?php endif; ?>
       <?php if ($u): ?>
       <span class="user-short"><?=lc_e(explode(' ', $u['full_name'])[0])?></span>
-      <span class="avatar" title="<?=lc_e($u['full_name'])?>"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></span>
+      <a href="/conta" class="avatar" title="Editar foto e meus dados"><?php if(!empty($u['profile_photo_url'])):?><img src="<?=lc_e($u['profile_photo_url'])?>" alt="Minha foto de perfil" class="lc-avatar-image"><?php else:?><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?><?php endif;?></a>
       <form method="post" action="/sair" class="inline-form"><?=lc_csrf()?><button class="text-button" type="submit" aria-label="Sair da conta"><?=lc_icon("log-out")?> <span>Sair</span></button></form>
       <?php else: ?>
       <a class="header-login" href="/entrar">Entrar</a><a class="btn btn-sm" href="/cadastrar">Ser clipador <?=lc_icon("arrow-right")?></a>
@@ -260,7 +261,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
   <aside class="workspace-sidebar" aria-label="Navegação da <?=lc_e($areaTitle)?>">
     <div class="ws-sidebar-top"><div class="ws-area-icon"><?=lc_icon($u['role']==='admin'?'shield-check':($u['role']==='criador'?'video':'clapperboard'))?></div><div><strong><?=lc_e($areaTitle)?></strong><span>Central LeagueCut</span></div></div>
     <nav aria-label="Menu de <?=lc_e($areaTitle)?>"><?php lc_workspace_nav($u,$path); ?></nav>
-    <div class="ws-sidebar-bottom"><div class="ws-sidebar-avatar"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></div><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
+    <div class="ws-sidebar-bottom"><a class="ws-sidebar-avatar" href="/conta"><?php if(!empty($u['profile_photo_url'])):?><img src="<?=lc_e($u['profile_photo_url'])?>" alt="Minha foto de perfil" class="lc-avatar-image"><?php else:?><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?><?php endif;?></a><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
   </aside>
   <div class="ws-mobile-menu"><details><summary><?=lc_icon("menu")?> Menu do painel <?=lc_icon("chevron-right")?></summary><nav aria-label="Menu mobile do painel"><?php lc_workspace_nav($u,$path); ?></nav></details></div>
   <div class="workspace-body">
