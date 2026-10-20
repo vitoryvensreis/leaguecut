@@ -11,3 +11,19 @@
 .lc-auth-dialog [data-auth-error][hidden]{display:none!important}
 .lc-auth-dialog button[disabled]{opacity:.55;cursor:progress}
 @media(max-width:520px){.lc-auth-mfa-dialog .form-actions>.btn{width:100%;justify-content:center}}
+
+/* Focused authentication step: balanced content centered on the verification code. */
+.lc-auth-mfa-dialog .lc-auth-dialog-inner{display:flex;flex-direction:column;align-items:center;text-align:center;padding:clamp(27px,4vw,39px) clamp(22px,4vw,42px)}
+.lc-auth-mfa-dialog .lc-auth-mfa-symbol{margin:16px auto 6px;width:62px;height:62px;border-radius:18px}
+.lc-auth-mfa-dialog .lc-auth-dialog-inner>h2{margin:13px auto 9px;font-size:clamp(1.55rem,3vw,2rem);letter-spacing:-.04em}
+.lc-auth-mfa-dialog .lc-auth-desc{margin:0 auto 23px;max-width:345px;font-size:.86rem;line-height:1.7;color:#b5bdca}
+.lc-auth-mfa-dialog .lc-auth-form{width:100%;max-width:370px;gap:15px;text-align:left}
+.lc-auth-mfa-dialog .lc-auth-form>.field{width:100%;display:flex;flex-direction:column}
+.lc-auth-mfa-dialog .lc-auth-form .field>span{display:block;text-align:center;color:#c4ccd9;font-size:.8rem;font-weight:550}
+.lc-auth-mfa-dialog .lc-auth-form input[name="mfa_code"]{width:100%;box-sizing:border-box;text-align:center;font-size:1.35rem;letter-spacing:.17em;min-height:56px;font-weight:600;font-variant-numeric:tabular-nums}
+.lc-auth-mfa-dialog .form-actions{display:flex;flex-direction:column;align-items:center;gap:9px;margin:2px 0 0;width:100%}
+.lc-auth-mfa-dialog .form-actions>.btn{display:flex;align-items:center;justify-content:center;width:100%;min-height:47px}
+.lc-auth-mfa-dialog .lc-auth-mfa-back{padding:8px 15px;font-size:.82rem}
+.lc-auth-mfa-dialog .form-note{max-width:320px;text-align:center;justify-self:center;color:#9da6b8;font-size:.77rem;line-height:1.6;margin:3px auto 0}
+.lc-auth-mfa-dialog [data-auth-error]:not([hidden]){width:100%;max-width:370px;text-align:center;box-sizing:border-box}
+@media(max-width:520px){.lc-auth-mfa-dialog .lc-auth-dialog-inner{padding:27px 18px 28px}.lc-auth-mfa-dialog .lc-auth-form{max-width:100%}}
