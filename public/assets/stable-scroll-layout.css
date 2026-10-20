@@ -1,0 +1,127 @@
+/* LeagueCut — stable scrolling for workspaces and popups.
+   Scroll is never disabled: wheel, touch and keyboard retain their native behavior. */
+
+/* Keep the left navigation's text width stable as page content changes.
+   The navigation scrolls independently; header and profile remain fixed. */
+.workspace-page .workspace-sidebar,
+.workspace-page .workspace-sidebar>nav {
+  box-sizing: border-box;
+  min-width: 0;
+}
+.workspace-page .workspace-sidebar>nav {
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(186, 74, 96, .44) transparent;
+  overscroll-behavior-y: contain;
+}
+.workspace-page .workspace-sidebar>nav::-webkit-scrollbar { width: 6px; }
+.workspace-page .workspace-sidebar>nav::-webkit-scrollbar-track { background: transparent; }
+.workspace-page .workspace-sidebar>nav::-webkit-scrollbar-thumb {
+  background: rgba(186, 74, 96, .44);
+  border-radius: 20px;
+}
+.workspace-page .workspace-sidebar>nav .ws-nav-link {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* The dialog border itself must NOT scroll: that is what used to clip
+   the rounded corners next to the visible native scrollbar. */
+.lc-auth-dialog {
+  box-sizing: border-box;
+  max-width: min(95vw, 710px);
+  max-height: min(94dvh, 920px);
+  overflow: hidden !important;
+  border-radius: 9px !important;
+}
+
+/* Only the inner content can scroll on short viewports. Its scrollbar is
+   invisible, not its scrollability. No horizontal scrolling in popups. */
+.lc-auth-dialog > .lc-auth-dialog-inner {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-height: calc(min(94dvh, 920px) - 2px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.lc-auth-dialog > .lc-auth-dialog-inner::-webkit-scrollbar { display: none; }
+
+/* Prevent form inputs or long content from widening the modal. */
+.lc-auth-dialog .lc-auth-form,
+.lc-auth-dialog .form-grid,
+.lc-auth-dialog .field,
+.lc-auth-dialog .form-note,
+.lc-auth-dialog .lc-auth-consent { min-width: 0; max-width: 100%; }
+.lc-auth-dialog .field :is(input,select,textarea) {
+  box-sizing: border-box;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Make the two-column signup fit naturally at typical notebook heights. */
+@media (min-width: 621px) and (min-height: 690px) {
+  #lc-auth-signup > .lc-auth-dialog-inner {
+    padding: clamp(21px, 2.15vw, 30px) clamp(23px, 2.5vw, 34px);
+  }
+  #lc-auth-signup .lc-auth-desc { margin-bottom: 13px; }
+  #lc-auth-signup .form-grid { gap: 10px 12px; }
+  #lc-auth-signup .field { gap: 5px; }
+  #lc-auth-signup .form-note { margin-top: 9px; line-height: 1.5; }
+  #lc-auth-signup .form-actions { margin-top: 13px; }
+  #lc-auth-signup .lc-auth-consent>span { line-height: 1.45; }
+}
+
+/* Publish-clip popup has directly scrollable content rather than an inner
+   wrapper; keep the scrollbar invisible and the corners clipped correctly. */
+.lc-quick-dialog {
+  box-sizing: border-box;
+  max-width: calc(100vw - 24px);
+  overflow-x: hidden !important;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 9px !important;
+  overscroll-behavior-y: contain;
+}
+.lc-quick-dialog::-webkit-scrollbar { display: none; }
+.lc-quick-dialog :is(input,textarea,select) {
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+@media (max-width: 620px) {
+  /* Single-column mobile signup, kept in one popup as requested.
+     Small screens retain vertical scrolling instead of clipping fields. */
+  .lc-auth-dialog {
+    width: calc(100vw - 18px);
+    max-width: calc(100vw - 18px);
+    max-height: calc(100dvh - 18px);
+  }
+  .lc-auth-dialog > .lc-auth-dialog-inner {
+    max-height: calc(100dvh - 20px);
+    padding: 20px 17px 22px;
+  }
+  #lc-auth-signup .form-grid { grid-template-columns: minmax(0,1fr); gap: 11px; }
+  #lc-auth-signup .lc-auth-desc { margin-bottom: 16px; }
+  .lc-auth-dialog .form-actions { min-width: 0; }
+}
+
+/* Very short viewports still scroll, including with zoom or the keyboard up. */
+@media (max-height: 610px) {
+  .lc-auth-dialog {
+    max-height: calc(100dvh - 12px);
+  }
+  .lc-auth-dialog > .lc-auth-dialog-inner {
+    max-height: calc(100dvh - 14px);
+  }
+}
