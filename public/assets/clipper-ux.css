@@ -121,3 +121,6 @@
  .lc-profile-photo-form{align-items:stretch}
 }
 @media(prefers-reduced-motion:reduce){.lc-clipper-hero-card,.lc-clipper-hero-image,.lc-clipper-hero-cta{transition:none}}
+
+/* Pending accounts show only their status, identity and sign-out controls. */
+.lc-awaiting-only .main-nav,.lc-awaiting-only .site-footer{display:none!important}
