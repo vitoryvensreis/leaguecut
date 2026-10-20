@@ -22,8 +22,10 @@ pa($cardDims['width']===1200&&$cardDims['height']===630,'social card 1200 by 630
 ob_start();
 pa(lc_pwa_routes('GET','/manifest.webmanifest'),'manifest route');
 $manifest=json_decode((string)ob_get_clean(),true,12,JSON_THROW_ON_ERROR);
-pa(count($manifest['icons'])===4,'two full icons and two maskable versions');
-pa(str_starts_with((string)$manifest['icons'][0]['src'],'/pwa/icon/'),'manifest icons use Nginx-safe route');
+$configured=lc_pwa_active_icon();
+pa(count($manifest['icons'])===($configured?($configured['width']>=512?4:5):4),'expected active and fallback icons');
+pa($manifest['icons'][0]['src']===($configured['src']??'/pwa/icon/192'),'manifest follows configured favicon when present');
+pa(in_array('192x192',array_column($manifest['icons'],'sizes'),true),'192px install fallback retained');
 pa($manifest['start_url']==='/' && $manifest['display']==='standalone','standalone configuration');
 ob_start();
 pa(lc_pwa_routes('GET','/pwa/manifest'),'extensionless PWA manifest');
