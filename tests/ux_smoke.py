@@ -76,6 +76,9 @@ def main():
     signin=verify(guest,"/entrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
     assert 'id="lc-auth-signup"' in signup and 'action="/cadastrar"' in signup, "Signup must load directly in modal"
     assert 'id="lc-auth-login"' in signin and 'action="/entrar"' in signin, "Login must load directly in modal"
+    assert 'id="lc-auth-mfa"' in signin and 'action="/seguranca/verificar"' in signin, "2FA must be a popup too"
+    assert 'data-auth-async="login"' in signin and 'data-auth-async="mfa"' in signin, "Both auth phases use asynchronous forms"
+    assert 'assets/auth-mfa-modal.js?v=1' in signin, "Async MFA script loaded"
     assert "assets/ux-upgrade.css" in signup and "assets/ux-upgrade.js" in signup
     assert '<a href="/planos">Planos para criadores</a>' in home, "Creator sales link belongs in footer"
     assert 'href="/planos"' not in home.split('</header>',1)[0], "Creator plans should not be in header"
@@ -94,6 +97,11 @@ def main():
     dashboard=verify(admin,"/admin",["workspace.css","realtime.css","polish.css"],["landing.css","banner.css"])
     assert "Precisa da sua atenção" in dashboard
     assert "Top clipadores" in dashboard and "Top campanhas" in dashboard, "Rankings must appear on admin homepage"
+    assert 'data-admin-nav' in dashboard and dashboard.count('data-admin-group=')==9, "Nine expandable administrative groups including personal account"
+    assert 'lc-admin-nav-child' in dashboard and 'data-admin-group="accounts"' in dashboard, "Submenus have icon-labelled links"
+    assert '<svg class="lc-icon' in dashboard.split('lc-admin-nav-child',1)[1], "Child submenu icon SVG rendered"
+    assert 'assets/admin-navigation.js?v=1' in dashboard, "Expanded group persists on navigation"
+    assert 'id="lc-privacy-toggle"' in dashboard and 'lc-privacy-toolbar' not in dashboard, "Privacy eye belongs in header"
     assert "Views observadas" in dashboard, "View count KPI missing"
     assert 'workspace-motion.css' in dashboard, "Admin panels animate"
     with admin.open(BASE+"/assets/workspace-motion.css",timeout=10) as asset:
@@ -104,6 +112,7 @@ def main():
     admin_campaigns=verify(admin,"/admin/campanhas",
         ["workspace.css","workspace-motion.css","campaign-experience.css"],["landing.css"])
     assert 'lc-catalog-showcase' in admin_campaigns and 'lc-catalog-shelves' in admin_campaigns
+    assert 'aria-label="Campanhas e clipes"' in admin_campaigns and 'lc-admin-tab' in admin_campaigns, "Internal admin tabs preserve contextual navigation"
 
     assert 'aria-label="Atualizações"' in dashboard
     assert 'data-realtime-connection' in dashboard
@@ -123,6 +132,7 @@ def main():
     assert 'id="lc-quick-clip"' in clipper and 'name="campaign_id"' in clipper and 'name="published_url"' in clipper, "Two-step clip uploader is available"
     assert 'name="video"' in clipper and 'data-clip-open' in clipper, "Sidebar has quick clip publishing"
     assert 'lc-clipper-hero' in clipper and 'Campanhas das quais participo' in clipper, "Campaign hero and joined campaign section"
+    assert 'lc-clipper-dashboard-page' in clipper and 'id="lc-privacy-toggle"' in clipper, "Full-bleed clipper hero and compact privacy button"
     assert 'name="title"' not in clipper.split('id="lc-quick-form"',1)[1].split('</form>',1)[0], "Quick upload does not request a title"
     clipper_catalog=verify(creator,"/explorar",["workspace.css","clipper-ux.css"],[])
     assert 'class="workspace-shell"' in clipper_catalog, "Logged-in clipper always uses lateral navigation"
