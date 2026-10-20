@@ -106,7 +106,7 @@ function lc_campaign_catalog(array $campaigns,bool $admin=false): void {
     }
     ?>
 <section class="lc-catalog-showcase" aria-label="Campanha em destaque">
-  <?php if(lc_valid_https((string)$hero['cover_url'])):?>
+  <?php if(lc_campaign_cover_valid((string)$hero['cover_url'])):?>
   <img class="lc-catalog-hero-img" src="<?=lc_e($hero['cover_url'])?>" alt="" loading="eager" decoding="async">
   <?php endif;?>
   <div class="lc-catalog-hero-content">
