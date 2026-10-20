@@ -234,7 +234,7 @@ function lc_seo_sitemap(): never {
     echo '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'."\n";
     if($settings['seo_index_enabled']==='1'){
         $base=rtrim((string)$settings['seo_canonical_base'],'/');
-        foreach(['/','/explorar','/ranking','/planos'] as $path)
+        foreach(['/','/explorar','/feed','/ranking','/planos'] as $path)
            echo '<url><loc>'.lc_e($base.$path).'</loc></url>'."\n";
         foreach(lc_all("SELECT slug,updated_at FROM campaigns WHERE status='active' ORDER BY id DESC LIMIT 5000") as $c){
            $slug=(string)$c['slug'];
