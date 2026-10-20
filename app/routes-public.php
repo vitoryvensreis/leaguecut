@@ -2,6 +2,30 @@
 declare(strict_types=1);
 
 function lc_public_routes(string $method,string $path): bool {
+    // Public nicknames can be checked before submitting signup. The database
+    // UNIQUE index remains authoritative if two visitors race to claim one.
+    if($method==='GET' && $path==='/api/nicknames/disponibilidade'){
+        header('Content-Type: application/json; charset=utf-8');
+        header('Cache-Control: no-store, private');
+        header('X-Content-Type-Options: nosniff');
+        $raw=trim((string)($_GET['nickname']??''));
+        try {
+            $candidate=lc_nickname_validate($raw);
+            $taken=(bool)lc_one('SELECT id FROM users WHERE nickname=? LIMIT 1',[$candidate]);
+            echo json_encode([
+                'valid'=>true,
+                'available'=>!$taken,
+                'nickname'=>$candidate,
+                'message'=>$taken?'Este nickname já está em uso.':'Nickname disponível!',
+            ],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);
+        }catch(InvalidArgumentException $e){
+            echo json_encode([
+                'valid'=>false,'available'=>false,'nickname'=>'',
+                'message'=>$raw===''?'Digite um nickname obrigatório.':$e->getMessage()
+            ],JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE);
+        }
+        return true;
+    }
 
     // Public marketing landing. Campaigns are deliberately NOT queried here.
     if ($method==='GET' && $path==='/') {
@@ -147,7 +171,8 @@ function lc_public_routes(string $method,string $path): bool {
         if(lc_one('SELECT id FROM users WHERE email=?',[$email])){lc_flash('Este e-mail já possui cadastro. Faça login.','error');lc_redirect('/entrar');}
         try {
             $candidate=trim((string)($_POST['nickname']??''));
-            if($candidate!=='')lc_nickname_validate($candidate);
+            if($candidate==='')throw new InvalidArgumentException('O nickname é obrigatório.');
+            $candidate=lc_nickname_validate($candidate);
             $db=lc_db();$db->beginTransaction();
             lc_query("INSERT INTO users(full_name,email,password_hash,instagram,whatsapp,portfolio_url,pix_key_enc,consent_whatsapp) VALUES(?,?,?,?,?,?,?,?)",
                 [$name,$email,password_hash($password,PASSWORD_DEFAULT),$instagram,$whatsapp,$portfolio?:null,lc_encrypt($pix),lc_bool('consent_whatsapp')?1:0]);
