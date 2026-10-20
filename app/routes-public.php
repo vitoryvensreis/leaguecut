@@ -5,6 +5,7 @@ function lc_public_routes(string $method,string $path): bool {
 
     // Public marketing landing. Campaigns are deliberately NOT queried here.
     if ($method==='GET' && $path==='/') {
+        if($current=lc_user())lc_redirect($current['role']==='admin'?'/admin':($current['status']!=='approved'?'/aguardando':($current['role']==='criador'?'/criador':'/dashboard')));
         $banner=lc_home_banner();
         $topRanking=lc_public_ranking(5);
         lc_page('Crie, publique e conquiste',function()use($banner,$topRanking){ ?>
