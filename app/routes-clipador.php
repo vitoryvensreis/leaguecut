@@ -144,12 +144,13 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         $u=lc_login_required();
         if($u['role']==='admin'){http_response_code(403);exit('Disponível apenas para clipadores.');}
         $campaignId=lc_int('campaign_id',0,2147483647);$accountId=lc_int('social_account_id',0,2147483647);
-        $title=lc_post('title',180);$url=lc_post('published_url',800);
+        // Internal-only identifier: no title field is presented or required from a clipper.
+        $title='Clip '.bin2hex(random_bytes(8));$url=lc_post('published_url',800);
         $campaign=lc_one("SELECT * FROM campaigns WHERE id=? AND status='active'",[$campaignId]);
         $account=lc_one('SELECT * FROM social_accounts WHERE id=? AND user_id=?',[$accountId,$u['id']]);
         $host=strtolower((string)parse_url($url,PHP_URL_HOST));
         $validHost=$account && ($account['network']==='instagram'?in_array($host,['instagram.com','www.instagram.com'],true):in_array($host,['tiktok.com','www.tiktok.com','vm.tiktok.com','vt.tiktok.com'],true));
-        if(!$campaign||!$account||mb_strlen($title)<4||!lc_valid_https($url)||!$validHost){
+        if(!$campaign||!$account||!lc_valid_https($url)||!$validHost){
             lc_flash('Verifique a campanha, o perfil e o link HTTPS da publicação na rede selecionada.','error');lc_redirect('/explorar');
         }
         if(lc_one('SELECT id FROM clips WHERE user_id=? AND published_url=?',[$u['id'],$url])){
