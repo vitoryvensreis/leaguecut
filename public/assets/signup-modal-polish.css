@@ -1,0 +1,31 @@
+/* Compact popup corners and consistently centered close buttons. */
+dialog,
+[role="dialog"].lc-auth-dialog,
+[role="dialog"].lc-quick-dialog {
+  border-radius: 9px !important;
+}
+.lc-auth-close,
+.lc-quick-close {
+  display: grid !important;
+  place-items: center !important;
+  text-align: center !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  font-family: Arial, sans-serif;
+}
+.lc-auth-close { border-radius: 6px !important; }
+.lc-quick-close { border-radius: 5px !important; }
+
+.lc-auth-dialog .lc-nickname-field { min-width: 0; }
+.lc-auth-dialog .lc-nickname-status {
+  display: block; margin-top: 6px; font-size: .76rem;
+  line-height: 1.4; color: #aeb7c7; overflow-wrap: anywhere;
+}
+.lc-auth-dialog .lc-nickname-status[data-state="checking"] { color: #edcd91; }
+.lc-auth-dialog .lc-nickname-status[data-state="available"] { color: #78dbaa; }
+.lc-auth-dialog .lc-nickname-status[data-state="taken"],
+.lc-auth-dialog .lc-nickname-status[data-state="invalid"] { color: #ff929c; }
+.lc-auth-dialog #lc-signup-nickname[aria-invalid="true"] { border-color: #ee5868; }
+@media (max-width: 620px) {
+  .lc-auth-dialog .lc-auth-form .form-grid { grid-template-columns: 1fr; }
+}
