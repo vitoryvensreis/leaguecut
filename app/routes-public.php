@@ -208,7 +208,7 @@ function lc_public_routes(string $method,string $path): bool {
         lc_page('Status do cadastro',function()use($u){?>
 <div class="container container-sm"><span class="eyebrow">Análise de cadastro</span>
 <div class="large-surface"><h1><?= $u['status']==='pending'?'Estamos analisando seu perfil.':($u['status']==='rejected'?'Cadastro não aprovado.':'Conta suspensa.') ?></h1>
-<p><?= $u['status']==='pending'?'Seu cadastro foi recebido. Nossa equipe verificará os dados; quando aprovado, você terá acesso ao painel.':'Entre em contato com a administração para obter informações.' ?></p>
+<p><?= $u['status']==='pending'?'Seu cadastro está em análise. Aguarde a aprovação da equipe. Avisaremos sobre o resultado pelo WhatsApp informado no cadastro; mantenha seu número atualizado.':'Entre em contato com a administração para obter informações.' ?></p>
 <span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(strtoupper($u['status']))?></span><div class="form-actions"><a class="btn btn-ghost" href="/explorar">Ver campanhas disponíveis</a></div></div></div>
 <?php });return true;
     }
