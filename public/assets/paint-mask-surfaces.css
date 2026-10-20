@@ -1,0 +1,46 @@
+/* LeagueCut paint-mask reveal — a restrained brush-like accent on surfaces,
+   inspired by the mask-sprite interaction, never applied to buttons. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  :is(.lp-feature, .lc-home-ranking-player, .explore-catalog .campaign-card) {
+    position: relative;
+    isolation: isolate;
+  }
+
+  :is(.lp-feature, .lc-home-ranking-player, .explore-catalog .campaign-card)::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    border-radius: inherit;
+    background:
+      repeating-linear-gradient(-8deg,transparent 0 8px,rgba(255,255,255,.025) 9px 10px,transparent 11px 17px),
+      radial-gradient(ellipse at 28% 50%,rgba(247,48,76,.22),rgba(194,18,49,.08) 65%,transparent 90%);
+    -webkit-mask-image: linear-gradient(to right,#000 0%,#000 78%,rgba(0,0,0,.7) 88%,transparent 100%);
+    mask-image: linear-gradient(to right,#000 0%,#000 78%,rgba(0,0,0,.7) 88%,transparent 100%);
+    -webkit-mask-size: 0% 100%;
+    mask-size: 0% 100%;
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    opacity: 0;
+  }
+
+  :is(.lp-feature, .lc-home-ranking-player, .explore-catalog .campaign-card):is(:hover,:focus-within)::after {
+    animation: lc-paint-stroke .74s cubic-bezier(.24,.75,.22,1) both;
+  }
+
+  @keyframes lc-paint-stroke {
+    0%   { -webkit-mask-size: 0% 100%; mask-size: 0% 100%; opacity: 0; }
+    18%  { -webkit-mask-size: 24% 100%; mask-size: 24% 100%; opacity: 1; }
+    44%  { -webkit-mask-size: 54% 100%; mask-size: 54% 100%; opacity: 1; }
+    72%  { -webkit-mask-size: 83% 100%; mask-size: 83% 100%; opacity: 1; }
+    100% { -webkit-mask-size: 115% 100%; mask-size: 115% 100%; opacity: 1; }
+  }
+}
+
+/* Touch and reduced-motion users keep an unobtrusive static treatment. */
+@media (hover: none), (prefers-reduced-motion: reduce) {
+  :is(.lp-feature, .lc-home-ranking-player, .explore-catalog .campaign-card):active {
+    background-color: #24151e;
+  }
+}
