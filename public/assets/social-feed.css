@@ -52,3 +52,47 @@
 @media(max-width:820px){.lc-feed-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.lc-feed-play-icon{width:62px;height:62px}}
 @media(max-width:520px){.lc-feed-grid{max-width:440px;grid-template-columns:1fr;margin:auto;gap:17px}.lc-feed-video{aspect-ratio:9/13.1}.lc-feed-hero{padding-top:48px}}
 @media(prefers-reduced-motion:reduce){.lc-feed-card,.lc-feed-play-icon{transition:none}.lc-feed-card:hover{transform:none}}
+
+/* Feed timeline 2.0 — replaces the old marketing hero and catalog grid. */
+.lc-feed{padding-bottom:32px}
+.lc-feed-wrap{max-width:1050px}
+.lc-feed-top{padding-top:24px;padding-bottom:16px}
+.lc-feed-top-heading{display:flex;align-items:baseline;gap:12px;margin-bottom:26px}
+.lc-feed-top-heading h1{font-size:1.5rem;letter-spacing:-.035em;margin:0}
+.lc-feed-top-heading>span{color:#8f98a9;font-size:.8rem}
+.lc-feed-stories-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 14px}
+.lc-feed-stories-heading strong{font-size:.91rem;display:inline-flex;align-items:center;gap:7px}
+.lc-feed-stories-heading strong .lc-icon{width:17px;height:17px;color:#fa536d}
+.lc-feed-stories-heading a{color:#cbd0db;font-size:.77rem;text-decoration:none;display:inline-flex;gap:5px;align-items:center}
+.lc-feed-stories-heading a .lc-icon{width:14px;height:14px}
+.lc-feed-stories{display:flex;overflow-x:auto;gap:18px;padding:4px 0 17px;scrollbar-width:thin;scrollbar-color:#41414b transparent}
+.lc-feed-story{display:flex;flex:0 0 78px;min-width:0;align-items:center;flex-direction:column;gap:5px;text-decoration:none;color:#f8f8fa;text-align:center}
+.lc-feed-story-ring{width:66px;height:66px;border-radius:50%;padding:3px;background:linear-gradient(35deg,#b70929,#fb4562,#ee8b45);display:grid;place-items:center}
+.lc-feed-story-avatar{border:3px solid #101116;background:#282a33;width:100%;height:100%;border-radius:50%;display:grid;place-items:center;font-weight:850;font-size:1.25rem}
+.lc-feed-story-nick{width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:.73rem;font-weight:750}
+.lc-feed-story small{color:#8f98a9;font-size:.68rem}
+.lc-feed-story-empty{color:#9aa3b0;font-size:.82rem}
+.lc-feed-content{padding-top:14px}
+.lc-feed-grid{display:flex;flex-direction:column;align-items:center;gap:18px;max-width:600px;margin:0 auto}
+.lc-feed-card{width:100%;border-radius:14px;transform:none!important;box-shadow:none;transition:border-color .2s}
+.lc-feed-video{aspect-ratio:9/12;max-height:710px}
+.lc-feed-info{padding:15px 18px}
+.lc-feed-info h2{font-size:.91rem}
+.lc-feed-play-icon{width:66px;height:66px}
+.lc-feed-meta{font-size:.82rem}
+.lc-feed-pages{margin:8px auto;max-width:600px}
+.lc-feed-pages .lc-feed-page-indicator{display:none}
+.lc-feed-loading{text-align:center;color:#a0a8b5;font-size:.8rem;min-height:24px;padding:10px}
+.lc-feed-sentinel{height:1px}
+.lc-feed-disclaimer{font-size:.71rem}
+@media(max-width:520px){
+.lc-feed-wrap{padding-left:12px;padding-right:12px}
+.lc-feed-top{padding-top:16px}
+.lc-feed-stories{gap:11px}
+.lc-feed-story{flex-basis:68px}
+.lc-feed-story-ring{width:59px;height:59px}
+.lc-feed-grid{max-width:none;gap:13px}
+.lc-feed-video{aspect-ratio:9/13}
+.lc-feed-info{padding:12px}
+.lc-feed-top-heading h1{font-size:1.3rem}
+}
