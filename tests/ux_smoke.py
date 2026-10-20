@@ -75,6 +75,10 @@ def main():
     signup=verify(guest,"/cadastrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
     signin=verify(guest,"/entrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
     assert 'id="lc-auth-signup"' in signup and 'action="/cadastrar"' in signup, "Signup must load directly in modal"
+    assert 'name="nickname"' in signup and 'data-nickname-check' in signup and 'data-nickname-feedback' in signup, "Required nickname has live availability UI"
+    assert 'assets/signup-nickname.js?v=1' in signup and 'assets/signup-dialog-polish.css?v=1' in signup, "Live nickname check and compact dialogs are loaded"
+    assert 'Nickname público (opcional)' not in signup, "Nickname no longer optional"
+    assert '<div class="full"><label class="field"><span>Chave Pix' not in signup, "Pix and portfolio share the same desktop form row"
     assert 'id="lc-auth-login"' in signin and 'action="/entrar"' in signin, "Login must load directly in modal"
     assert 'id="lc-auth-mfa"' in signin and 'action="/seguranca/verificar"' in signin, "2FA must be a popup too"
     assert 'data-auth-async="login"' in signin and 'data-auth-async="mfa"' in signin, "Both auth phases use asynchronous forms"

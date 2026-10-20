@@ -12,7 +12,7 @@ foreach(['ab','1abc','nome com espaco','lc_999','admin','áudio'] as $invalid){
 }
 $u=lc_one("SELECT id,nickname FROM users WHERE email='creator@leaguecut.test'");
 rank_assert($u && $u['nickname']!==null,'migrated registered user with nickname');
-rank_assert(preg_match('/^lc_\d+$/D',$u['nickname'])===1,'legacy backfill assigned unique id');
+rank_assert($u['nickname']==='creator_tester','registration now requires an explicitly chosen nickname');
 $rank=lc_public_ranking(50);
 rank_assert(count($rank)>=1,'public leaderboard includes approved clipper');
 foreach($rank as $r){

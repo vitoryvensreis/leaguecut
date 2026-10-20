@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """LeagueCut end-to-end smoke test using only stdlib and disposable CI MySQL."""
 import http.cookiejar
+import json
 import re
 import urllib.parse
 import urllib.request
@@ -104,6 +105,7 @@ def register(client,email,name):
     return submit(client,"/cadastrar",{
       "full_name":name,"email":email,"password":"This-Is-A-Test-Password-123",
       "instagram":"testcreator","whatsapp":"85999998888","portfolio_url":"",
+      "nickname":email.split("@")[0]+"_tester",
       "pix_key":"test@example.com","consent_whatsapp":"1"
     },"/cadastrar")
 
@@ -346,7 +348,22 @@ def main():
     assert 'name="code"' in confirm and 'name="new_password"' in confirm, "New password requires one-time code"
 
     assert 'privacy-toggle.js' not in get(make_client(),"/cadastrar"), "No private fields on public signup"
+    before_nick=json.loads(get(make_client(),"/api/nickname/disponibilidade?nickname=creator_tester"))
+    assert before_nick["status"]=="available", "New public nickname can be checked before signup"
     creator_page=register(creator,"creator@leaguecut.test","Criador Teste")
+    taken_nick=json.loads(get(make_client(),"/api/nickname/disponibilidade?nickname=CREATOR_TESTER"))
+    assert taken_nick["status"]=="taken", "Nickname check is case-insensitive"
+    invalid_nick=json.loads(get(make_client(),"/api/nickname/disponibilidade?nickname=lc_123"))
+    assert invalid_nick["status"]=="invalid", "Reserved nicknames are not available"
+    duplicate_client=make_client()
+    duplicate_page=submit(duplicate_client,"/cadastrar",{
+      "full_name":"Duplicado de Teste","email":"duplicate-nick@leaguecut.test",
+      "password":"This-Is-A-Test-Password-123","nickname":"creator_tester",
+      "instagram":"testduplicate","whatsapp":"85999997777",
+      "portfolio_url":"","pix_key":"test@example.com"
+    },"/cadastrar")
+    assert "nickname já está em uso" in duplicate_page, "Duplicate registration is rejected server-side"
+
     assert "analisando" in creator_page.lower(), "Creator pending page"
     waiting=get(creator,"/aguardando")
     assert "WhatsApp" in waiting and "Estamos analisando" in waiting, "Pending users see WhatsApp approval notice"
@@ -732,7 +749,7 @@ def main():
     assert 'data-lc-private' in admin_accounts, "Admin identities are maskable once accounts exist"
     rank_page=get(creator,"/campanhas/"+slug.group(1))
     assert "Ranking da campanha" in rank_page and "lc-podium" in rank_page
-    assert re.search(r"@lc_\d+",rank_page) and "500 XP" in rank_page, "Five approved clips yield 500 XP with public nick"
+    assert "@creator_tester" in rank_page and "500 XP" in rank_page, "Five approved clips yield 500 XP with public nick"
     assert "5 clipes aprovados" in rank_page
     assert 'data-arena-position="1"' in rank_page, "Campaign podium carries medal rank"
     general_rank=get(make_client(),"/ranking")
@@ -740,7 +757,7 @@ def main():
 
     guest_campaign=get(make_client(),"/campanhas/"+slug.group(1))
     assert 'data-lc-private' not in guest_campaign, "Anonymous campaign rankings must remain public without personal data markers"
-    assert re.search(r"@lc_\d+",guest_campaign) and "Criador T." not in guest_campaign, "Anonymous rankings only expose nicks"
+    assert "@creator_tester" in guest_campaign and "Criador T." not in guest_campaign, "Anonymous rankings only expose nicks"
     # Once a weekly payment is credited, review/delete must require an audited
     # financial reversal rather than silently corrupting the user's balance.
     refused=submit(admin,first_url,{"decision":"rejected"},"/admin/clipes")
