@@ -32,9 +32,14 @@
       el.setAttribute('aria-label',revealed?el.textContent.trim():'Dado oculto');
     });
   }
-  update(false);
-  button.addEventListener('click',()=>update(!root.classList.contains('lc-privacy-visible')));
-  // Never persist visibility across navigation or reuse it on another account.
-  document.addEventListener('visibilitychange',()=>{if(document.hidden)update(false);});
-  window.addEventListener('pagehide',()=>update(false));
+  // Per-tab and per-user: user choice survives page changes without revealing another account's data.
+  const key = 'leaguecut:privacy-visible:' + (root.dataset.lcPrivacyUser || 'unknown');
+  let stored = false;
+  try { stored = sessionStorage.getItem(key) === '1'; } catch (_) {}
+  update(stored);
+  button.addEventListener('click',()=>{
+    const visible = !root.classList.contains('lc-privacy-visible');
+    update(visible);
+    try { sessionStorage.setItem(key,visible?'1':'0'); } catch (_) {}
+  });
 })();
