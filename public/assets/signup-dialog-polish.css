@@ -30,3 +30,19 @@ dialog,
     .lc-auth-close{right:14px;top:13px}
     .lc-signup-nickname{grid-column:1/-1}
 }
+
+/* Rule stays beside Nickname; the line below is only for live availability. */
+.lc-auth-dialog .lc-signup-nickname>.lc-nickname-label{
+    display:flex;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:3px 9px;
+    min-width:0;line-height:1.4;
+}
+.lc-auth-dialog .lc-nickname-hint{
+    font-size:.67rem;font-weight:400;letter-spacing:0;line-height:1.4;
+    color:#a0a8b7;min-width:0;overflow-wrap:anywhere;
+}
+.lc-signup-nickname .lc-nickname-feedback:empty{
+    display:none;
+}
+@media(max-width:620px){
+    .lc-auth-dialog .lc-nickname-hint{font-size:.65rem}
+}

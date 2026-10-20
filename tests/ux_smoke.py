@@ -76,7 +76,18 @@ def main():
     signin=verify(guest,"/entrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
     assert 'id="lc-auth-signup"' in signup and 'action="/cadastrar"' in signup, "Signup must load directly in modal"
     assert 'name="nickname"' in signup and 'data-nickname-check' in signup and 'data-nickname-feedback' in signup, "Required nickname has live availability UI"
-    assert 'assets/signup-nickname.js?v=1' in signup and 'assets/signup-dialog-polish.css?v=1' in signup, "Live nickname check and compact dialogs are loaded"
+    assert 'assets/signup-nickname.js?v=1' in signup and 'assets/signup-dialog-polish.css?v=2' in signup, "Live nickname check and compact dialogs are loaded"
+    assert 'Junte-se ao League Cut' not in signup, "Signup has no redundant eyebrow"
+    assert '<span>Nickname <span class="lc-required-mark"' in signup and 'Nickname público <span' not in signup, "Signup field is simply Nickname"
+    assert 'class="lc-nickname-hint"' in signup and '3 a 24 caracteres: letras, números e _.' in signup, "Inline nickname guidance"
+    assert re.search(r'<small class="lc-nickname-feedback"[^>]*></small>', signup), "Availability feedback starts empty"
+    assert 'assets/paint-mask-surfaces.css?v=1' in home and 'assets/paint-mask-surfaces.css?v=1' in catalog, "Paint mask CSS is enabled"
+    with guest.open(BASE+"/assets/paint-mask-surfaces.css",timeout=10) as asset:
+        mask_css=asset.read().decode("utf-8")
+        assert '-webkit-mask-image' in mask_css and 'mask-image' in mask_css, "Real CSS masks required"
+        assert '.lp-feature' in mask_css and '.explore-catalog .campaign-card' in mask_css, "Paint on non-button surfaces"
+        assert 'prefers-reduced-motion' in mask_css, "Accessible reduced-motion fallback"
+
     assert 'Nickname público (opcional)' not in signup, "Nickname no longer optional"
     assert '<div class="full"><label class="field"><span>Chave Pix' not in signup, "Pix and portfolio share the same desktop form row"
     assert 'id="lc-auth-login"' in signin and 'action="/entrar"' in signin, "Login must load directly in modal"

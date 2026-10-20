@@ -188,7 +188,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/polish.css?v=10">
 <link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <link rel="stylesheet" href="/assets/ux-upgrade.css?v=2">
-<link rel="stylesheet" href="/assets/signup-dialog-polish.css?v=1">
+<link rel="stylesheet" href="/assets/signup-dialog-polish.css?v=2">
 <link rel="stylesheet" href="/assets/auth-mfa-modal.css?v=2">
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
@@ -213,6 +213,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
+<link rel="stylesheet" href="/assets/paint-mask-surfaces.css?v=1">
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
@@ -370,7 +371,7 @@ function lc_auth_dialogs(string $path,?array $flash): void {
 <dialog id="lc-auth-<?=$kind?>" class="lc-auth-dialog" aria-labelledby="lc-auth-title-<?=$kind?>" <?=$direct?'open':''?>>
   <div class="lc-auth-dialog-inner">
     <button class="lc-auth-close" type="button" aria-label="Fechar janela" data-auth-close>×</button>
-    <span class="eyebrow"><?=$isSignup?'Junte-se ao League Cut':'Bem-vindo de volta'?></span>
+    <?php if(!$isSignup): ?><span class="eyebrow">Bem-vindo de volta</span><?php endif; ?>
     <h2 id="lc-auth-title-<?=$kind?>"><?=$isSignup?'Junte-se aos criadores.':'Entre na sua arena.'?></h2>
     <p class="lc-auth-desc"><?=$isSignup?'Crie sua conta para participar de campanhas. Seu cadastro será analisado pela equipe.':'Acompanhe seus clipes, campanhas e recompensas em um só lugar.'?></p>
     <?php if($direct && $flash):?><p class="lc-auth-message <?=$flash['type']==='error'?'is-error':''?>" role="alert"><?=lc_e($flash['message'])?></p><?php endif;?>
@@ -379,12 +380,12 @@ function lc_auth_dialogs(string $path,?array $flash): void {
       <div class="form-grid">
       <?php if($isSignup):?>
         <?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
-        <label class="field lc-signup-nickname"><span>Nickname público <span class="lc-required-mark" aria-hidden="true">*</span></span>
+        <label class="field lc-signup-nickname"><span class="lc-nickname-label"><span>Nickname <span class="lc-required-mark" aria-hidden="true">*</span></span><small class="lc-nickname-hint">3 a 24 caracteres: letras, números e _.</small></span>
           <input name="nickname" type="text" id="lc-signup-nickname" required minlength="3" maxlength="24"
                  pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" autocomplete="nickname" autocapitalize="none"
                  spellcheck="false" placeholder="seunick" aria-describedby="lc-nickname-feedback"
                  data-nickname-check>
-          <small class="lc-nickname-feedback" id="lc-nickname-feedback" data-nickname-feedback role="status" aria-live="polite">De 3 a 24 caracteres: letras, números e _.</small>
+          <small class="lc-nickname-feedback" id="lc-nickname-feedback" data-nickname-feedback role="status" aria-live="polite"></small>
         </label>
         <?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?>
         <?php lc_field('Senha (mínimo 10 caracteres)','password','password','',true,'Crie uma senha forte','minlength="10" autocomplete="new-password"'); ?>
