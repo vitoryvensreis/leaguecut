@@ -210,6 +210,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
 <link rel="stylesheet" href="/assets/clipper-layout-fixes.css?v=1">
+<?php if($u&&$u['role']==='clipador'&&$u['status']==='approved'): ?><link rel="stylesheet" href="/assets/clipper-post-modal.css?v=1"><?php endif; ?>
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
@@ -288,6 +289,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php foreach($footerSocials as $social): ?><a href="<?=lc_e($social['url'])?>" target="_blank" rel="noopener noreferrer external"><?=lc_icon('external-link')?> <?=lc_e($social['label'])?></a><?php endforeach;?></nav>
 <?php endif; ?></footer>
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
+<?php if($u&&$u['role']==='clipador'&&$u['status']==='approved'):lc_clipper_post_dialog($u);?><script src="/assets/clipper-post-modal.js?v=1" defer></script><?php endif;?>
 <?php lc_privacy_banner(); ?>
 <script src="/assets/ux-upgrade.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>
