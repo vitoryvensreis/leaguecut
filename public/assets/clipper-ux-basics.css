@@ -1,0 +1,14 @@
+/* LeagueCut UX basics: responsive deletion actions and readable signup consent. */
+.lc-account-admin .lc-delete-actions{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;margin:16px 0 6px}
+.lc-account-admin .lc-delete-actions>.btn{margin:0;max-width:100%;white-space:normal;min-width:0}
+.lc-account-admin .lc-delete-back{display:inline-block;margin:12px 0 0;font-size:.82rem;color:var(--text-muted,#999);text-decoration:none;opacity:.74}
+.lc-account-admin .lc-delete-back:hover{opacity:1;text-decoration:underline}
+.lc-auth-form .lc-auth-consent{display:flex!important;flex-direction:row!important;align-items:flex-start!important;gap:12px;line-height:1.55;min-width:0}
+.lc-auth-form .lc-auth-consent>input[type=checkbox]{flex:0 0 17px;width:17px;height:17px;margin-top:3px}
+.lc-auth-form .lc-auth-consent>span{display:block;min-width:0;overflow-wrap:anywhere}
+.lc-auth-form .lc-auth-consent a,.lc-auth-form .form-note a{white-space:normal;overflow-wrap:anywhere}
+@media(max-width:640px){
+ .lc-account-admin .lc-delete-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+ .lc-account-admin .lc-delete-actions>.btn{width:100%;display:flex;align-items:center;justify-content:center;padding:11px 8px}
+ .lc-account-admin .lc-delete-actions>.btn:last-child:nth-child(odd){grid-column:1/-1}
+}
