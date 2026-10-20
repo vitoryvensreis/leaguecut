@@ -76,10 +76,18 @@ def main():
     assert 'href="/feed"' in home and 'Feed</a>' in home, "Feed link is visible in public top navigation"
     assert 'id="lc-feed-title"' in feed and 'lc-feed-filters' in feed, "Feed has heading and network filters"
     assert 'assets/social-feed.js?v=1' in feed, "Feed embeds are loaded only on click"
+    assert 'data-feed-player' in feed and 'https://www.instagram.com/reel/' in feed, "Approved clip Reels render in the public Feed"
+    assert 'data-network="instagram"' in feed, "Approved Instagram clips have native player option"
+    assert 'Clipe aprovado' in feed and 'Clipador' in feed, "Feed shows moderation status and community attribution"
+
     instagram_feed=verify(guest,"/feed?rede=instagram",["social-feed.css"],["workspace.css"],"/feed")
     tiktok_feed=verify(guest,"/feed?rede=tiktok",["social-feed.css"],["workspace.css"],"/feed")
     assert 'aria-current="page"' in instagram_feed and 'Instagram' in instagram_feed
     assert 'aria-current="page"' in tiktok_feed and 'TikTok' in tiktok_feed
+    assert 'data-network="instagram"' in instagram_feed, "Instagram filter includes approved Instagram Reels"
+    assert 'data-network="tiktok"' not in instagram_feed, "Instagram filter excludes TikTok"
+    assert 'data-network="instagram"' not in tiktok_feed, "TikTok filter excludes Instagram"
+
     with guest.open(BASE+"/assets/social-feed.js?v=1",timeout=10) as response:
         js=response.read().decode("utf-8")
         assert 'data-feed-play' in js and 'dataset.embed' in js and 'replaceChildren(frame)' in js, "Embeds opt in on click"
