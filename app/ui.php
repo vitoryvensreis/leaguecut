@@ -126,24 +126,6 @@ function lc_workspace_nav(array $u, string $current): void {
         <?php endforeach; ?>
       </div>
     <?php endforeach; ?>
-<dialog id="lc-auth-mfa" class="lc-auth-dialog lc-auth-mfa-dialog" aria-labelledby="lc-auth-mfa-title" aria-modal="true" <?=$path==='/seguranca/verificar'?'open':''?>>
-  <div class="lc-auth-dialog-inner">
-    <button class="lc-auth-close" type="button" aria-label="Fechar verificação" data-auth-close>×</button>
-    <span class="eyebrow">SEGURANÇA DA CONTA</span>
-    <div class="lc-auth-mfa-symbol"><?=lc_icon('shield-check')?></div>
-    <h2 id="lc-auth-mfa-title">Confirme seu acesso</h2>
-    <p class="lc-auth-desc">Digite o código de 6 dígitos do seu autenticador ou um código de recuperação.</p>
-    <p class="lc-auth-message is-error" data-auth-error role="alert" hidden></p>
-    <form method="post" action="/seguranca/verificar" class="lc-auth-form" data-auth-async="mfa"><?=lc_csrf()?>
-      <label class="field full"><span>Código de verificação</span><input type="text" name="mfa_code" inputmode="text" autocomplete="one-time-code" maxlength="60" required placeholder="000000 ou código de recuperação"></label>
-      <div class="form-actions">
-        <button class="btn" type="submit">Verificar e entrar <?=lc_icon('arrow-right')?></button>
-        <button type="button" class="lc-auth-mfa-back" data-auth-back>Voltar ao login</button>
-      </div>
-      <p class="form-note">O código muda a cada 30 segundos. Após 6 tentativas incorretas, aguarde 15 minutos.</p>
-    </form>
-  </div>
-</dialog>
 <?php
 }
 
@@ -401,5 +383,24 @@ function lc_auth_dialogs(string $path,?array $flash): void {
     </form>
   </div>
 </dialog>
-<?php endforeach;
+<?php endforeach; ?>
+<dialog id="lc-auth-mfa" class="lc-auth-dialog lc-auth-mfa-dialog" aria-labelledby="lc-auth-mfa-title" aria-modal="true" <?=$path==='/seguranca/verificar'?'open':''?>>
+  <div class="lc-auth-dialog-inner">
+    <button class="lc-auth-close" type="button" aria-label="Fechar verificação" data-auth-close>×</button>
+    <span class="eyebrow">SEGURANÇA DA CONTA</span>
+    <div class="lc-auth-mfa-symbol"><?=lc_icon('shield-check')?></div>
+    <h2 id="lc-auth-mfa-title">Confirme seu acesso</h2>
+    <p class="lc-auth-desc">Digite o código de 6 dígitos do seu autenticador ou um código de recuperação.</p>
+    <p class="lc-auth-message is-error" data-auth-error role="alert" hidden></p>
+    <form method="post" action="/seguranca/verificar" class="lc-auth-form" data-auth-async="mfa"><?=lc_csrf()?>
+      <label class="field full"><span>Código de verificação</span><input type="text" name="mfa_code" inputmode="text" autocomplete="one-time-code" maxlength="60" required placeholder="000000 ou código de recuperação"></label>
+      <div class="form-actions">
+        <button class="btn" type="submit">Verificar e entrar <?=lc_icon('arrow-right')?></button>
+        <button type="button" class="lc-auth-mfa-back" data-auth-back>Voltar ao login</button>
+      </div>
+      <p class="form-note">O código muda a cada 30 segundos. Após 6 tentativas incorretas, aguarde 15 minutos.</p>
+    </form>
+  </div>
+</dialog>
+<?php
 }
