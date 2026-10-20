@@ -90,7 +90,7 @@ if(lc_meta_deauthorization_route($method,$path))return;
 // Pending or suspended clippers cannot browse any private/public area except their status and sign-out.
 $restrictedClipper=lc_user();
 if($restrictedClipper && $restrictedClipper['role']==='clipador' && $restrictedClipper['status']!=='approved'
-   && !($method==='GET' && $path==='/aguardando')
+   && !($method==='GET' && ($path==='/aguardando' || preg_match('~^/(?:sw\\.js|pwa(?:/|$)|app-icon/|share/|favicon\\.ico$)~D',$path)))
    && !($method==='POST' && $path==='/sair')) {
     if($method==='GET')lc_redirect('/aguardando');
     http_response_code(403);exit('Sua conta aguarda aprovação antes de enviar dados.');
