@@ -8,6 +8,7 @@ require __DIR__ . '/automation-console.php';
 require __DIR__ . '/automation-whatsapp.php';
 require __DIR__ . '/automation-visual.php';
 require __DIR__ . '/home.php';
+require __DIR__ . '/campaign-covers.php';
 require __DIR__ . '/brand.php';
 require __DIR__ . '/seo.php';
 require __DIR__ . '/pwa.php';
@@ -68,6 +69,9 @@ if($method==='GET' && preg_match('~^/media/seo/(icon|social)/([a-f0-9]{36})$~D',
 }
 if($method==='GET' && preg_match('~^/media/brand/([a-f0-9]{36})$~D',$path,$brandMatch)) {
     lc_brand_logo_response($brandMatch[1]);
+}
+if($method==='GET' && preg_match('~^/media/campaign/([a-f0-9]{36})$~D',$path,$coverMatch)) {
+    lc_campaign_cover_response($coverMatch[1]);
 }
 if($method==='GET' && preg_match('~^/media/home/([a-f0-9]{36})$~D',$path,$mediaMatch)) {
     lc_home_media_response($mediaMatch[1]);

@@ -2,45 +2,75 @@
 declare(strict_types=1);
 
 function lc_save_campaign(?int $id): void {
-    lc_admin();
+    $admin=lc_admin();
     $title=lc_post('title',180);$description=lc_post('description',15000);
-    $category=lc_post('category',70)?:'Destaques';$cover=lc_post('cover_url',800);
+    $category=lc_post('category',70)?:'Destaques';
     $status=lc_post('status',20);$start=lc_post('starts_at',10);$end=lc_post('ends_at',10);
     $allowed=['draft','active','paused','ended'];
-    if(mb_strlen($title)<3||mb_strlen($description)<10||!in_array($status,$allowed,true)||($cover!==''&&!lc_valid_https($cover))||($start!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/',$start))||($end!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/',$end))){
-        lc_flash('Confira título, descrição, capa HTTPS, status e datas.','error');lc_redirect('/admin/campanhas');
+    $returnTo=$id?'/admin/campanhas/'.$id.'/editar':'/admin/campanhas';
+    if(mb_strlen($title)<3||mb_strlen($description)<10||!in_array($status,$allowed,true)||
+       ($start!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/',$start))||
+       ($end!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/',$end))){
+        lc_flash('Confira título, descrição, status e datas.','error');lc_redirect($returnTo);
+    }
+    $previous=$id?lc_one('SELECT cover_url FROM campaigns WHERE id=?',[$id]):null;
+    if($id&&!$previous){http_response_code(404);exit('Campanha não encontrada.');}
+    $oldCover=(string)($previous['cover_url']??'');
+    $cover=$oldCover;$uploaded='';
+    $file=$_FILES['cover_upload']??null;
+    if($file!==null&&($file['error']??UPLOAD_ERR_NO_FILE)!==UPLOAD_ERR_NO_FILE){
+        try{$uploaded=lc_campaign_cover_store($file);$cover=$uploaded;}
+        catch(Throwable $e){
+            lc_flash($e instanceof InvalidArgumentException?$e->getMessage():'Falha ao enviar a capa. Tente novamente.','error');
+            lc_redirect($returnTo);
+        }
     }
     $fields=[$title,$description,$category,$cover?:null,$status,
         lc_int('min_videos_week',5,100),lc_cents('payment_per_video',1500),
         lc_int('milestone_views',1000000,2000000000),lc_cents('milestone_bonus',2000),
         lc_cents('monthly_leader_bonus',2000),$start?:null,$end?:null];
-    lc_db()->beginTransaction();
     try {
-    if($id){
-        $fields[]=$id;
-        lc_query('UPDATE campaigns SET title=?,description=?,category=?,cover_url=?,status=?,min_videos_week=?,payment_per_video_cents=?,milestone_views=?,milestone_bonus_cents=?,monthly_leader_bonus_cents=?,starts_at=?,ends_at=? WHERE id=?',$fields);
-        lc_flash('Campanha atualizada.');
-    }else{
-        $fields[] = lc_slug($title);$fields[] = lc_admin()['id'];
-        lc_query('INSERT INTO campaigns(title,description,category,cover_url,status,min_videos_week,payment_per_video_cents,milestone_views,milestone_bonus_cents,monthly_leader_bonus_cents,starts_at,ends_at,slug,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',$fields);
-        lc_flash('Campanha criada.');
-        $id=(int)lc_db()->lastInsertId();
+        lc_db()->beginTransaction();
+        if($id){
+            $fields[]=$id;
+            lc_query('UPDATE campaigns SET title=?,description=?,category=?,cover_url=?,status=?,min_videos_week=?,payment_per_video_cents=?,milestone_views=?,milestone_bonus_cents=?,monthly_leader_bonus_cents=?,starts_at=?,ends_at=? WHERE id=?',$fields);
+        }else{
+            $fields[]=lc_slug($title);$fields[]=(int)$admin['id'];
+            lc_query('INSERT INTO campaigns(title,description,category,cover_url,status,min_videos_week,payment_per_video_cents,milestone_views,milestone_bonus_cents,monthly_leader_bonus_cents,starts_at,ends_at,slug,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',$fields);
+            $id=(int)lc_db()->lastInsertId();
+        }
+        lc_realtime_emit('admin',null,'campaign.updated','campaign',$id);
+        lc_db()->commit();
+    }catch(Throwable $e){
+        if(lc_db()->inTransaction())lc_db()->rollBack();
+        if($uploaded!=='')lc_campaign_cover_discard($uploaded);
+        throw $e;
     }
-    lc_realtime_emit('admin',null,'campaign.updated','campaign',$id);
-    lc_db()->commit();
-    }catch(Throwable $e){if(lc_db()->inTransaction())lc_db()->rollBack();throw $e;}
+    if($uploaded!==''&&$oldCover!==''&&$oldCover!==$uploaded){
+        // Only remove an old private file if no other campaign references it.
+        if(!lc_one('SELECT id FROM campaigns WHERE cover_url=? LIMIT 1',[$oldCover]))
+            lc_campaign_cover_discard($oldCover);
+    }
+    lc_flash($previous?'Campanha atualizada.':'Campanha criada.');
     lc_redirect('/admin/campanhas');
 }
 function lc_campaign_form(?array $c): void {
     $get=fn(string $k,mixed $fallback='')=>(string)($c[$k]??$fallback);
     $id=$c?(int)$c['id']:null;
 ?><div class="panel"><h2><?= $id?'Editar campanha #'.$id:'Criar nova campanha' ?></h2>
-<form method="post" action="<?= $id?'/admin/campanhas/'.$id.'/editar':'/admin/campanhas'?>"><?=lc_csrf()?>
+<form method="post" enctype="multipart/form-data" action="<?= $id?'/admin/campanhas/'.$id.'/editar':'/admin/campanhas'?>"><?=lc_csrf()?>
 <div class="form-grid">
 <?php lc_field('Nome da campanha','title','text',$get('title'),true,'Ex.: Cortes da semana'); ?>
 <?php lc_field('Categoria','category','text',$get('category','Destaques'),true,'Ex.: Podcasts'); ?>
 <label class="field full"><span>Briefing e regras</span><textarea name="description" maxlength="15000" required><?=lc_e($get('description'))?></textarea></label>
-<?php lc_field('Capa (URL HTTPS)','cover_url','url',$get('cover_url'),false,'https://...'); ?>
+<label class="field campaign-cover-field">
+ <span>Imagem de capa</span>
+ <input type="file" name="cover_upload" id="campaign-cover-upload" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" aria-describedby="campaign-cover-help">
+ <small id="campaign-cover-help">Envie JPG, PNG ou WebP (até 6 MB). Recomendado: 16:9, como 1280 × 720 px.</small>
+ <?php $currentCover=$get('cover_url'); ?>
+ <img class="campaign-cover-preview" id="campaign-cover-preview" src="<?=lc_campaign_cover_valid($currentCover)?lc_e($currentCover):''?>" alt="Prévia da capa da campanha" <?=lc_campaign_cover_valid($currentCover)?'':'hidden'?>>
+ <?php if($id&&lc_campaign_cover_valid($currentCover)):?><small>Escolha outra imagem para substituir a capa atual. Sem novo arquivo, a capa será mantida.</small><?php endif;?>
+</label>
 <label class="field"><span>Status</span><select name="status"><?php foreach(['draft'=>'Rascunho','active'=>'Ativa','paused'=>'Pausada','ended'=>'Encerrada'] as $value=>$label):?><option value="<?=$value?>" <?=$get('status','draft')===$value?'selected':''?>><?=$label?></option><?php endforeach;?></select></label>
 <?php lc_field('Mínimo de vídeos aprovados/semana','min_videos_week','number',$get('min_videos_week','5'),true,'5','min="0" max="100"'); ?>
 <?php lc_field('Pagamento por vídeo (R$)','payment_per_video','text',number_format((int)$get('payment_per_video_cents','1500')/100,2,',','.'),true,'15,00'); ?>
@@ -50,7 +80,8 @@ function lc_campaign_form(?array $c): void {
 <?php lc_field('Início (opcional)','starts_at','date',$get('starts_at')); ?>
 <?php lc_field('Fim (opcional)','ends_at','date',$get('ends_at')); ?>
 </div><div class="form-actions"><button class="btn" type="submit"><?= $id?'Salvar alterações':'Publicar campanha' ?> →</button><a href="/admin/campanhas">Voltar</a></div>
-</form></div><?php
+</form></div>
+<script src="/assets/campaign-cover-upload.js?v=1" defer></script><?php
 }
 function lc_admin_routes(string $method,string $path): bool {
     if(!str_starts_with($path,'/admin'))return false;

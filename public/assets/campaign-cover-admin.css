@@ -1,0 +1,6 @@
+.campaign-cover-field{min-width:0}
+.campaign-cover-field input[type="file"]{width:100%;max-width:100%;box-sizing:border-box}
+.campaign-cover-field small{line-height:1.45;display:block}
+.campaign-cover-preview{display:block;width:min(100%,480px);aspect-ratio:16/9;object-fit:cover;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:#101318;margin-top:9px}
+.campaign-cover-preview[hidden]{display:none!important}
+@media(max-width:600px){.campaign-cover-preview{width:100%}}
