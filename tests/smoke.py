@@ -579,7 +579,7 @@ def main():
     assert "Campanha Teste Real" in catalog, "Campaign in public catalog"
     assert 'lc-catalog-showcase' in catalog and 'lc-catalog-shelf' in catalog, "Cinema campaign catalog"
     assert 'campaign-experience.css' in catalog
-    assert 'workspace-motion.css' not in catalog, "Landing/public pages must not receive panel animations"
+    assert 'workspace-motion.css' in catalog, "Signed-in clipper catalog uses the same lateral workspace"
     assert 'workspace-motion.css' not in get(make_client(),"/"), "Marketing LP has no entry animation"
     assert "Campanha Teste Real" in get(creator,"/explorar?q=Real"), "Search works"
     assert "Campanha Teste Real" in get(creator,"/explorar?categoria=Entrevistas"), "Category filter works"
