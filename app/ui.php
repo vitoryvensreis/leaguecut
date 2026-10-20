@@ -188,6 +188,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/polish.css?v=10">
 <link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <link rel="stylesheet" href="/assets/ux-upgrade.css?v=2">
+<link rel="stylesheet" href="/assets/signup-dialog-polish.css?v=1">
 <link rel="stylesheet" href="/assets/auth-mfa-modal.css?v=2">
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
@@ -308,6 +309,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <?php lc_privacy_banner(); ?>
 <script src="/assets/ux-upgrade.js?v=3" defer></script>
+<script src="/assets/signup-nickname.js?v=1" defer></script>
 <script src="/assets/auth-mfa-modal.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><script src="/assets/flow-canvas-v2.js?v=1" defer></script><?php endif; ?>
@@ -377,13 +379,19 @@ function lc_auth_dialogs(string $path,?array $flash): void {
       <div class="form-grid">
       <?php if($isSignup):?>
         <?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
-        <?php lc_field('Nickname público (opcional)','nickname','text','',false,'seunick','minlength="3" maxlength="24" pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" autocomplete="nickname"'); ?>
+        <label class="field lc-signup-nickname"><span>Nickname público <span class="lc-required-mark" aria-hidden="true">*</span></span>
+          <input name="nickname" type="text" id="lc-signup-nickname" required minlength="3" maxlength="24"
+                 pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" autocomplete="nickname" autocapitalize="none"
+                 spellcheck="false" placeholder="seunick" aria-describedby="lc-nickname-feedback"
+                 data-nickname-check>
+          <small class="lc-nickname-feedback" id="lc-nickname-feedback" data-nickname-feedback role="status" aria-live="polite">De 3 a 24 caracteres: letras, números e _.</small>
+        </label>
         <?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?>
         <?php lc_field('Senha (mínimo 10 caracteres)','password','password','',true,'Crie uma senha forte','minlength="10" autocomplete="new-password"'); ?>
         <?php lc_field('Instagram (seu @)','instagram','text','',true,'@seuperfil'); ?>
         <?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'(85) 99999-9999','autocomplete="tel" inputmode="tel"'); ?>
         <?php lc_field('Portfólio (HTTPS, opcional)','portfolio_url','url','',false,'https://...'); ?>
-        <div class="full"><?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?></div>
+        <?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?>
         <label class="field full lc-auth-consent"><span><input type="checkbox" name="consent_whatsapp" value="1"> Quero receber mensagens operacionais opcionais pelo WhatsApp. Posso pedir a revogação em <a href="/privacidade/solicitacoes">Meus direitos LGPD</a> ou pelo contato da Política de Privacidade.</span></label>
         <p class="form-note full">Ao enviar seu cadastro, seus dados serão utilizados para criar e analisar a conta e executar os serviços solicitados, conforme os <a href="/termos-de-uso">Termos de Uso</a> e a <a href="/politica-de-privacidade">Política de Privacidade</a>. Esta informação não é um consentimento para publicidade.</p>
       <?php else:?>
