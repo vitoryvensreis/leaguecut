@@ -141,6 +141,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && (in_array($active,['admin','dashboard','library','social','finance','creator'],true)||$u['role']==='clipador');
     $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
     $seo=lc_seo_meta($title,$s,$path,(int)(http_response_code()?:200));
+    $activeAppIcon=lc_pwa_active_icon($s);
+    $appIconRev=lc_pwa_icon_revision($activeAppIcon);
     $areaTitle=$u && $u['role']==='admin'?'Administração':($u&&$u['role']==='criador'?'Área do criador':'Área do clipador');
     // Load only assets used on this page. Keep the base design system everywhere.
     $isHome=$active==='home';
@@ -153,16 +155,22 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <html lang="pt-BR" data-lc-user-id="<?=$u?(int)$u['id']:0?>"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="<?=lc_e($primary)?>">
-<link rel="manifest" href="/pwa/manifest?v=4">
+<link rel="manifest" href="/pwa/manifest?v=<?=lc_e($appIconRev)?>">
 <meta name="application-name" content="LeagueCut">
 <meta name="apple-mobile-web-app-title" content="LeagueCut">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<?php if($activeAppIcon): ?>
+<link rel="icon" <?=$activeAppIcon['type']?'type="'.lc_e($activeAppIcon['type']).'"':''?> href="<?=lc_e($activeAppIcon['src'])?>">
+<link rel="shortcut icon" href="<?=lc_e($activeAppIcon['src'])?>">
+<link rel="apple-touch-icon" href="<?=lc_e($activeAppIcon['src'])?>">
+<?php else: ?>
 <link rel="icon" type="image/svg+xml" href="/assets/leaguecut-icon.svg?v=3">
 <link rel="icon" type="image/png" sizes="32x32" href="/pwa/icon/32?v=4">
 <link rel="icon" type="image/png" sizes="48x48" href="/pwa/icon/48?v=4">
 <link rel="shortcut icon" href="/favicon.ico?v=3" type="image/x-icon">
 <link rel="apple-touch-icon" sizes="180x180" href="/pwa/icon/180?v=4">
+<?php endif; ?>
 <title><?=lc_e($seo['title'])?></title>
 <?php lc_seo_head($seo); ?>
 <!-- System font fallback avoids automatic third-party font requests before optional consent. -->
@@ -180,7 +188,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <link rel="stylesheet" href="/assets/polish.css?v=10">
 <link rel="stylesheet" href="/assets/creator-packages.css?v=2">
 <link rel="stylesheet" href="/assets/ux-upgrade.css?v=2">
-<link rel="stylesheet" href="/assets/auth-mfa-modal.css?v=1">
+<link rel="stylesheet" href="/assets/auth-mfa-modal.css?v=2">
 <link rel="stylesheet" href="/assets/motion-glass.css?v=1">
 <link rel="stylesheet" href="/assets/brand-scale-neon.css?v=1">
 <link rel="stylesheet" href="/assets/arena.css?v=1">
@@ -195,11 +203,11 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><link rel="stylesheet" href="/assets/flow-canvas-v2.css?v=1"><?php endif; ?><?php endif; ?>
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
-<link rel="stylesheet" href="/assets/b6-layout.css?v=2">
+<link rel="stylesheet" href="/assets/b6-layout.css?v=3">
 <link rel="stylesheet" href="/assets/clipper-ux-basics.css?v=1">
 <link rel="stylesheet" href="/assets/clipper-ux.css?v=1">
 <link rel="stylesheet" href="/assets/interface-refine.css?v=1">
-<?php if($workspace): ?><link rel="stylesheet" href="/assets/admin-navigation.css?v=1"><?php endif; ?>
+<?php if($workspace): ?><link rel="stylesheet" href="/assets/admin-navigation.css?v=2"><?php endif; ?>
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
