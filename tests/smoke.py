@@ -726,7 +726,7 @@ def main():
     assert "Clipe de teste 04" not in get(admin,"/admin/clipes?status=pending"), "Pending filter"
     finance=get(creator,"/financeiro")
     assert "R$ 75,00" in finance, "Five clips (R$75); public views do not auto-credit"
-    assert 'data-lc-private' in finance and '/assets/privacy-toggle.js?v=1' in finance, "Clipper finance privacy toggle"
+    assert 'data-lc-private' in finance and '/assets/privacy-toggle.js?v=2' in finance, "Clipper finance privacy toggle"
     assert 'lc-private-value' in finance, "Authorized amounts are marked for masking"
     admin_accounts=get(admin,"/admin/contas")
     assert 'data-lc-private' in admin_accounts, "Admin identities are maskable once accounts exist"
