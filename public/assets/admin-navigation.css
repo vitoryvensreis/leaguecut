@@ -1,0 +1,32 @@
+/* Administrative navigation: compact groups, icons in every child, contextual tabs. */
+.lc-admin-nav{padding:0 2px;margin-bottom:12px}
+.lc-admin-nav>.ws-nav-link{margin-bottom:7px}
+.lc-admin-nav-group{margin:4px 0;min-width:0;border-radius:9px}
+.lc-admin-nav-summary{display:flex;align-items:center;gap:11px;cursor:pointer;list-style:none;padding:11px 11px;min-height:45px;line-height:1.25;font-size:.83rem;font-weight:770;border:1px solid transparent;border-radius:9px;color:#bcc4d2;user-select:none}
+.lc-admin-nav-summary::-webkit-details-marker{display:none}
+.lc-admin-nav-summary>span{min-width:0;flex:1;white-space:normal;overflow-wrap:anywhere}
+.lc-admin-nav-summary>.lc-icon:first-child{width:17px;height:17px;flex-shrink:0;color:#8f9aae}
+.lc-admin-nav-summary:hover{background:#ffffff0a;color:#fff}
+.lc-admin-nav-group.is-active>.lc-admin-nav-summary,.lc-admin-nav-group[open]>.lc-admin-nav-summary{background:#541b2b54;color:#fff}
+.lc-admin-nav-group.is-active>.lc-admin-nav-summary>.lc-icon:first-child{color:#ff576f}
+.lc-admin-chevron{width:14px!important;height:14px!important;flex-shrink:0;transition:transform .2s ease;color:#97a1af}
+.lc-admin-nav-group[open] .lc-admin-chevron{transform:rotate(90deg)}
+.lc-admin-nav-submenu{margin:2px 3px 10px;padding:5px 4px 5px 10px;background:#ffffff07;border-radius:8px;border-left:1px solid #ffffff18}
+.lc-admin-nav-child{display:flex;align-items:center;gap:10px;text-decoration:none;color:#aeb6c5;font-size:.78rem;min-height:38px;padding:8px 10px;border-radius:7px;white-space:normal;overflow-wrap:anywhere}
+.lc-admin-nav-child>span:not(.ws-current-dot){min-width:0;flex:1}
+.lc-admin-nav-child>.lc-icon{width:16px;height:16px;flex-shrink:0;color:#8a96a8}
+.lc-admin-nav-child:hover{background:#ffffff0c;color:#fff}
+.lc-admin-nav-child.is-current{color:#fff;background:linear-gradient(90deg,#b80c263b,#ffffff05);font-weight:800}
+.lc-admin-nav-child.is-current>.lc-icon{color:#f4566e}
+.lc-admin-personal{border-top:1px solid #ffffff19;padding-top:9px;margin-top:11px}
+.lc-admin-internal-tabs{max-width:1590px;margin:24px auto 0;padding:0 clamp(19px,3.1vw,53px);min-width:0}
+.lc-admin-internal-tabs>strong{display:flex;align-items:center;gap:10px;font-size:.81rem;color:#a9b1bf;margin-bottom:11px}
+.lc-admin-internal-tabs>strong>.lc-icon{color:#eb3c55;width:17px;height:17px}
+.lc-admin-tabs-scroll{display:flex;align-items:center;gap:7px;overflow-x:auto;padding:0 0 10px;scrollbar-width:thin;scrollbar-color:#56313d transparent}
+.lc-admin-tab{display:inline-flex;align-items:center;gap:8px;white-space:nowrap;flex:0 0 auto;min-height:38px;padding:9px 13px;border-radius:9px;background:#151821;color:#a9b1bf;border:1px solid #ffffff1a;text-decoration:none;font-size:.78rem;font-weight:750}
+.lc-admin-tab>.lc-icon{width:15px;height:15px;color:#8894a5}
+.lc-admin-tab:hover,.lc-admin-tab.is-current{color:white;background:#5d1528;border-color:#b21c3a}
+.lc-admin-tab.is-current>.lc-icon{color:#ff8297}
+.lc-admin-internal-tabs+.container{padding-top:21px!important}
+@media(max-width:970px){.lc-admin-internal-tabs{padding:0 17px;margin-top:20px}.lc-admin-nav-summary{min-height:48px}}
+@media(prefers-reduced-motion:reduce){.lc-admin-chevron{transition:none}}
