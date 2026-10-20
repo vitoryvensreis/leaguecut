@@ -38,7 +38,14 @@ function lc_pwa_manifest_icons(?array $active): array {
     // For a high-resolution square image, the customized icon becomes the primary
     // app artwork. Smaller favicons retain the installable built-in fallback.
     if($active['width']>=512){
-        return [$chosen,array_merge($chosen,['purpose'=>'maskable'])];
+        // Keep exact 192x192 fallbacks for installation engines which require both
+        // 192 and 512 sizes. The configured high-resolution image remains primary.
+        return [
+            $chosen,
+            ['src'=>'/pwa/icon/192','type'=>'image/png','sizes'=>'192x192','purpose'=>'any'],
+            array_merge($chosen,['purpose'=>'maskable']),
+            ['src'=>'/pwa/icon/192-maskable','type'=>'image/png','sizes'=>'192x192','purpose'=>'maskable']
+        ];
     }
     return array_merge([$chosen],$standard);
 }
