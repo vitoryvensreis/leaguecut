@@ -222,7 +222,7 @@ function lc_public_routes(string $method,string $path): bool {
         lc_page($c['title'],function()use($c,$u,$networks){?>
 <div class="container lc-campaign-detail">
 <div class="lc-campaign-detail-hero">
-<?php if(lc_valid_https((string)$c['cover_url'])):?><img src="<?=lc_e($c['cover_url'])?>" alt="" class="lc-campaign-detail-cover" loading="eager"><?php endif;?>
+<?php if(lc_campaign_cover_valid((string)$c['cover_url'])):?><img src="<?=lc_e($c['cover_url'])?>" alt="" class="lc-campaign-detail-cover" loading="eager"><?php endif;?>
 <div class="lc-campaign-detail-text">
 <a href="<?=$u&&$u['role']==='admin'?'/admin/campanhas':'/explorar'?>" class="lc-back-link"><?=lc_icon('arrow-left')?> Voltar ao catálogo</a>
 <span class="eyebrow"><?=lc_e($c['category'])?> · <?=lc_e(strtoupper($c['status']))?></span>
