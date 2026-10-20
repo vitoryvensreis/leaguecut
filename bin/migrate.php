@@ -541,6 +541,20 @@ try{
         }
     }
     echo "MIGRACAO_ASAAS_FOUNDATION_OK\n";
+    $uxTables=['clipper_banners','user_avatars'];
+    $uxMissing=false;
+    foreach($uxTables as $uxTable){
+        if(!lc_one('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?',[$uxTable]))$uxMissing=true;
+    }
+    if($uxMissing){
+        lc_migration_backup();
+        $uxSQL=(string)file_get_contents(dirname(__DIR__).'/database/migrations/20261020_clipper_ux.sql');
+        $uxStatements=array_values(array_filter(array_map('trim',explode(';',$uxSQL))));
+        if(count($uxStatements)!==2)throw new RuntimeException('Migração UX incompleta.');
+        foreach($uxStatements as $sql) $db->exec($sql);
+    }
+    echo "MIGRACAO_CLIPPER_UX_OK\n";
+
 
 
 

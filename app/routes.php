@@ -8,6 +8,8 @@ require __DIR__ . '/automation-console.php';
 require __DIR__ . '/automation-whatsapp.php';
 require __DIR__ . '/automation-visual.php';
 require __DIR__ . '/home.php';
+require __DIR__ . '/clipper-media.php';
+require __DIR__ . '/clipper-banners.php';
 require __DIR__ . '/campaign-covers.php';
 require __DIR__ . '/brand.php';
 require __DIR__ . '/seo.php';
@@ -73,6 +75,9 @@ if($method==='GET' && preg_match('~^/media/brand/([a-f0-9]{36})$~D',$path,$brand
 if($method==='GET' && preg_match('~^/media/campaign/([a-f0-9]{36})$~D',$path,$coverMatch)) {
     lc_campaign_cover_response($coverMatch[1]);
 }
+if($method==='GET' && preg_match('~^/media/(avatar|clipper-banner)/([a-f0-9]{36})$~D',$path,$personalMedia)) {
+    lc_clipper_media_response($personalMedia[1]==='avatar'?'avatar':'banner',$personalMedia[2]);
+}
 if($method==='GET' && preg_match('~^/media/home/([a-f0-9]{36})$~D',$path,$mediaMatch)) {
     lc_home_media_response($mediaMatch[1]);
 }
@@ -82,11 +87,20 @@ if ($path==='/health' && $method==='GET') {
     echo 'LeagueCut OK';return;
 }
 if(lc_meta_deauthorization_route($method,$path))return;
+// Pending or suspended clippers cannot browse any private/public area except their status and sign-out.
+$restrictedClipper=lc_user();
+if($restrictedClipper && $restrictedClipper['role']==='clipador' && $restrictedClipper['status']!=='approved'
+   && !($method==='GET' && ($path==='/aguardando' || preg_match('~^/(?:sw\\.js|pwa(?:/|$)|app-icon/|share/|favicon\\.ico$)~D',$path)))
+   && !($method==='POST' && $path==='/sair')) {
+    if($method==='GET')lc_redirect('/aguardando');
+    http_response_code(403);exit('Sua conta aguarda aprovação antes de enviar dados.');
+}
 if(lc_social_oauth_route($method,$path))return;
 if(lc_clip_video_route($method,$path))return;
 if(lc_realtime_route($method,$path))return;
 if(lc_integrations_routes($method,$path))return;
 if(lc_home_admin_routes($method,$path))return;
+if(lc_clipper_banner_routes($method,$path))return;
 if(lc_asaas_routes($method,$path))return;
 if(lc_creator_billing_routes($method,$path))return;
 if(lc_creator_admin_routes($method,$path))return;
@@ -100,6 +114,7 @@ if(lc_request_audit_routes($method,$path))return;
 if(lc_mfa_routes($method,$path))return;
 if(lc_password_reset_routes($method,$path))return;
 if(lc_otp_routes($method,$path))return;
+if(lc_avatar_routes($method,$path))return;
 if(lc_account_self_routes($method,$path))return;
 if(lc_devices_routes($method,$path))return;
 if(lc_foreground_notices_routes($method,$path))return;

@@ -136,6 +136,7 @@ jobs:
           node --check public/assets/pwa.js
           node --check public/assets/notification-preferences.js
           node --check public/assets/admin-notices.js
+          node --check public/assets/clipper-ux.js
           php tests/campaign_ranking.php || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }
           php tests/automation_rules.php
           php tests/automation_visual.php

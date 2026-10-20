@@ -49,13 +49,14 @@ function lc_clipper_routes(string $method,string $path): bool {
         $networks=(int)(lc_one("SELECT COUNT(*) AS total FROM social_accounts WHERE user_id=?",[$u['id']])['total']??0);
         $recent=lc_all("SELECT c.title,c.status,c.submitted_at,c.verified_views,p.title AS campaign_title FROM clips c JOIN campaigns p ON p.id=c.campaign_id WHERE c.user_id=? ORDER BY c.id DESC LIMIT 5",[$u['id']]);
         $campaigns=lc_all("SELECT * FROM campaigns WHERE status='active' ORDER BY created_at DESC LIMIT 4");
-        lc_page('Minha área',function()use($u,$balance,$stats,$networks,$recent,$campaigns){?>
+        $joined=lc_all("SELECT p.* FROM campaigns p INNER JOIN clips c ON c.campaign_id=p.id WHERE c.user_id=? GROUP BY p.id ORDER BY MAX(c.submitted_at) DESC LIMIT 16",[(int)$u['id']]);
+        lc_page('Minha área',function()use($u,$balance,$stats,$networks,$recent,$campaigns,$joined){?>
 <div class="container ws-dashboard">
-  <section class="ws-hero" aria-labelledby="creator-overview-title">
-    <div><span class="eyebrow">Painel do clipador</span><h1 id="creator-overview-title">Olá, <?=lc_e(explode(' ',$u['full_name'])[0])?>!</h1>
-      <p>Seu espaço para descobrir campanhas, organizar suas publicações e acompanhar entregas e créditos confirmados.</p>
-    </div>
-    <div class="ws-hero-actions"><a href="/explorar" class="btn">Explorar campanhas <?=lc_icon('arrow-right')?></a><a href="/biblioteca" class="btn btn-ghost">Meus clipes</a></div>
+  <?php lc_clipper_dashboard_hero($campaigns); ?>
+  <section class="lc-my-campaigns" aria-labelledby="lc-my-campaigns-title">
+    <div class="ws-section-title"><h2 id="lc-my-campaigns-title">Campanhas das quais participo</h2><a href="/explorar">Explorar mais <?=lc_icon('arrow-right')?></a></div>
+    <?php if($joined):?><div class="catalog"><?php foreach($joined as $c)lc_tile($c);?></div>
+    <?php else:?><div class="lc-my-campaigns-empty"><strong>Você ainda não participa de nenhuma campanha.</strong><p>Escolha uma campanha e envie seu primeiro clipe para começar.</p><a href="/explorar" class="btn">Explorar campanhas <?=lc_icon('arrow-right')?></a></div><?php endif;?>
   </section>
   <div class="ws-kpi-grid" aria-label="Indicadores da conta">
   <?php foreach([
@@ -76,7 +77,7 @@ function lc_clipper_routes(string $method,string $path): bool {
       <?php else:?><div class="ws-recent"><?php foreach($recent as $clip):?>
         <div class="ws-recent-item">
           <div class="ws-recent-leading"><span class="ws-recent-icon"><?=lc_icon('video')?></span>
-           <div class="ws-recent-main"><strong><?=lc_e($clip['title'])?></strong><small><?=lc_e($clip['campaign_title'])?> · <?=date('d/m/Y',strtotime($clip['submitted_at']))?></small></div>
+           <div class="ws-recent-main"><strong><?=lc_e(preg_match('/^Clip [a-f0-9]{16}$/D',(string)$clip['title'])?'Publicação enviada':$clip['title'])?></strong><small><?=lc_e($clip['campaign_title'])?> · <?=date('d/m/Y',strtotime($clip['submitted_at']))?></small></div>
           </div>
           <span class="tag tag-<?=lc_e($clip['status'])?>"><?=lc_e(lc_status_label($clip['status']))?></span>
         </div>
@@ -92,9 +93,7 @@ function lc_clipper_routes(string $method,string $path): bool {
       <div class="ws-inline-notice">Os créditos são liberados somente quando os vídeos são aprovados e as metas da campanha são atingidas.</div>
     </section>
   </div>
-  <div class="ws-section-title"><h2>Campanhas em destaque</h2><a href="/explorar">Ver catálogo <?=lc_icon('arrow-right')?></a></div>
-  <?php if($campaigns):?><div class="catalog"><?php foreach($campaigns as $c)lc_tile($c);?></div>
-  <?php else:?><div class="ws-empty-note">Ainda não há campanhas ativas. Você pode preparar seus perfis e acompanhar as novidades.</div><?php endif;?>
+
   <p class="ws-trace"><?=lc_icon('clock-3')?> Conexão: <strong data-realtime-connection>Conectando</strong> · Visualizações e créditos dependem de conferência.</p>
 </div>
 <?php },'dashboard');return true;
@@ -144,12 +143,14 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         $u=lc_login_required();
         if($u['role']==='admin'){http_response_code(403);exit('Disponível apenas para clipadores.');}
         $campaignId=lc_int('campaign_id',0,2147483647);$accountId=lc_int('social_account_id',0,2147483647);
-        $title=lc_post('title',180);$url=lc_post('published_url',800);
+        // Title is optional for API compatibility; standard UI never requests one.
+        $title=lc_post('title',180);if(mb_strlen($title)<4)$title='Clip '.bin2hex(random_bytes(8));
+        $url=lc_post('published_url',800);
         $campaign=lc_one("SELECT * FROM campaigns WHERE id=? AND status='active'",[$campaignId]);
         $account=lc_one('SELECT * FROM social_accounts WHERE id=? AND user_id=?',[$accountId,$u['id']]);
         $host=strtolower((string)parse_url($url,PHP_URL_HOST));
         $validHost=$account && ($account['network']==='instagram'?in_array($host,['instagram.com','www.instagram.com'],true):in_array($host,['tiktok.com','www.tiktok.com','vm.tiktok.com','vt.tiktok.com'],true));
-        if(!$campaign||!$account||mb_strlen($title)<4||!lc_valid_https($url)||!$validHost){
+        if(!$campaign||!$account||!lc_valid_https($url)||!$validHost){
             lc_flash('Verifique a campanha, o perfil e o link HTTPS da publicação na rede selecionada.','error');lc_redirect('/explorar');
         }
         if(lc_one('SELECT id FROM clips WHERE user_id=? AND published_url=?',[$u['id'],$url])){
@@ -211,13 +212,12 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         $campaign=lc_one('SELECT title FROM campaigns WHERE id=?',[(int)$clip['campaign_id']]);
         lc_page('Editar envio',function()use($clip,$accounts,$campaign){?>
 <div class="container container-md">
-<?php lc_heading('Biblioteca','Editar envio','Você pode corrigir os dados e substituir o vídeo original enquanto o clipe não for aprovado.'); ?>
+<?php lc_heading('Biblioteca','Editar envio','Você pode corrigir a publicação ou substituir o vídeo original enquanto não for aprovado.'); ?>
 <div class="panel">
 <p class="hint">Campanha: <strong><?=lc_e($campaign['title']??'Campanha')?></strong>. Ao salvar, o clipe ficará pendente de nova conferência. Após aprovação, edição e exclusão são bloqueadas.</p>
 <form id="lc-clip-form" data-optional-video="<?=$clip['drive_file_id']?'1':'0'?>" method="post" action="/clipes/<?=(int)$clip['id']?>/editar" enctype="multipart/form-data">
 <?=lc_csrf()?>
 <div class="form-grid">
-<div class="full"><?php lc_field('Título do clipe','title','text',(string)$clip['title'],true,'Título do vídeo'); ?></div>
 <div class="full"><?php lc_field('Link da publicação','published_url','url',(string)$clip['published_url'],true,'https://www.instagram.com/reel/...'); ?></div>
 <label class="field full"><span>Perfil usado para publicar</span>
 <select name="social_account_id" required>
@@ -268,12 +268,12 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
 <div class="panel"><div class="panel-head"><h2>Clipes enviados</h2><a href="/explorar" class="btn btn-sm">Nova publicação <?=lc_icon('plus')?></a></div>
 <?php if(!$clips):lc_empty('Sua biblioteca está vazia','Escolha uma campanha e envie a primeira publicação.');
 else:?><div class="table-wrap"><table><thead><tr><th>Vídeo</th><th>Campanha</th><th>Rede</th><th>Views conferidas</th><th>Status</th><th>Drive</th><th>Ações</th></tr></thead><tbody>
-<?php foreach($clips as $c):?><tr><td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e($c['title'])?> ↗</a><small><?=date('d/m/Y',strtotime($c['submitted_at']))?></small></td>
+<?php foreach($clips as $c):?><tr><td><a href="<?=lc_e($c['published_url'])?>" target="_blank" rel="noopener noreferrer"><?=lc_e(preg_match('/^Clip [a-f0-9]{16}$/D',(string)$c['title'])?'Publicação #'.$c['id']:$c['title'])?> ↗</a><small><?=date('d/m/Y',strtotime($c['submitted_at']))?></small></td>
 <td><?=lc_e($c['campaign_title'])?></td><td><?=lc_e(ucfirst($c['network']))?> @<?=lc_e($c['username'])?></td>
  <td><?=number_format((int)$c['verified_views'],0,',','.')?>
  <?php if($c['observed_views']!==null):?><small>Views públicas: <?=number_format((int)$c['observed_views'],0,',','.')?> (Apify, <?=lc_e($c['snapshot_date'])?>; sem confirmação financeira)</small><?php endif;?></td>
 <td><span class="tag tag-<?=lc_e($c['status'])?>"><?=lc_e(lc_status_label($c['status']))?></span></td><td>
-<?php if($c['drive_file_id']):?><button type="button" class="btn btn-ghost btn-sm clip-preview-trigger" data-preview-url="/clipes/<?=(int)$c['id']?>/video" data-preview-name="<?=lc_e($c['title'])?>"><?=lc_icon('play')?> Assistir</button><?php else:?>Sem original<?php endif;?>
+<?php if($c['drive_file_id']):?><button type="button" class="btn btn-ghost btn-sm clip-preview-trigger" data-preview-url="/clipes/<?=(int)$c['id']?>/video" data-preview-name="<?=lc_e(preg_match('/^Clip [a-f0-9]{16}$/D',(string)$c['title'])?'Publicação #'.$c['id']:$c['title'])?>"><?=lc_icon('play')?> Assistir</button><?php else:?>Sem original<?php endif;?>
 </td><td>
 <?php if($c['status']==='approved'):?>
 <span class="clip-edit-locked"><?=lc_icon('lock-keyhole')?> Bloqueado após aprovação</span>

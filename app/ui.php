@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require_once __DIR__ . '/legal-entity.php';
+require_once __DIR__ . '/clipper-ui.php';
 
 function lc_icon(string $name, string $class = ''): string {
     static $allowed = ["play","compass","layout-dashboard","library","wallet","share-2","shield-check","log-out","users-round","user-round-cog","clapperboard","chart-column","hand-coins","trophy","palette","chevron-right","arrow-right","external-link","lock-keyhole","check","circle-check","sparkles","folder-open","clock-3","plus","upload-cloud","settings-2","bell","activity","clipboard-check","layers","circle-dollar-sign","menu","video","globe","shield"];
@@ -61,6 +62,7 @@ function lc_workspace_links(array $u): array {
           ['Automações','/admin/automacoes','activity'],
           ['Conexão WhatsApp','/admin/whatsapp','share-2'],
           ['Banner da Home','/admin/home','layers'],
+          ['Banners do clipador','/admin/banners-clipador','layers'],
           ['Personalização','/admin/configuracoes','palette'],
           ['SEO e compartilhamento','/admin/seo','globe'],
           ['Integrações','/admin/integracoes','settings-2'],
@@ -132,7 +134,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     if (!preg_match('/^#[0-9a-fA-F]{6}$/', $primary)) $primary = '#e50914';
     $logo = (string)($s['logo_url'] ?? '');
     $flash = lc_take_flash();
-    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && in_array($active,['admin','dashboard','library','social','finance','creator'],true);
+    $avatarSrc=$u&&function_exists('lc_avatar_src')?lc_avatar_src((int)$u['id']):'';
+    $workspace = $u && ($u['role']==='admin'||$u['status']==='approved') && (in_array($active,['admin','dashboard','library','social','finance','creator'],true)||$u['role']==='clipador');
     $path = parse_url((string)($_SERVER['REQUEST_URI']??'/'),PHP_URL_PATH)?:'/';
     $seo=lc_seo_meta($title,$s,$path,(int)(http_response_code()?:200));
     $areaTitle=$u && $u['role']==='admin'?'Administração':($u&&$u['role']==='criador'?'Área do criador':'Área do clipador');
@@ -144,7 +147,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     $needsBanner=$isHome||$isHomeEditor;
     $needsCampaignExperience=$isExplore||$path==='/admin/campanhas'||str_starts_with($path,'/campanhas/');
 ?><!doctype html>
-<html lang="pt-BR" data-lc-user-id="<?=($u?(int)$u['id']:0)?>"><head>
+<html lang="pt-BR" data-lc-user-id="<?=$u?(int)$u['id']:0?>"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="<?=lc_e($primary)?>">
 <link rel="manifest" href="/pwa/manifest?v=4">
@@ -189,20 +192,21 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(preg_match('~^/campanhas/|^/biblioteca$|^/admin/clipes$~',$path)): ?><link rel="stylesheet" href="/assets/clips.css?v=12"><?php endif; ?>
 <?php if(in_array($path,['/admin/integracoes','/admin/clipes'],true)): ?><link rel="stylesheet" href="/assets/integrations.css?v=10"><?php endif; ?>
 <link rel="stylesheet" href="/assets/b6-layout.css?v=2">
+<link rel="stylesheet" href="/assets/clipper-ux-basics.css?v=1">
+<link rel="stylesheet" href="/assets/clipper-ux.css?v=1">
 <link rel="stylesheet" href="/assets/pwa-install.css?v=4">
 <?php if($path==='/admin/funcoes'): ?><link rel="stylesheet" href="/assets/admin-roles.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/privacy-consent.css?v=1">
-<link rel="stylesheet" href="/assets/clipper-ux-basics.css?v=1">
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
 </head>
-<body class="<?=$workspace?'workspace-page':'public-page'?>">
+<body class="<?=$workspace?'workspace-page':'public-page'?> <?=$u&&$u['role']==='clipador'&&$u['status']!=='approved'?'lc-awaiting-only':''?>">
 <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
 <header class="site-header <?=$workspace?'workspace-header':''?>">
   <div class="header-inner">
-    <a class="brand" href="/" aria-label="<?=lc_e($brand)?>, página inicial">
+    <a class="brand" href="<?=!$u?'/':($u['role']==='admin'?'/admin':($u['role']==='criador'?'/criador':($u['status']==='approved'?'/dashboard':'/aguardando')))?>" aria-label="<?=lc_e($brand)?>, minha área">
       <?php if (lc_brand_logo_src($logo)): ?><img class="brand-image" src="<?=lc_e($logo)?>" alt="<?=lc_e($brand)?>" width="175" height="44" decoding="async"><?php else: ?><span class="brand-glyph"><?=lc_icon("play")?></span><span><?=lc_e($brand)?></span><?php endif; ?>
     </a>
     <?php if(!$workspace): ?><nav class="main-nav" aria-label="Navegação principal">
@@ -225,11 +229,14 @@ function lc_page(string $title, callable $body, string $active = ''): void {
         <div class="rt-notification-panel"><div class="rt-panel-head"><strong>Atualizações</strong><span class="rt-connection-state" data-realtime-connection>Conectando</span></div>
         <div class="rt-notification-list" data-realtime-feed><p>Nenhuma atualização recente.</p></div></div>
       </details>
-      <a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a>
+      <?php if($u['role']==='clipador'): ?>
+       <?php $position=null;foreach(lc_public_ranking(50) as $rankIndex=>$person){if((string)($person['nickname']??'')===(string)($u['nickname']??'')){$position=$rankIndex+1;break;}} ?>
+       <a class="ws-site-link ws-rank-link" href="/ranking"><?=lc_icon('trophy')?> <span><?=$position!==null?$position.'º no ranking': 'Sem posição no ranking'?></span></a>
+       <?php else: ?><a class="ws-site-link" href="/"><?=lc_icon("external-link")?> <span>Ver site</span></a><?php endif; ?>
       <?php endif; ?>
       <?php if ($u): ?>
       <span class="user-short"><?=lc_e(explode(' ', $u['full_name'])[0])?></span>
-      <span class="avatar" title="<?=lc_e($u['full_name'])?>"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></span>
+      <a class="avatar" href="/conta" title="Alterar foto do perfil"><?php if($avatarSrc):?><img src="<?=lc_e($avatarSrc)?>" alt="" class="lc-user-avatar-photo"><?php else:?><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?><?php endif;?></a>
       <form method="post" action="/sair" class="inline-form"><?=lc_csrf()?><button class="text-button" type="submit" aria-label="Sair da conta"><?=lc_icon("log-out")?> <span>Sair</span></button></form>
       <?php else: ?>
       <a class="header-login" href="/entrar">Entrar</a><a class="btn btn-sm" href="/cadastrar">Ser clipador <?=lc_icon("arrow-right")?></a>
@@ -239,12 +246,15 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 </header>
 <?php if($workspace): ?>
 <div class="workspace-shell">
-  <aside class="workspace-sidebar" aria-label="Navegação da <?=lc_e($areaTitle)?>">
+  <button type="button" class="ws-sidebar-mobile-toggle" data-sidebar-toggle aria-controls="lc-workspace-sidebar" aria-expanded="false"><?=lc_icon('menu')?> Menu</button>
+  <button type="button" class="ws-sidebar-backdrop" data-sidebar-close aria-label="Fechar menu" hidden></button>
+  <aside id="lc-workspace-sidebar" class="workspace-sidebar" aria-label="Navegação da <?=lc_e($areaTitle)?>">
     <div class="ws-sidebar-top"><div class="ws-area-icon"><?=lc_icon($u['role']==='admin'?'shield-check':($u['role']==='criador'?'video':'clapperboard'))?></div><div><strong><?=lc_e($areaTitle)?></strong><span>Central LeagueCut</span></div></div>
+    <?php if($u['role']==='clipador'): ?><button type="button" class="ws-publish-clip" data-clip-open><?=lc_icon('upload-cloud')?> Publicar clipe <?=lc_icon('plus')?></button><?php endif; ?>
     <nav aria-label="Menu de <?=lc_e($areaTitle)?>"><?php lc_workspace_nav($u,$path); ?></nav>
-    <div class="ws-sidebar-bottom"><div class="ws-sidebar-avatar"><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?></div><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
+    <div class="ws-sidebar-bottom"><a class="ws-sidebar-avatar" href="/conta" title="Alterar foto de perfil"><?php if($avatarSrc):?><img src="<?=lc_e($avatarSrc)?>" alt="" class="lc-user-avatar-photo"><?php else:?><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?><?php endif;?></a><div><strong><?=lc_e($u['full_name'])?></strong><span><?=lc_e($u['role']==='admin'?'Administrador':($u['role']==='criador'?'Criador':'Clipador'))?></span></div></div>
   </aside>
-  <div class="ws-mobile-menu"><details><summary><?=lc_icon("menu")?> Menu do painel <?=lc_icon("chevron-right")?></summary><nav aria-label="Menu mobile do painel"><?php lc_workspace_nav($u,$path); ?></nav></details></div>
+
   <div class="workspace-body">
 <?php endif; ?>
 <main id="conteudo" tabindex="-1">
@@ -270,6 +280,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <nav class="lc-footer-socials" aria-label="Redes sociais oficiais">
 <?php foreach($footerSocials as $social): ?><a href="<?=lc_e($social['url'])?>" target="_blank" rel="noopener noreferrer external"><?=lc_icon('external-link')?> <?=lc_e($social['label'])?></a><?php endforeach;?></nav>
 <?php endif; ?></footer>
+<?php if($workspace && $u['role']==='clipador')lc_quick_clip_modal($u); ?>
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <?php lc_privacy_banner(); ?>
 <script src="/assets/ux-upgrade.js?v=1" defer></script>
@@ -283,7 +294,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==="/admin/notificacoes" && $u && $u['role']==='admin'): ?><script src="/assets/admin-notices.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/notification-preferences.js?v=1" defer></script><?php endif; ?>
 <script src="/assets/input-masks.js?v=1" defer></script>
-<?php if($u): ?><script src="/assets/privacy-toggle.js?v=1" defer></script><?php endif; ?>
+<?php if($u): ?><script src="/assets/privacy-toggle.js?v=2" defer></script><?php endif; ?>
+<?php if($workspace): ?><script src="/assets/clipper-ux.js?v=1" defer></script><?php endif; ?>
 </body></html><?php
 }
 function lc_tile(array $c): void {
@@ -345,7 +357,7 @@ function lc_auth_dialogs(string $path,?array $flash): void {
         <?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'(85) 99999-9999','autocomplete="tel" inputmode="tel"'); ?>
         <?php lc_field('Portfólio (HTTPS, opcional)','portfolio_url','url','',false,'https://...'); ?>
         <div class="full"><?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?></div>
-        <label class="field full lc-auth-consent"><input type="checkbox" name="consent_whatsapp" value="1"><span>Quero receber mensagens operacionais opcionais pelo WhatsApp. Posso pedir a revogação em <a href="/privacidade/solicitacoes">Meus direitos LGPD</a> ou pelo contato da Política de Privacidade.</span></label>
+        <label class="field full lc-auth-consent"><span><input type="checkbox" name="consent_whatsapp" value="1"> Quero receber mensagens operacionais opcionais pelo WhatsApp. Posso pedir a revogação em <a href="/privacidade/solicitacoes">Meus direitos LGPD</a> ou pelo contato da Política de Privacidade.</span></label>
         <p class="form-note full">Ao enviar seu cadastro, seus dados serão utilizados para criar e analisar a conta e executar os serviços solicitados, conforme os <a href="/termos-de-uso">Termos de Uso</a> e a <a href="/politica-de-privacidade">Política de Privacidade</a>. Esta informação não é um consentimento para publicidade.</p>
       <?php else:?>
         <div class="full"><?php lc_field('E-mail ou nickname','email','text','',true,'seunick ou voce@exemplo.com','autocomplete="username"'); ?></div>

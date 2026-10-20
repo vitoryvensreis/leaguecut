@@ -90,6 +90,16 @@ function lc_account_self_routes(string $method,string $path): bool {
         lc_page('Meus dados e segurança',function()use($u,$enabled,$channels){?>
 <div class="container container-md">
 <?php lc_heading('Minha conta','Dados e acesso','Edite suas informações com uma confirmação adicional de segurança.'); ?>
+<div class="panel lc-profile-photo-panel">
+  <div><h2>Foto de perfil</h2><p>JPG, PNG ou WebP, até 4 MB.</p></div>
+  <form action="/conta/foto" method="post" enctype="multipart/form-data" class="lc-profile-photo-form">
+    <?=lc_csrf()?>
+    <?php $photo=lc_avatar_src((int)$u['id']);?>
+    <div class="lc-profile-photo-preview"><?php if($photo):?><img src="<?=lc_e($photo)?>" alt="Foto atual do perfil"><?php else:?><?=lc_e(mb_strtoupper(mb_substr($u['full_name'],0,1)))?><?php endif;?></div>
+    <label class="field"><span>Escolher foto</span><input type="file" name="avatar" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required></label>
+    <button class="btn btn-sm" type="submit">Atualizar foto</button>
+  </form>
+</div>
 <div class="panel">
 <form action="/conta" method="post" autocomplete="off"><?=lc_csrf()?>
 <div class="form-grid">
