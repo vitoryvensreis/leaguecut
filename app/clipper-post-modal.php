@@ -1,5 +1,5 @@
 <?php
-declare(strict_types=1;
+declare(strict_types=1);
 
 /** Accessible, workspace-wide clip submission modal. Upload first, metadata next. */
 function lc_clipper_post_dialog(array $u): void {
