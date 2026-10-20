@@ -16,3 +16,10 @@ html.lc-privacy-ready:not(.lc-privacy-visible) textarea[data-lc-private-input]:f
 }
 @media(max-width:600px){.lc-privacy-toolbar{padding:7px 12px 0}}
 @media(prefers-reduced-motion:reduce){.lc-privacy-toggle{transition:none}}
+
+/* Privacy toggle is an icon-only control in the top workspace header. */
+.lc-privacy-toolbar{display:none!important}
+.lc-privacy-header-btn{display:inline-flex;justify-content:center;align-items:center;flex:0 0 37px;width:37px;height:37px;border:1px solid #ffffff29;border-radius:8px;background:#ffffff08;color:#aeb6c5;cursor:pointer;transition:color .2s ease,border-color .2s ease}
+.lc-privacy-header-btn:hover,.lc-privacy-header-btn[aria-pressed="true"]{color:#fff;border-color:#e33756}
+.lc-privacy-header-btn .lc-icon{width:18px;height:18px}
+@media(max-width:600px){.lc-privacy-header-btn{width:35px;height:35px;flex-basis:35px}}
