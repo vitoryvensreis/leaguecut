@@ -59,7 +59,7 @@ function lc_social_feed_route(string $method,string $path): bool {
     };
 
     lc_page('Feed da comunidade',function()use($rows,$total,$page,$limit,$network,$queryPage){ ?>
-<main class="lc-feed" aria-labelledby="lc-feed-title">
+<div class="lc-feed" aria-labelledby="lc-feed-title">
   <section class="lc-feed-hero">
     <div class="lc-feed-wrap">
       <span class="eyebrow">COMUNIDADE LEAGUECUT · CLIPES APROVADOS</span>
@@ -137,7 +137,7 @@ function lc_social_feed_route(string $method,string $path): bool {
   <?php endif;?>
   <p class="lc-feed-disclaimer">Os vídeos são reproduzidos diretamente das plataformas de origem, após você clicar em assistir. Contas privadas, conteúdo removido ou incorporação desativada podem impedir a reprodução. Nesse caso, abra a publicação na rede social.</p>
   </section>
-</main>
+</div>
 <?php },'feed');
     return true;
 }
