@@ -1,0 +1,32 @@
+/* Compact, consistent popup geometry across LeagueCut. All existing dialog elements
+   retain their content dimensions, mobile scrolling and focus traps. */
+dialog,
+[role="dialog"]{border-radius:9px!important}
+
+/* Optical centering independent of the platform's multiplication-sign glyph font. */
+.lc-auth-close{
+    display:grid!important;place-items:center!important;align-content:center;justify-content:center;
+    padding:0!important;line-height:0!important;font-size:0!important;
+    box-sizing:border-box;aspect-ratio:1;
+}
+.lc-auth-close::before,.lc-auth-close::after{
+    content:"";grid-area:1/1;width:17px;height:2px;
+    background:currentColor;border-radius:1px;transform:rotate(45deg);
+}
+.lc-auth-close::after{transform:rotate(-45deg)}
+.lc-signup-nickname{min-width:0}
+.lc-signup-nickname .lc-required-mark{color:#f66c81}
+.lc-signup-nickname input{width:100%;box-sizing:border-box}
+.lc-nickname-feedback{display:flex;align-items:center;gap:7px;min-height:22px;margin-top:5px;
+    font-size:.75rem;line-height:1.4;color:#a2aebb;overflow-wrap:anywhere}
+.lc-nickname-feedback[data-status="available"]{color:#79d8a3}
+.lc-nickname-feedback[data-status="taken"],.lc-nickname-feedback[data-status="invalid"]{color:#ff8c9d}
+.lc-nickname-feedback[data-status="checking"],.lc-nickname-feedback[data-status="limit"]{color:#d5bb87}
+.lc-nickname-feedback[data-status="available"]::before{
+    content:"";width:8px;height:8px;flex:0 0 8px;border-radius:50%;background:currentColor;
+}
+.lc-signup-nickname input[aria-invalid=true]{border-color:#d43e59!important}
+@media(max-width:620px){
+    .lc-auth-close{right:14px;top:13px}
+    .lc-signup-nickname{grid-column:1/-1}
+}
