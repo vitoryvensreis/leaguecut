@@ -144,7 +144,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
     $needsBanner=$isHome||$isHomeEditor;
     $needsCampaignExperience=$isExplore||$path==='/admin/campanhas'||str_starts_with($path,'/campanhas/');
 ?><!doctype html>
-<html lang="pt-BR"><head>
+<html lang="pt-BR" data-lc-privacy-account="<?=$u?(int)$u['id']:''?>"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="<?=lc_e($primary)?>">
 <link rel="manifest" href="/pwa/manifest?v=4">
