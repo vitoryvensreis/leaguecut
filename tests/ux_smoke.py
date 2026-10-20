@@ -110,6 +110,8 @@ def main():
     assert 'data-live="pending_users"' in dashboard
     assert any(a.get("action")=="/sair" for a in MarkupForm(dashboard).forms)
     verify(admin,"/admin/home",["workspace.css","banner.css","realtime.css"],["landing.css"])
+    hero_manager=verify(admin,"/admin/banners-clipador",["workspace.css","clipper-ux.css"],["landing.css"])
+    assert 'name="cta_label"' in hero_manager and 'name="image"' in hero_manager, "Admin can manage clipper hero media and CTA"
     verify(admin,"/admin/clipadores?status=pending",["workspace.css"],["landing.css"])
     verify(admin,"/admin/clipes?status=pending",["workspace.css"],["landing.css"])
 
@@ -118,6 +120,14 @@ def main():
     clipper=verify(creator,"/dashboard",["workspace.css","realtime.css","polish.css"],["landing.css","banner.css"])
     assert 'data-live="available_cents"' in clipper
     assert 'workspace-motion.css' in clipper, "Creator panel animation loaded"
+    assert 'id="lc-quick-clip"' in clipper and 'name="campaign_id"' in clipper and 'name="published_url"' in clipper, "Two-step clip uploader is available"
+    assert 'name="video"' in clipper and 'data-clip-open' in clipper, "Sidebar has quick clip publishing"
+    assert 'lc-clipper-hero' in clipper and 'Campanhas das quais participo' in clipper, "Campaign hero and joined campaign section"
+    assert 'name="title"' not in clipper.split('id="lc-quick-form"',1)[1].split('</form>',1)[0], "Quick upload does not request a title"
+    clipper_catalog=verify(creator,"/explorar",["workspace.css","clipper-ux.css"],[])
+    assert 'class="workspace-shell"' in clipper_catalog, "Logged-in clipper always uses lateral navigation"
+    profile=verify(creator,"/conta",["workspace.css"],[])
+    assert 'action="/conta/foto"' in profile and 'name="avatar"' in profile, "Profile photo upload available"
 
     for target in ("/redes","/biblioteca","/financeiro"):
         verify(creator,target,["workspace.css","realtime.css"],["landing.css"])
