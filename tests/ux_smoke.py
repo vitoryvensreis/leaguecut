@@ -148,6 +148,7 @@ def main():
     assert 'class="workspace-shell"' in clipper_catalog, "Logged-in clipper always uses lateral navigation"
     profile=verify(creator,"/conta",["workspace.css"],[])
     assert 'action="/conta/foto"' in profile and 'name="avatar"' in profile, "Profile photo upload available"
+    assert 'até 10 MB' in profile, "Profile photo UI explains the 10 MB limit"
 
     for target in ("/redes","/biblioteca","/financeiro"):
         verify(creator,target,["workspace.css","realtime.css"],["landing.css"])
