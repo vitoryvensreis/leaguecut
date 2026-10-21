@@ -180,7 +180,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($needsLanding): ?><link rel="stylesheet" href="/assets/landing.css?v=11"><?php endif; ?>
 <?php if($needsBanner): ?><link rel="stylesheet" href="/assets/banner.css?v=11"><?php endif; ?>
 <?php if($needsCampaignExperience): ?><link rel="stylesheet" href="/assets/campaign-experience.css?v=1"><?php endif; ?>
-<?php if($path==='/feed'): ?><link rel="stylesheet" href="/assets/social-feed.css?v=3"><?php endif; ?>
+<?php if($path==='/feed'): ?><link rel="stylesheet" href="/assets/social-feed.css?v=4"><?php endif; ?>
 <?php if($path==='/admin/campanhas'||str_starts_with($path,'/admin/campanhas/')): ?><link rel="stylesheet" href="/assets/campaign-cover-admin.css?v=1"><?php endif; ?>
 <?php if($workspace): ?>
 <link rel="stylesheet" href="/assets/workspace.css?v=10">
@@ -314,7 +314,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if(!$u):lc_auth_dialogs($path,$flash);endif;?>
 <?php lc_privacy_banner(); ?>
 <script src="/assets/ux-upgrade.js?v=3" defer></script>
-<?php if($path==='/feed'): ?><script src="/assets/social-feed.js?v=3" defer></script><?php endif; ?>
+<?php if($path==='/feed'): ?><script src="/assets/social-feed.js?v=4" defer></script><?php endif; ?>
 <script src="/assets/signup-nickname.js?v=1" defer></script>
 <script src="/assets/auth-mfa-modal.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>
