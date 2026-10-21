@@ -74,26 +74,28 @@ def main():
     catalog=verify(guest,"/explorar",["landing.css","polish.css"],["workspace.css","banner.css"],"/explorar")
     feed=verify(guest,"/feed",["social-feed.css"],["workspace.css"],"/feed")
     assert 'href="/feed"' in home and 'Feed</a>' in home, "Feed link is visible in public top navigation"
-    assert 'id="lc-feed-title"' in feed and 'lc-feed-filters' in feed, "Feed has heading and network filters"
-    assert 'assets/social-feed.js?v=1' in feed, "Feed embeds are loaded only on click"
-    assert 'data-feed-player' in feed and 'https://www.instagram.com/reel/' in feed, "Approved clip Reels render in the public Feed"
-    assert 'data-network="instagram"' in feed, "Approved Instagram clips have native player option"
-    assert 'Clipe aprovado' in feed and 'Clipador' in feed, "Feed shows moderation status and community attribution"
+    assert 'lc-feed-filters' not in feed and 'lc-feed-hero' not in feed, "Feed has no marketing hero or network filters"
+    assert 'O talento ganha' not in feed and 'COMUNIDADE LEAGUECUT' not in feed, "Old feed headline is removed"
+    assert 'lc-feed-stories' in feed and 'href="/ranking"' in feed, "Ranking stories and ranking navigation are preserved"
+    assert 'assets/social-feed.js?v=4' in feed, "Infinite scroll and embed handling use the latest feed script"
+    assert 'class="instagram-media"' in feed and 'data-instgrm-permalink=' in feed, "Approved Instagram posts load as native embeds"
+    assert 'data-feed-player' not in feed and 'Assistir publicação' not in feed, "Embeds are shown without a preview button"
+    assert 'lc-feed-timeline' in feed and 'data-feed-sentinel' in feed, "Feed supports endless scrolling"
 
     instagram_feed=verify(guest,"/feed?rede=instagram",["social-feed.css"],["workspace.css"],"/feed")
     tiktok_feed=verify(guest,"/feed?rede=tiktok",["social-feed.css"],["workspace.css"],"/feed")
-    assert 'aria-current="page"' in instagram_feed and 'Instagram' in instagram_feed
-    assert 'aria-current="page"' in tiktok_feed and 'TikTok' in tiktok_feed
-    assert 'data-network="instagram"' in instagram_feed, "Instagram filter includes approved Instagram Reels"
-    assert 'data-network="tiktok"' not in instagram_feed, "Instagram filter excludes TikTok"
-    assert 'data-network="instagram"' not in tiktok_feed, "TikTok filter excludes Instagram"
+    assert 'lc-feed-filters' not in instagram_feed and 'lc-feed-filters' not in tiktok_feed, "Legacy network filters stay hidden"
+    assert instagram_feed.count('class="lc-feed-card')==feed.count('class="lc-feed-card'), "Old Instagram query does not filter timeline"
+    assert tiktok_feed.count('class="lc-feed-card')==feed.count('class="lc-feed-card'), "Old TikTok query does not filter timeline"
 
-    with guest.open(BASE+"/assets/social-feed.js?v=1",timeout=10) as response:
+    with guest.open(BASE+"/assets/social-feed.js?v=4",timeout=10) as response:
         js=response.read().decode("utf-8")
-        assert 'data-feed-play' in js and 'dataset.embed' in js and 'replaceChildren(frame)' in js, "Embeds opt in on click"
-    with guest.open(BASE+"/assets/social-feed.css?v=1",timeout=10) as response:
+        assert 'instagram.com/embed.js' in js and 'lcFeedRefreshEmbeds' in js, "Instagram embeds resize natively even after infinite pagination"
+        assert 'IntersectionObserver' in js and 'data-feed-pagination' in js, "Progressive infinite scroll is initialized"
+    with guest.open(BASE+"/assets/social-feed.css?v=4",timeout=10) as response:
         css=response.read().decode("utf-8")
-        assert 'grid-template-columns:repeat(4' in css and '@media(max-width:520px)' in css, "Feed adapts 4 desktop cards to one mobile card"
+        assert 'aspect-ratio:9/16' in css and 'aspect-ratio:16/9' in css, "Shorts and landscape videos use responsive ratios"
+        assert '.lc-feed-embed-instagram' in css and '.lc-feed-embed-tiktok' in css, "Instagram and TikTok have independent players"
     signup=verify(guest,"/cadastrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
     signin=verify(guest,"/entrar",["app.css","v2.css","polish.css"],["workspace.css","landing.css"])
     assert 'id="lc-auth-signup"' in signup and 'action="/cadastrar"' in signup, "Signup must load directly in modal"
