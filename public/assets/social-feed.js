@@ -1,3 +1,26 @@
+/* Instagram's official script sizes its own embed to the post content.
+   Run it again when the endless timeline appends more posts. */
+(() => {
+  'use strict';
+  let loaded = false;
+  const refresh = () => {
+    if (!document.querySelector('.lc-feed-embed-instagram .instagram-media')) return;
+    if (window.instgrm?.Embeds?.process) {
+      window.instgrm.Embeds.process();
+      return;
+    }
+    if (loaded) return;
+    loaded = true;
+    const script = document.createElement('script');
+    script.async = true;
+    script.src = 'https://www.instagram.com/embed.js';
+    script.addEventListener('load', () => window.instgrm?.Embeds?.process?.());
+    document.head.appendChild(script);
+  };
+  window.lcFeedRefreshEmbeds = refresh;
+  refresh();
+})();
+
 /* Progressive infinite scroll: regular pagination remains usable without JS. */
 (() => {
   'use strict';
@@ -25,6 +48,7 @@
       if (!incoming || !nav) throw new Error('Página inválida');
       const cards = [...incoming.querySelectorAll('.lc-feed-card')];
       cards.forEach(card => timeline.appendChild(document.importNode(card, true)));
+      window.lcFeedRefreshEmbeds?.();
       next = getNext(nav);
       pages.replaceChildren(...[...nav.childNodes].map(n => document.importNode(n, true)));
       if (!next || cards.length === 0) {
