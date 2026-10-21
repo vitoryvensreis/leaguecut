@@ -14,7 +14,7 @@ function lc_feed_safe_original(string $url,string $network): string {
        isset($parts['port'])||isset($parts['fragment']))return '';
     $host=strtolower((string)($parts['host']??''));
     $allowed=$network==='instagram'?['instagram.com','www.instagram.com']:
-             ($network==='tiktok'?['tiktok.com','www.tiktok.com','vm.tiktok.com','vt.tiktok.com']:[]);
+             ($network==='tiktok'?['tiktok.com','www.tiktok.com','vm.tiktok.com','vt.tiktok.com']:($network==='youtube'?['youtube.com','www.youtube.com','m.youtube.com','youtu.be','www.youtu.be']:[]));
     return in_array($host,$allowed,true)?$url:'';
 }
 function lc_feed_embed_url(string $url,string $network): string {
@@ -28,6 +28,17 @@ function lc_feed_embed_url(string $url,string $network): string {
     }elseif($network==='tiktok'&&
            preg_match('~^/@[a-zA-Z0-9._]{2,45}/video/([0-9]{10,25})/?$~D',$path,$m)){
         return 'https://www.tiktok.com/embed/v2/'.$m[1];
+    }elseif($network==='youtube'){
+        $host=strtolower((string)($parts['host']??''));
+        $id='';
+        if(in_array($host,['youtu.be','www.youtu.be'],true) && preg_match('~^/([A-Za-z0-9_-]{11})/?$~D',$path,$m))$id=$m[1];
+        elseif(preg_match('~^/(?:shorts|embed|live)/([A-Za-z0-9_-]{11})/?$~D',$path,$m))$id=$m[1];
+        elseif($path==='/watch'){
+            parse_str((string)($parts['query']??''),$query);
+            $candidate=(string)($query['v']??'');
+            if(preg_match('/^[A-Za-z0-9_-]{11}$/D',$candidate))$id=$candidate;
+        }
+        if($id!=='')return 'https://www.youtube-nocookie.com/embed/'.$id;
     }
     return '';
 }
@@ -35,13 +46,11 @@ function lc_social_feed_route(string $method,string $path): bool {
     if($method!=='GET'||$path!=='/feed')return false;
 
     $network=''; // A timeline reúne todas as redes, sem filtros.
-    if(!in_array($network,['instagram','tiktok'],true))$network='';
     $pageInput=(string)($_GET['pagina']??'1');
     $page=ctype_digit($pageInput)?max(1,min((int)$pageInput,100)):1;
     $limit=10;$offset=($page-1)*$limit;
     $conditions=["c.status='approved'","u.status='approved'","u.role='clipador'"];
     $params=[];
-    if($network!==''){$conditions[]="s.network=?";$params[]=$network;}
     $from=' FROM clips c
             INNER JOIN users u ON u.id=c.user_id
             INNER JOIN social_accounts s ON s.id=c.social_account_id
@@ -53,15 +62,12 @@ function lc_social_feed_route(string $method,string $path): bool {
           p.slug AS campaign_slug,p.status AS campaign_status'
           .$from.' ORDER BY c.submitted_at DESC,c.id DESC LIMIT '.$limit.' OFFSET '.$offset,$params);
 
-    $queryPage=static function(int $n)use($network): string {
-        return '/feed?'.http_build_query(array_filter(['rede'=>$network,'pagina'=>$n],static fn($v)=>$v!==''));
-    };
+    $queryPage=static fn(int $n): string => '/feed?pagina='.$n;
 
     $leaders=lc_public_ranking(15);
     lc_page('Feed da comunidade',function()use($rows,$total,$page,$limit,$network,$queryPage,$leaders){ ?>
-<div class="lc-feed" aria-labelledby="lc-feed-title">
+<div class="lc-feed" aria-label="Feed de vídeos da comunidade">
   <section class="lc-feed-top lc-feed-wrap" aria-label="Comunidade e destaques">
-    <div class="lc-feed-top-heading"><h1 id="lc-feed-title">Feed</h1><span>Comunidade LeagueCut</span></div>
     <div class="lc-feed-stories-heading"><strong><?=lc_icon('trophy')?> Destaques do ranking</strong><a href="/ranking">Ver ranking completo <?=lc_icon('arrow-right')?></a></div>
     <div class="lc-feed-stories" role="list" aria-label="Melhores clipadores do ranking geral">
       <?php foreach($leaders as $i=>$leader): $nick=(string)($leader['nickname']??''); if($nick==='')continue; ?>
@@ -79,8 +85,8 @@ function lc_social_feed_route(string $method,string $path): bool {
     <div class="lc-feed-empty">
       <span class="lc-feed-empty-icon"><?=lc_icon('clapperboard')?></span>
       <h2>Os primeiros clipes estão a caminho.</h2>
-      <p><?= $network!==''?'Ainda não há clipes aprovados desta rede. Veja outras publicações ou volte em breve.':'Assim que os clipadores enviarem suas publicações e a equipe aprovar, elas aparecerão aqui automaticamente.' ?></p>
-      <a href="<?=$network!==''?'/feed':'/explorar'?>" class="btn btn-ghost"><?=$network!==''?'Ver todas as redes':'Explorar campanhas'?> <?=lc_icon('arrow-right')?></a>
+      <p>Assim que os clipadores enviarem suas publicações e a equipe aprovar, elas aparecerão aqui automaticamente.</p>
+      <a href="/explorar" class="btn btn-ghost">Explorar campanhas <?=lc_icon('arrow-right')?></a>
     </div>
   <?php else:?>
     <div class="lc-feed-grid" id="lc-feed-timeline" aria-live="polite">
@@ -93,38 +99,20 @@ function lc_social_feed_route(string $method,string $path): bool {
          $handle=trim((string)$entry['username']);
          $display=$nickname!==''?'@'.$nickname:('Clipador #'.(int)$id);
          ?>
-      <article class="lc-feed-card" aria-label="Publicação do clipador <?=lc_e($display)?>">
-        <div class="lc-feed-video">
-        <?php if($embed!=='' && $url!==''):?>
-          <div class="lc-feed-placeholder" data-feed-player data-embed="<?=lc_e($embed)?>" data-network="<?=lc_e($platform)?>">
-            <div class="lc-feed-preview-art" aria-hidden="true">
-              <span class="lc-feed-preview-brand">LEAGUE<span>CUT</span></span>
-              <span class="lc-feed-preview-number">#<?=str_pad((string)$id,4,'0',STR_PAD_LEFT)?></span>
-            </div>
-            <button class="lc-feed-play" type="button" data-feed-play aria-label="Reproduzir publicação no <?=lc_e(ucfirst($platform))?>">
-              <span class="lc-feed-play-icon"><?=lc_icon('play')?></span>
-              <strong>Assistir publicação</strong>
-              <small>Carregar vídeo do <?=lc_e(ucfirst($platform))?></small>
-            </button>
+      <article class="lc-feed-card" aria-label="Vídeo de <?=lc_e($display)?>">
+        <?php if($embed!==''): ?>
+          <iframe class="lc-feed-iframe lc-feed-iframe-<?=lc_e($platform)?>"
+             title="Vídeo de <?=lc_e($display)?> no <?=lc_e(ucfirst($platform))?>"
+             src="<?=lc_e($embed)?>" loading="lazy"
+             referrerpolicy="strict-origin-when-cross-origin"
+             allow="encrypted-media; fullscreen; picture-in-picture; autoplay"
+             allowfullscreen></iframe>
+        <?php else: ?>
+          <div class="lc-feed-unavailable">
+            <p>Não foi possível incorporar este vídeo.</p>
+            <?php if($url!==''):?><a href="<?=lc_e($url)?>" target="_blank" rel="noopener noreferrer">Abrir publicação original <?=lc_icon('external-link')?></a><?php endif;?>
           </div>
-        <?php else:?>
-          <div class="lc-feed-placeholder lc-feed-preview-only">
-            <span class="lc-feed-preview-brand">LEAGUE<span>CUT</span></span>
-            <span class="lc-feed-play-icon"><?=lc_icon('clapperboard')?></span>
-            <p>Veja a publicação na rede social</p>
-          </div>
-        <?php endif;?>
-        <span class="lc-feed-network"><?=lc_e(ucfirst($platform))?></span>
-        </div>
-        <div class="lc-feed-info">
-          <div class="lc-feed-meta"><span><?=lc_icon('users-round')?> <?=lc_e($display)?></span><time datetime="<?=lc_e(substr((string)$entry['submitted_at'],0,10))?>"><?=date('d/m/Y',strtotime((string)$entry['submitted_at']))?></time></div>
-          <h2><?=lc_e((string)$entry['campaign_title'])?></h2>
-          <p>Clipador <?=lc_e('@'.$handle)?> · Clipe aprovado</p>
-          <div class="lc-feed-card-actions">
-            <?php if($url!==''):?><a href="<?=lc_e($url)?>" target="_blank" rel="noopener noreferrer" class="lc-feed-original">Abrir no <?=lc_e(ucfirst($platform))?> <?=lc_icon('external-link')?></a><?php endif;?>
-            <?php if($entry['campaign_status']==='active'):?><a href="/campanhas/<?=lc_e((string)$entry['campaign_slug'])?>" class="lc-feed-campaign-link">Campanha <?=lc_icon('arrow-right')?></a><?php endif;?>
-          </div>
-        </div>
+        <?php endif; ?>
       </article>
       <?php endforeach; ?>
     </div>
@@ -136,7 +124,7 @@ function lc_social_feed_route(string $method,string $path): bool {
     <div class="lc-feed-loading" data-feed-loading aria-live="polite"></div>
     <div class="lc-feed-sentinel" data-feed-sentinel aria-hidden="true"></div>
   <?php endif;?>
-  <p class="lc-feed-disclaimer">Os vídeos são reproduzidos diretamente das plataformas de origem, após você clicar em assistir. Contas privadas, conteúdo removido ou incorporação desativada podem impedir a reprodução. Nesse caso, abra a publicação na rede social.</p>
+  <p class="lc-feed-disclaimer">Vídeos incorporados das plataformas de origem. Publicações privadas, removidas ou com incorporação desativada podem não funcionar.</p>
   </section>
 </div>
 <?php },'feed');
