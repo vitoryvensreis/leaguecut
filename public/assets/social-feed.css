@@ -1,4 +1,4 @@
-/* Feed de vídeos: embeds nativos sem cartões ou hero promocional. */
+/* LeagueCut timeline: players oficiais responsivos, sem recorte de conteúdo. */
 .lc-feed{background:#0b0c12;color:#fafafb;min-width:0;padding:0 0 32px}
 .lc-feed-wrap{max-width:1050px;margin:0 auto;padding:0 18px}
 .lc-feed-top{padding-top:20px}
@@ -15,11 +15,16 @@
 .lc-feed-story-empty{font-size:.8rem;color:#9da1ad}
 .lc-feed-content{padding-top:12px}
 .lc-feed-grid{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%;max-width:540px;margin:0 auto}
-.lc-feed-card{width:100%;display:flex;justify-content:center;border:0;border-radius:3px;overflow:hidden;background:#fff}
-.lc-feed-iframe{display:block;width:100%;height:740px;border:0;background:#fff}
-.lc-feed-iframe-youtube{height:auto;aspect-ratio:9/16;max-height:900px;background:#000}
-.lc-feed-iframe-tiktok{height:760px}
-.lc-feed-unavailable{min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;color:#1c1c20}
+.lc-feed-card{width:100%;min-width:0;display:block;border:0;border-radius:0;background:transparent}
+.lc-feed-embed{width:100%;min-width:0;background:#fff}
+.lc-feed-embed-instagram{background:#fff}
+.lc-feed-embed-instagram .instagram-media{box-sizing:border-box;display:block;width:100%!important;min-width:0!important;max-width:100%!important;margin:0!important;padding:0!important;box-shadow:none!important;border:0!important;background:#fff!important}
+.lc-feed-embed-instagram iframe{display:block;max-width:100%!important;border:0!important}
+.lc-feed-embed-tiktok{aspect-ratio:9/16;background:#101014}
+.lc-feed-embed-youtube{aspect-ratio:16/9;background:#000}
+.lc-feed-embed-youtube.lc-feed-embed-short{aspect-ratio:9/16}
+.lc-feed-iframe{display:block;width:100%;height:100%;border:0;background:inherit}
+.lc-feed-unavailable{min-height:200px;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;color:#1c1c20}
 .lc-feed-unavailable a{color:#ba153b}
 .lc-feed-pages{display:flex;justify-content:center;gap:12px;max-width:540px;margin:18px auto;color:#a0a3ad;font-size:.8rem}
 .lc-feed-pages a{color:white;text-decoration:none;padding:10px;border:1px solid #ffffff38;border-radius:7px}
@@ -29,4 +34,4 @@
 .lc-feed-disclaimer{max-width:540px;text-align:center;margin:26px auto;color:#8e929e;font-size:.73rem;line-height:1.6}
 .lc-feed-empty{max-width:540px;margin:auto;padding:36px 20px;text-align:center;border:1px dashed #ffffff38;border-radius:12px}
 .lc-feed-empty h2{font-size:1.5rem}.lc-feed-empty p{color:#a9acb7;line-height:1.5}
-@media(max-width:600px){.lc-feed-wrap{padding:0 10px}.lc-feed-story{flex-basis:69px}.lc-feed-story-ring{width:59px;height:59px}.lc-feed-grid{gap:12px}.lc-feed-iframe{height:650px}.lc-feed-iframe-tiktok{height:700px}.lc-feed-iframe-youtube{height:auto}}
+@media(max-width:600px){.lc-feed-wrap{padding:0 10px}.lc-feed-story{flex-basis:69px}.lc-feed-story-ring{width:59px;height:59px}.lc-feed-grid{gap:12px}}
