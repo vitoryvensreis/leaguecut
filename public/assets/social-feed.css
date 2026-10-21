@@ -1,98 +1,32 @@
-/* LeagueCut community feed: cinematic, mobile-first and without external assets. */
-.lc-feed{min-width:0;background:#0b0c12;color:#fafafb;padding-bottom:60px}
-.lc-feed-wrap{max-width:1460px;margin:auto;padding:0 clamp(18px,3.4vw,56px)}
-.lc-feed-hero{padding:clamp(50px,6vw,90px) 0 40px;border-bottom:1px solid #ffffff1d;background:radial-gradient(ellipse at 90% 20%,#8b183c55,transparent 60%),linear-gradient(135deg,#17131d,#090b10)}
-.lc-feed-hero .eyebrow{font-weight:900;letter-spacing:.13em;font-size:.72rem;color:#ff586f}
-.lc-feed-hero h1{font-size:clamp(2.45rem,5.8vw,5.8rem);line-height:1.05;letter-spacing:-.075em;margin:18px 0 19px}
-.lc-feed-hero h1 em{font-style:normal;color:#f66a80}
-.lc-feed-hero p{color:#abb6c5;font-size:clamp(.92rem,1.3vw,1.07rem);max-width:670px;line-height:1.7;margin:0 0 29px}
-.lc-feed-hero-bottom{display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap}
-.lc-feed-filters{display:flex;gap:9px;flex-wrap:wrap}
-.lc-feed-filters a{padding:10px 16px;text-decoration:none;color:#bcc4d0;border:1px solid #ffffff25;border-radius:7px;background:#ffffff08;font-size:.84rem;font-weight:800}
-.lc-feed-filters a:hover,.lc-feed-filters a[aria-current=page]{background:#e5092133;border-color:#f0536a;color:#fff}
-.lc-feed-total{color:#a6b0c2;font-size:.79rem}
-.lc-feed-content{padding-top:clamp(28px,4vw,56px)}
-.lc-feed-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(12px,1.8vw,23px)}
-.lc-feed-card{min-width:0;border:1px solid #ffffff20;border-radius:12px;overflow:hidden;background:linear-gradient(145deg,#1e202a,#11131a);display:flex;flex-direction:column;transition:border-color .2s,transform .2s;box-shadow:0 16px 42px #0003}
-.lc-feed-card:hover{border-color:#f1506b80;transform:translateY(-3px)}
-.lc-feed-video{aspect-ratio:9/15;position:relative;overflow:hidden;background:#101018}
-.lc-feed-placeholder{height:100%;width:100%;display:grid;place-items:center;position:relative;overflow:hidden;background:radial-gradient(ellipse at 40% 46%,#9e173e69,transparent 60%),linear-gradient(148deg,#30202d,#13151d 66%,#0c0d13)}
-.lc-feed-preview-art{position:absolute;inset:15px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}
-.lc-feed-preview-brand{font-size:.68rem;font-weight:900;letter-spacing:.07em}.lc-feed-preview-brand span{color:#fa526a}
-.lc-feed-preview-number{color:#abb4c0;font-size:.71rem}
-.lc-feed-play{border:0;background:transparent;color:#fff;padding:16px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:11px;cursor:pointer}
-.lc-feed-play-icon{display:grid;place-items:center;width:80px;height:80px;border-radius:18px;background:linear-gradient(145deg,#f3153c,#910d26);box-shadow:0 15px 50px #d5133e7a;transform:rotate(-6deg);transition:transform .25s}
-.lc-feed-play-icon .lc-icon{width:30px;height:30px;color:#fff}
-.lc-feed-play:hover .lc-feed-play-icon,.lc-feed-play:focus-visible .lc-feed-play-icon{transform:scale(1.07) rotate(0)}
-.lc-feed-play strong{font-size:.93rem}.lc-feed-play small{color:#bbc4d0;font-size:.75rem}
-.lc-feed-iframe{width:100%;height:100%;border:0;display:block;background:white}
-.lc-feed-network{position:absolute;top:14px;right:14px;z-index:3;background:#090a10dd;border:1px solid #ffffff35;border-radius:6px;padding:7px 11px;color:#fff;font-size:.69rem;font-weight:900;pointer-events:none}
-.lc-feed-info{display:flex;flex:1;flex-direction:column;gap:8px;padding:18px 16px}
-.lc-feed-meta{display:flex;justify-content:space-between;align-items:center;gap:9px;color:#c1c9d6;font-size:.73rem;min-width:0}
-.lc-feed-meta span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-flex;align-items:center;gap:4px}
-.lc-feed-meta .lc-icon{width:14px;height:14px;flex:0 0 14px;color:#fa536d}
-.lc-feed-meta time{flex:0 0 auto;color:#929dac;font-size:.68rem}
-.lc-feed-info h2{font-size:1rem;font-weight:850;line-height:1.35;margin:2px 0;overflow-wrap:anywhere}
-.lc-feed-info p{font-size:.79rem;color:#9ba5b7;margin:0 0 10px;line-height:1.5;overflow-wrap:anywhere}
-.lc-feed-card-actions{margin-top:auto;border-top:1px solid #ffffff1d;padding-top:13px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
-.lc-feed-card-actions a{color:#f3abb8;font-weight:850;font-size:.76rem;text-decoration:none;display:inline-flex;gap:5px;align-items:center;min-height:29px}
-.lc-feed-card-actions a:hover{text-decoration:underline}
-.lc-feed-card-actions a .lc-icon{height:15px;width:15px}.lc-feed-card-actions .lc-feed-campaign-link{color:#adb6c7}
-.lc-feed-pages{display:flex;gap:16px;justify-content:center;align-items:center;margin-top:32px;font-size:.8rem;color:#a9b0be}
-.lc-feed-pages a{color:white;border:1px solid #ffffff37;padding:10px 13px;border-radius:7px;display:inline-flex;gap:7px;align-items:center;text-decoration:none}
-.lc-feed-disclaimer{max-width:790px;text-align:center;font-size:.77rem;line-height:1.7;color:#8b95a5;margin:30px auto}
-.lc-feed-empty{padding:clamp(40px,7vw,90px) 24px;border:1px dashed #ffffff38;border-radius:13px;text-align:center;background:#161922}
-.lc-feed-empty-icon{display:grid;place-items:center;width:60px;height:60px;margin:0 auto 20px;color:#ff4967}
-.lc-feed-empty h2{font-size:clamp(1.5rem,3vw,2.4rem);margin:0 0 12px}
-.lc-feed-empty p{max-width:550px;color:#abb5c5;line-height:1.7;margin:0 auto 23px}
-.lc-feed-preview-only{display:flex;flex-direction:column;align-items:center;gap:18px;padding:24px;box-sizing:border-box}
-.lc-feed-preview-only .lc-feed-preview-brand{position:absolute;top:16px;left:16px}
-.lc-feed-preview-only p{font-size:.8rem;text-align:center}
-@media(max-width:1180px){.lc-feed-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:820px){.lc-feed-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.lc-feed-play-icon{width:62px;height:62px}}
-@media(max-width:520px){.lc-feed-grid{max-width:440px;grid-template-columns:1fr;margin:auto;gap:17px}.lc-feed-video{aspect-ratio:9/13.1}.lc-feed-hero{padding-top:48px}}
-@media(prefers-reduced-motion:reduce){.lc-feed-card,.lc-feed-play-icon{transition:none}.lc-feed-card:hover{transform:none}}
-
-/* Feed timeline 2.0 — replaces the old marketing hero and catalog grid. */
-.lc-feed{padding-bottom:32px}
-.lc-feed-wrap{max-width:1050px}
-.lc-feed-top{padding-top:24px;padding-bottom:16px}
-.lc-feed-top-heading{display:flex;align-items:baseline;gap:12px;margin-bottom:26px}
-.lc-feed-top-heading h1{font-size:1.5rem;letter-spacing:-.035em;margin:0}
-.lc-feed-top-heading>span{color:#8f98a9;font-size:.8rem}
-.lc-feed-stories-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 14px}
-.lc-feed-stories-heading strong{font-size:.91rem;display:inline-flex;align-items:center;gap:7px}
-.lc-feed-stories-heading strong .lc-icon{width:17px;height:17px;color:#fa536d}
-.lc-feed-stories-heading a{color:#cbd0db;font-size:.77rem;text-decoration:none;display:inline-flex;gap:5px;align-items:center}
-.lc-feed-stories-heading a .lc-icon{width:14px;height:14px}
-.lc-feed-stories{display:flex;overflow-x:auto;gap:18px;padding:4px 0 17px;scrollbar-width:thin;scrollbar-color:#41414b transparent}
-.lc-feed-story{display:flex;flex:0 0 78px;min-width:0;align-items:center;flex-direction:column;gap:5px;text-decoration:none;color:#f8f8fa;text-align:center}
-.lc-feed-story-ring{width:66px;height:66px;border-radius:50%;padding:3px;background:linear-gradient(35deg,#b70929,#fb4562,#ee8b45);display:grid;place-items:center}
-.lc-feed-story-avatar{border:3px solid #101116;background:#282a33;width:100%;height:100%;border-radius:50%;display:grid;place-items:center;font-weight:850;font-size:1.25rem}
-.lc-feed-story-nick{width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:.73rem;font-weight:750}
-.lc-feed-story small{color:#8f98a9;font-size:.68rem}
-.lc-feed-story-empty{color:#9aa3b0;font-size:.82rem}
-.lc-feed-content{padding-top:14px}
-.lc-feed-grid{display:flex;flex-direction:column;align-items:center;gap:18px;max-width:600px;margin:0 auto}
-.lc-feed-card{width:100%;border-radius:14px;transform:none!important;box-shadow:none;transition:border-color .2s}
-.lc-feed-video{aspect-ratio:9/12;max-height:710px}
-.lc-feed-info{padding:15px 18px}
-.lc-feed-info h2{font-size:.91rem}
-.lc-feed-play-icon{width:66px;height:66px}
-.lc-feed-meta{font-size:.82rem}
-.lc-feed-pages{margin:8px auto;max-width:600px}
-.lc-feed-pages .lc-feed-page-indicator{display:none}
+/* Feed de vídeos: embeds nativos sem cartões ou hero promocional. */
+.lc-feed{background:#0b0c12;color:#fafafb;min-width:0;padding:0 0 32px}
+.lc-feed-wrap{max-width:1050px;margin:0 auto;padding:0 18px}
+.lc-feed-top{padding-top:20px}
+.lc-feed-stories-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px}
+.lc-feed-stories-heading strong{font-size:.9rem;display:inline-flex;align-items:center;gap:6px}
+.lc-feed-stories-heading a{font-size:.77rem;text-decoration:none;color:#d0d2d8;display:inline-flex;align-items:center;gap:5px}
+.lc-feed-stories-heading .lc-icon{height:17px;width:17px}
+.lc-feed-stories{display:flex;gap:16px;overflow-x:auto;padding:4px 0 16px;scrollbar-width:thin}
+.lc-feed-story{display:flex;flex:0 0 78px;flex-direction:column;align-items:center;gap:5px;min-width:0;color:#fff;text-decoration:none;text-align:center}
+.lc-feed-story-ring{width:65px;height:65px;padding:3px;border-radius:50%;background:linear-gradient(30deg,#ae0626,#fa4660,#f19a46);display:grid;place-items:center}
+.lc-feed-story-avatar{height:100%;width:100%;border:3px solid #0b0c12;border-radius:50%;background:#272931;display:grid;place-items:center;font-weight:800;font-size:1.3rem}
+.lc-feed-story-nick{font-size:.73rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.lc-feed-story small{font-size:.68rem;color:#a1a5ae}
+.lc-feed-story-empty{font-size:.8rem;color:#9da1ad}
+.lc-feed-content{padding-top:12px}
+.lc-feed-grid{display:flex;flex-direction:column;align-items:center;gap:18px;width:100%;max-width:540px;margin:0 auto}
+.lc-feed-card{width:100%;display:flex;justify-content:center;border:0;border-radius:3px;overflow:hidden;background:#fff}
+.lc-feed-iframe{display:block;width:100%;height:740px;border:0;background:#fff}
+.lc-feed-iframe-youtube{height:auto;aspect-ratio:9/16;max-height:900px;background:#000}
+.lc-feed-iframe-tiktok{height:760px}
+.lc-feed-unavailable{min-height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;color:#1c1c20}
+.lc-feed-unavailable a{color:#ba153b}
+.lc-feed-pages{display:flex;justify-content:center;gap:12px;max-width:540px;margin:18px auto;color:#a0a3ad;font-size:.8rem}
+.lc-feed-pages a{color:white;text-decoration:none;padding:10px;border:1px solid #ffffff38;border-radius:7px}
+.lc-feed-page-indicator{display:none}
 .lc-feed-loading{text-align:center;color:#a0a8b5;font-size:.8rem;min-height:24px;padding:10px}
 .lc-feed-sentinel{height:1px}
-.lc-feed-disclaimer{font-size:.71rem}
-@media(max-width:520px){
-.lc-feed-wrap{padding-left:12px;padding-right:12px}
-.lc-feed-top{padding-top:16px}
-.lc-feed-stories{gap:11px}
-.lc-feed-story{flex-basis:68px}
-.lc-feed-story-ring{width:59px;height:59px}
-.lc-feed-grid{max-width:none;gap:13px}
-.lc-feed-video{aspect-ratio:9/13}
-.lc-feed-info{padding:12px}
-.lc-feed-top-heading h1{font-size:1.3rem}
-}
+.lc-feed-disclaimer{max-width:540px;text-align:center;margin:26px auto;color:#8e929e;font-size:.73rem;line-height:1.6}
+.lc-feed-empty{max-width:540px;margin:auto;padding:36px 20px;text-align:center;border:1px dashed #ffffff38;border-radius:12px}
+.lc-feed-empty h2{font-size:1.5rem}.lc-feed-empty p{color:#a9acb7;line-height:1.5}
+@media(max-width:600px){.lc-feed-wrap{padding:0 10px}.lc-feed-story{flex-basis:69px}.lc-feed-story-ring{width:59px;height:59px}.lc-feed-grid{gap:12px}.lc-feed-iframe{height:650px}.lc-feed-iframe-tiktok{height:700px}.lc-feed-iframe-youtube{height:auto}}
