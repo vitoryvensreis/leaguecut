@@ -12,7 +12,10 @@ function feed_assert(bool $v,string $description): void {
 $ok='https://www.instagram.com/reel/DJ1Az-9_wXZ/?utm_source=ig_web_copy_link';
 feed_assert(lc_feed_embed_url($ok,'instagram')==='https://www.instagram.com/reel/DJ1Az-9_wXZ/embed/','public Reel becomes Instagram embed');
 feed_assert(lc_feed_embed_url('https://instagram.com/p/DbNqwiKx_7k/','instagram')==='https://www.instagram.com/p/DbNqwiKx_7k/embed/','regular Instagram posts use native embed');
-feed_assert(lc_feed_embed_url('https://www.tiktok.com/@criador.leaguecut/video/7269876543210123456','tiktok')==='https://www.tiktok.com/embed/v2/7269876543210123456','TikTok videos use official player');
+feed_assert(lc_feed_embed_url('https://www.tiktok.com/@criador.leaguecut/video/7269876543210123456','tiktok')==='https://www.tiktok.com/player/v1/7269876543210123456?description=0&music_info=0','TikTok uses compact official player');
+feed_assert(lc_feed_embed_url('https://www.youtube.com/shorts/ABCdef12345','youtube')==='https://www.youtube-nocookie.com/embed/ABCdef12345','YouTube Shorts use privacy-enhanced embed');
+feed_assert(lc_feed_embed_url('https://youtu.be/ABCdef12345','youtube')==='https://www.youtube-nocookie.com/embed/ABCdef12345','YouTube short links use embed');
+feed_assert(lc_feed_embed_url('https://www.youtube.com/watch?v=ABCdef12345','youtube')==='https://www.youtube-nocookie.com/embed/ABCdef12345','YouTube watch links use embed');
 feed_assert(lc_feed_embed_url('https://vm.tiktok.com/short/','tiktok')==='','short links get external fallback, no unsafe embed');
 foreach([
     'http://www.instagram.com/reel/DJ1Az-9_wXZ/',
