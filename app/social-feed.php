@@ -27,7 +27,7 @@ function lc_feed_embed_url(string $url,string $network): string {
             return 'https://www.instagram.com/'.$m[1].'/'.$m[2].'/embed/';
     }elseif($network==='tiktok'&&
            preg_match('~^/@[a-zA-Z0-9._]{2,45}/video/([0-9]{10,25})/?$~D',$path,$m)){
-        return 'https://www.tiktok.com/embed/v2/'.$m[1];
+        return 'https://www.tiktok.com/player/v1/'.$m[1].'?description=0&music_info=0';
     }elseif($network==='youtube'){
         $host=strtolower((string)($parts['host']??''));
         $id='';
@@ -99,14 +99,25 @@ function lc_social_feed_route(string $method,string $path): bool {
          $handle=trim((string)$entry['username']);
          $display=$nickname!==''?'@'.$nickname:('Clipador #'.(int)$id);
          ?>
-      <article class="lc-feed-card" aria-label="Vídeo de <?=lc_e($display)?>">
-        <?php if($embed!==''): ?>
-          <iframe class="lc-feed-iframe lc-feed-iframe-<?=lc_e($platform)?>"
-             title="Vídeo de <?=lc_e($display)?> no <?=lc_e(ucfirst($platform))?>"
-             src="<?=lc_e($embed)?>" loading="lazy"
-             referrerpolicy="strict-origin-when-cross-origin"
-             allow="encrypted-media; fullscreen; picture-in-picture; autoplay"
-             allowfullscreen></iframe>
+      <article class="lc-feed-card lc-feed-card-<?=lc_e($platform)?>" aria-label="Vídeo de <?=lc_e($display)?>">
+        <?php if($embed!=='' && $platform==='instagram'): ?>
+          <div class="lc-feed-embed lc-feed-embed-instagram">
+            <blockquote class="instagram-media"
+              data-instgrm-permalink="<?=lc_e((string)preg_replace('~/embed/$~','/',$embed))?>"
+              data-instgrm-version="14">
+              <a href="<?=lc_e($url)?>" target="_blank" rel="noopener noreferrer">Ver vídeo no Instagram</a>
+            </blockquote>
+          </div>
+        <?php elseif($embed!==''): ?>
+          <?php $isShort=$platform==='youtube' && preg_match('~^/shorts/~',(string)(parse_url($url,PHP_URL_PATH)??'')); ?>
+          <div class="lc-feed-embed lc-feed-embed-<?=lc_e($platform)?> <?=$platform==='youtube'&&$isShort?'lc-feed-embed-short':''?>">
+            <iframe class="lc-feed-iframe"
+              title="Vídeo de <?=lc_e($display)?> no <?=lc_e(ucfirst($platform))?>"
+              src="<?=lc_e($embed)?>" loading="lazy"
+              referrerpolicy="strict-origin-when-cross-origin"
+              allow="encrypted-media; fullscreen; picture-in-picture"
+              allowfullscreen></iframe>
+          </div>
         <?php else: ?>
           <div class="lc-feed-unavailable">
             <p>Não foi possível incorporar este vídeo.</p>
