@@ -224,10 +224,10 @@ function lc_admin_routes(string $method,string $path): bool {
 <a href="/admin/clipadores?status=<?=$v?>" class="<?=$filter===$v?'selected':''?>" <?=$filter===$v?'aria-current="page"':''?>><?=$label?></a><?php endforeach;?></div>
 <div class="panel"><div class="ws-module-head"><h2>Cadastros</h2><span class="tag"><?=count($users)?> exibidos</span></div>
 <?php if(!$users):lc_empty('Nenhum cadastro','Os próximos clipadores vão aparecer aqui.');else:?>
-<div class="table-wrap"><table><thead><tr><th>Clipador</th><th>Instagram</th><th>WhatsApp</th><th>Status</th><th>Ação</th></tr></thead><tbody>
+<div class="table-wrap"><table><thead><tr><th>Clipador</th><th>Instagram</th><th>WhatsApp</th><th>Autorização WhatsApp</th><th>Status</th><th>Ação</th></tr></thead><tbody>
 <?php foreach($users as $u):?><tr>
 <td><?=lc_private($u['full_name'])?><small><?=lc_private($u['email'])?></small><?php if($u['portfolio_url']):?><a href="<?=lc_e($u['portfolio_url'])?>" target="_blank" rel="noopener noreferrer">Portfólio ↗</a><?php endif;?></td>
-<td>@<?=lc_e($u['instagram'])?></td><td><?=lc_e($u['whatsapp'])?></td><td><span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(lc_status_label($u['status']))?></span></td>
+<td>@<?=lc_e($u['instagram'])?></td><td><?=lc_e($u['whatsapp'])?></td><td><?=((int)($u['consent_whatsapp']??0)===1)?'Autorizado':'Não autorizado'?></td><td><span class="tag tag-<?=lc_e($u['status'])?>"><?=lc_e(lc_status_label($u['status']))?></span></td>
 <td><?php if($u['status']==='pending'):?><form method="post" action="/admin/clipadores/<?=(int)$u['id']?>/aprovar"><?=lc_csrf()?><button class="btn btn-sm" type="submit">Aprovar <?=lc_icon('check')?></button></form><?php else:?>—<?php endif;?></td>
 </tr><?php endforeach;?></tbody></table></div><?php endif;?></div></div>
 <?php },'admin');return true;
