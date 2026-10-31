@@ -29,6 +29,15 @@ function lc_automation_has_trigger(string $trigger): bool {
     return (bool)lc_one('SELECT id FROM automation_rules WHERE trigger_code=? AND enabled=1 LIMIT 1',[$trigger]);
 }
 /**
+ * A fresh key belongs to one real transition into "approved", not to the user
+ * forever. The caller must check the previous status under FOR UPDATE before
+ * generating it; a duplicate POST after approval must not emit again.
+ */
+function lc_user_approved_event_key(int $userId): string {
+    if($userId<1)throw new InvalidArgumentException('Usuário inválido para aprovação.');
+    return 'user.approved:'.$userId.':'.bin2hex(random_bytes(12));
+}
+/**
  * Persist event and all deliveries inside the transaction of the business mutation.
  * A repeated event_key cannot create duplicate deliveries.
  */
