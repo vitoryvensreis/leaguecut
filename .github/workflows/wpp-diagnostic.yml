@@ -63,3 +63,24 @@ jobs:
               echo 'LEAGUECUT_STATUS_ERROR='.get_class($e).PHP_EOL;
           }
           PHP
+      - name: Saude do runtime WPPConnect sem dados privados
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/id_ed25519" -p "$SSH_PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          echo "WPP_RUNTIME_HEALTH"
+          ps -eo stat=,comm= | awk '
+            /node/ {nodes++}
+            /chrome|chromium/ {chromes++; if ($1 ~ /^Z/) zombies++}
+            END {printf "NODE_PROCESSES=%d CHROMIUM_PROCESSES=%d CHROMIUM_ZOMBIES=%d\n", nodes+0,chromes+0,zombies+0}'
+          awk '/^MemAvailable:/ {printf "MEMORY_AVAILABLE_KB=%d\n",$2}' /proc/meminfo
+          df -Pk /tmp | awk 'NR==2 {printf "TMP_DISK_AVAILABLE_KB=%d\n",$4}'
+          if command -v systemctl >/dev/null 2>&1; then
+            systemctl list-units --type=service --all --no-legend --no-pager 2>/dev/null | awk 'tolower($1) ~ /(wppconnect|whatsapp)/ {print "WPP_SERVICE_PRESENT=yes"; found=1} END {if(!found) print "WPP_SERVICE_PRESENT=not-visible"}'
+          fi
+          REMOTE
