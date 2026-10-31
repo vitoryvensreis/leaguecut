@@ -7,7 +7,7 @@ function lc_wpp_admin_request(string $endpoint,string $method='GET',?array $payl
         throw new RuntimeException('Esta conexão está reservada à sessão leaguecut.');
     $token=lc_env('WPP_AUTH_TOKEN');
     if($token==='')throw new RuntimeException('Token privado do WPPConnect não configurado.');
-    $allowed=['check-connection-session','qrcode-session','start-session','close-session'];
+    $allowed=['check-connection-session','get-session-state','qrcode-session','start-session','close-session'];
     if(!in_array($endpoint,$allowed,true)||
        (($method==='POST')!==in_array($endpoint,['start-session','close-session'],true)))
         throw new InvalidArgumentException('Rota de sessão não permitida.');
@@ -29,8 +29,10 @@ function lc_wpp_admin_request(string $endpoint,string $method='GET',?array $payl
     $status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
     $type=(string)curl_getinfo($ch,CURLINFO_CONTENT_TYPE);
     curl_close($ch);
-    if($raw===false||$status<200||$status>=300)
-        throw new RuntimeException('WPPConnect indisponível ou solicitação recusada (HTTP '.$status.').');
+    if($raw===false)throw new RuntimeException('Não foi possível acessar o WPPConnect na VPS. Verifique o serviço e a porta local.');
+    if($status===401||$status===403)throw new RuntimeException('Token da sessão leaguecut recusado pelo WPPConnect (HTTP '.$status.').');
+    if($status<200||$status>=300)
+        throw new RuntimeException('WPPConnect recusou a operação (HTTP '.$status.').');
     if(strlen($raw)>3000000)throw new RuntimeException('Resposta de sessão maior que o permitido.');
     return ['body'=>$raw,'json'=>json_decode($raw,true),'type'=>$type];
 }
@@ -68,28 +70,53 @@ function lc_wpp_admin_status(): array {
     return is_array($data) ? lc_wpp_parse_connection($data)
         : ['connected'=>false,'status'=>'UNKNOWN'];
 }
-function lc_wpp_admin_qr(): ?string {
-    $response=lc_wpp_admin_request('qrcode-session');
-    $raw=$response['body'];$json=$response['json'];
-    if(str_starts_with($response['type'],'image/png') && str_starts_with($raw,"\x89PNG"))
+/**
+ * WPPConnect returns a PNG for /qrcode-session, but start-session and
+ * get-session-state may return a base64 QR in JSON. Never expose urlcode.
+ */
+function lc_wpp_admin_extract_qr(array $response): ?string {
+    $raw=$response['body']??'';
+    if(is_string($raw) && str_starts_with(strtolower((string)($response['type']??'')),'image/png')
+        && str_starts_with($raw,"\x89PNG\r\n\x1a\n") && strlen($raw)<2500000)
         return 'data:image/png;base64,'.base64_encode($raw);
+    $json=$response['json']??null;
     if(!is_array($json))return null;
-    $candidates=[
-       $json['qrcode']??null,$json['qrCode']??null,$json['base64']??null,
-       $json['qrcodeBase64']??null,$json['data']['qrcode']??null,
-       $json['data']['base64']??null,$json['data']['qrCode']??null
-    ];
+    $data=is_array($json['data']??null)?$json['data']:[];
+    $candidates=[$json['qrcode']??null,$json['qrCode']??null,
+        $json['base64']??null,$json['qrcodeBase64']??null,
+        $data['qrcode']??null,$data['qrCode']??null,$data['base64']??null];
     foreach($candidates as $value){
         if(!is_string($value)||strlen($value)>2500000)continue;
-        if(preg_match('~^data:image/png;base64,([A-Za-z0-9+/=]+)$~D',$value))
-            return $value;
-        if(preg_match('~^[A-Za-z0-9+/]+={0,2}$~D',$value)&&strlen($value)>100){
-            $bytes=base64_decode($value,true);
-            if($bytes!==false && str_starts_with($bytes,"\x89PNG"))
-                return 'data:image/png;base64,'.$value;
+        if(str_starts_with($value,'data:image/png;base64,')){
+            $value=substr($value,22);
         }
+        if(!preg_match('~^[A-Za-z0-9+/]+={0,2}$~D',$value)||strlen($value)<100)continue;
+        $bytes=base64_decode($value,true);
+        if($bytes!==false && str_starts_with($bytes,"\x89PNG\r\n\x1a\n"))
+            return 'data:image/png;base64,'.$value;
     }
     return null;
+}
+function lc_wpp_admin_qr(): array {
+    $response=null;$firstError=null;
+    try {
+        $response=lc_wpp_admin_request('qrcode-session');
+        $qr=lc_wpp_admin_extract_qr($response);
+        if($qr!==null)return ['qr'=>$qr,'status'=>'QRCODE'];
+    }catch(Throwable $e){$firstError=$e;}
+    // The state endpoint exposes the QR during pairing on WPPConnect Server,
+    // including versions that have no image yet on /qrcode-session.
+    try {
+        $fallback=lc_wpp_admin_request('get-session-state');
+        $qr=lc_wpp_admin_extract_qr($fallback);
+        $state=strtoupper((string)($fallback['json']['status']??''));
+        $allowed=['INITIALIZING','QRCODE','CONNECTED','CLOSED','ERROR','STARTING','CONNECTING'];
+        return ['qr'=>$qr,'status'=>in_array($state,$allowed,true)?$state:'UNKNOWN'];
+    }catch(Throwable $e){
+        if($firstError!==null)throw $firstError;
+        $state=strtoupper((string)($response['json']['status']??''));
+        return ['qr'=>null,'status'=>in_array($state,['INITIALIZING','CLOSED','QRCODE','ERROR'],true)?$state:'UNKNOWN'];
+    }
 }
 function lc_wpp_admin_json(array $data,int $status=200): never {
     http_response_code($status);
@@ -109,12 +136,14 @@ function lc_wpp_admin_routes(string $method,string $path): bool {
                 lc_wpp_admin_json($state+['enabled'=>lc_wpp_ready()]);
             }
             if($method==='GET'&&$path==='/admin/whatsapp/api/qr'){
-                $qr=lc_wpp_admin_qr();
-                lc_wpp_admin_json(['qr'=>$qr]);
+                lc_wpp_admin_json(lc_wpp_admin_qr());
             }
             if($method==='POST'&&$path==='/admin/whatsapp/api/start'){
-                lc_wpp_admin_request('start-session','POST',['webhook'=>'','waitQrCode'=>false]);
-                lc_wpp_admin_json(['ok'=>true]);
+                $started=lc_wpp_admin_request('start-session','POST',['webhook'=>'','waitQrCode'=>false]);
+                $state=strtoupper((string)($started['json']['status']??''));
+                if($state==='ERROR')throw new RuntimeException('WPPConnect não conseguiu iniciar a sessão leaguecut. Confira os logs do serviço.');
+                lc_wpp_admin_json(['ok'=>true,'qr'=>lc_wpp_admin_extract_qr($started),
+                    'status'=>in_array($state,['INITIALIZING','QRCODE','CONNECTED','CLOSED','STARTING'],true)?$state:'UNKNOWN']);
             }
             if($method==='POST'&&$path==='/admin/whatsapp/api/pause'){
                 lc_query('UPDATE automation_whatsapp_settings SET enabled=0 WHERE id=1');
