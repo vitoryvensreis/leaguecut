@@ -30,4 +30,27 @@ foreach($examples as $case){
         throw new RuntimeException('Unexpected connection normalization: '.json_encode($payload));
     }
 }
+// Validate WPPConnect lifecycle states independently from the legacy
+// check-connection-session boolean response.
+$sessionStates=[
+    ['CONNECTED',true,'CONNECTED'],
+    ['isLogged',true,'CONNECTED'],
+    ['INCHAT',true,'CONNECTED'],
+    ['OPEN',true,'CONNECTED'],
+    ['QRCODE',false,'CONNECTING'],
+    ['INITIALIZING',false,'CONNECTING'],
+    ['STARTING',false,'CONNECTING'],
+    ['PHONECODE',false,'CONNECTING'],
+    ['CONNECTING',false,'CONNECTING'],
+    ['CLOSED',false,'DISCONNECTED'],
+    ['CLOSING',false,'DISCONNECTED'],
+    ['ERROR',false,'DISCONNECTED'],
+    ['DISCONNECTED',false,'DISCONNECTED'],
+    ['mystery',false,'UNKNOWN'],
+];
+foreach($sessionStates as [$value,$connected,$status]){
+    $actual=lc_wpp_parse_session_state(['status'=>$value]);
+    if($actual['connected']!==$connected || $actual['status']!==$status)
+        throw new RuntimeException('Unexpected lifecycle state: '.$value);
+}
 echo "WPP_CONNECTION_NORMALIZATION_OK\n";
