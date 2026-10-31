@@ -155,6 +155,13 @@ function lc_account_admin_routes(string $method,string $path): bool {
                     lc_account_admin_audit((int)$actor['id'],'account.updated',$id,
                         ['fields'=>$changed,'role_from'=>$existing['role'],'role_to'=>$f['role'],
                          'status_from'=>$existing['status'],'status_to'=>$f['status']]);
+                    // Editing account details must not duplicate the approval.
+                    // Only a real status transition into approved enqueues it.
+                    if($existing['status']!=='approved' && $f['status']==='approved' && $f['role']==='clipador'){
+                        lc_automation_emit('user.approved',lc_user_approved_event_key($id),$id,[
+                            'nome'=>$f['name'],'role'=>'clipador','status'=>'approved','link'=>'/dashboard'
+                        ]);
+                    }
                 }
                 $db->commit();
                 if($changed && $id===(int)$actor['id']){
