@@ -54,9 +54,39 @@ function lc_account_apply_update(array $u,array $data): bool {
     return true;
 }
 function lc_account_self_routes(string $method,string $path): bool {
-    if($path!=='/conta')return false;
+    if($path!=='/conta' && $path!=='/conta/consentimento-whatsapp')return false;
     $u=lc_login_required(false);
     $uid=(int)$u['id'];
+    if($path==='/conta/consentimento-whatsapp'){
+        if($method!=='POST'){http_response_code(405);return true;}
+        try{
+            // This opt-in belongs exclusively to the authenticated account
+            // owner. An admin cannot grant consent on somebody else's behalf.
+            $optIn=(string)($_POST['consent_whatsapp']??'')==='1';
+            if($optIn && trim((string)($u['whatsapp']??''))==='')
+                throw new InvalidArgumentException('Cadastre seu número de WhatsApp antes de autorizar mensagens.');
+            if(!lc_mfa_stepup_or_password($u,lc_post('mfa_code',60),(string)($_POST['current_password']??'')))
+                throw new InvalidArgumentException('Confirme sua identidade usando sua senha atual ou Google Authenticator.');
+            $db=lc_db();$db->beginTransaction();
+            try{
+                $current=lc_one('SELECT consent_whatsapp FROM users WHERE id=? FOR UPDATE',[$uid]);
+                if(!$current)throw new InvalidArgumentException('Conta não encontrada.');
+                if((int)$current['consent_whatsapp']!==($optIn?1:0)){
+                    lc_query('UPDATE users SET consent_whatsapp=? WHERE id=?',[$optIn?1:0,$uid]);
+                    lc_mfa_event($optIn?'consent.whatsapp.granted':'consent.whatsapp.revoked',$uid);
+                }
+                $db->commit();
+            }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
+            lc_flash($optIn
+                ?'Autorização WhatsApp ativada. Apenas eventos futuros poderão gerar mensagens; envios ignorados não serão reenviados.'
+                :'Autorização WhatsApp revogada. Novas mensagens operacionais opcionais não serão enviadas.');
+        }catch(InvalidArgumentException|RuntimeException $e){
+            lc_flash($e->getMessage(),'error');
+        }catch(Throwable $e){
+            lc_flash('Não foi possível atualizar a autorização. Tente novamente.','error');
+        }
+        lc_redirect('/conta');
+    }
     $full=lc_one('SELECT email,whatsapp,consent_whatsapp FROM users WHERE id=?',[$uid])?:[];
     $channels=lc_mfa_enabled($uid)?[]:lc_otp_available_channels($full);
     if($method==='POST'){
@@ -87,7 +117,7 @@ function lc_account_self_routes(string $method,string $path): bool {
     }
     if($method==='GET'){
         $enabled=lc_mfa_enabled($uid);
-        lc_page('Meus dados e segurança',function()use($u,$enabled,$channels){?>
+        lc_page('Meus dados e segurança',function()use($u,$enabled,$channels,$full){?>
 <div class="container container-md">
 <?php lc_heading('Minha conta','Dados e acesso','Edite suas informações com uma confirmação adicional de segurança.'); ?>
 <div class="panel lc-profile-photo-panel">
@@ -127,7 +157,26 @@ function lc_account_self_routes(string $method,string $path): bool {
 <?php endif;?>
 </div><div class="form-actions"><button class="btn" type="submit"><?=$enabled||!$channels?'Salvar dados com segurança →':'Solicitar código →'?></button>
 <a class="btn btn-ghost" href="/seguranca/2fa">Configurar Google Authenticator</a></div>
-</form></div></div>
+</form></div>
+<div class="panel">
+  <h2>Mensagens opcionais pelo WhatsApp</h2>
+  <p>Você decide se deseja receber atualizações operacionais opcionais pelo número cadastrado. Pode autorizar ou revogar a qualquer momento. A alteração não reenvia mensagens anteriores.</p>
+  <form method="post" action="/conta/consentimento-whatsapp" autocomplete="off">
+    <?=lc_csrf()?>
+    <label class="field">
+      <span><input type="checkbox" name="consent_whatsapp" value="1" <?=((int)($full['consent_whatsapp']??0)===1)?'checked':''?>>
+      Autorizo receber mensagens operacionais opcionais do LeagueCut no meu WhatsApp.</span>
+    </label>
+    <?php if($enabled):?>
+    <label class="field"><span>Código Google Authenticator ou recuperação</span>
+      <input name="mfa_code" autocomplete="one-time-code" required maxlength="60"></label>
+    <?php else:?>
+    <label class="field"><span>Confirme sua senha para salvar esta preferência</span>
+      <input type="password" name="current_password" autocomplete="current-password" required maxlength="200"></label>
+    <?php endif;?>
+    <div class="form-actions"><button class="btn" type="submit">Salvar preferência de WhatsApp</button></div>
+  </form>
+</div></div>
 <?php },$u['role']==='admin'?'admin':($u['role']==='criador'?'creator':'dashboard'));
         return true;
     }
