@@ -44,7 +44,7 @@ jobs:
           require 'app/automation-whatsapp.php';
           $allowed=['CONNECTED','ISLOGGED','INCHAT','OPEN','QRCODE','INITIALIZING','STARTING','CLOSED','ERROR','DISCONNECTED','CONNECTING','PHONECODE','CLOSING'];
           echo 'SESSION=leaguecut'.PHP_EOL;
-          foreach(['get-session-state','check-connection-session','qrcode-session'] as $endpoint){
+          foreach(['status-session','check-connection-session','qrcode-session'] as $endpoint){
               try {
                   $result=lc_wpp_admin_request($endpoint);
                   $raw=$result['json']['status']??null;
@@ -53,7 +53,7 @@ jobs:
                   $qr=lc_wpp_admin_extract_qr($result)!==null?'yes':'no';
                   echo $endpoint.' status='.$status.' qr_available='.$qr.PHP_EOL;
               }catch(Throwable $e){
-                  echo $endpoint.' request_failed='.get_class($e).PHP_EOL;
+                  echo $endpoint.' request_failed='.get_class($e).' kind='.(str_contains($e->getMessage(),'HTTP 404')?'HTTP_404':(str_contains($e->getMessage(),'HTTP 500')?'HTTP_500':(str_contains($e->getMessage(),'HTTP 401')?'HTTP_401':'OTHER'))).PHP_EOL;
               }
           }
           try{
