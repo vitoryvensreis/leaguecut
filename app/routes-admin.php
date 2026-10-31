@@ -240,7 +240,7 @@ function lc_admin_routes(string $method,string $path): bool {
             lc_query("UPDATE users SET status='approved',approved_at=NOW(),approved_by=? WHERE id=?",[$admin['id'],$u['id']]);
             lc_realtime_emit('user',(int)$u['id'],'creator.approved','user',(int)$u['id']);
             lc_realtime_emit('admin',null,'creator.reviewed','user',(int)$u['id']);
-            lc_automation_emit('user.approved','user.approved:'.$u['id'],(int)$u['id'],[
+            lc_automation_emit('user.approved',lc_user_approved_event_key((int)$u['id']),(int)$u['id'],[
                 'nome'=>$u['full_name'],'role'=>'clipador','status'=>'approved','link'=>'/dashboard']);
             // Keep the legacy notification if no administrator has configured a flow.
             if(!lc_automation_has_trigger('user.approved')){
