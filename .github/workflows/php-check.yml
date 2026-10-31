@@ -6,6 +6,7 @@ on:
       - 'app/**'
       - 'public/**'
       - 'bin/**'
+      - 'tests/**'
       - 'database/**'
       - 'composer.json'
       - '.github/workflows/php-check.yml'
@@ -25,6 +26,6 @@ jobs:
           tools: composer
       - name: Validar sintaxe PHP
         run: |
-          find app public bin -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
+          find app public bin tests -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l
       - name: Validar Composer
         run: composer validate --no-check-publish
