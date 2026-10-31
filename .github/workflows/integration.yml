@@ -161,6 +161,7 @@ jobs:
           php tests/mfa_qr_audit.php
           php tests/otp_security.php
           php tests/wpp_status.php
+          php tests/wpp_qr.php
           node --check public/assets/input-masks.js
           node tests/masks-b4b.cjs
           node --check public/assets/flow-editor.js
