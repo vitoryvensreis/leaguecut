@@ -188,7 +188,7 @@ const refreshButton=document.getElementById('wpp-refresh');
 let connected=false,enabled=false,initialized=false,actionBusy=false;
 let statusBusy=false,qrBusy=false,lastQrCheck=0;
 const STATUS_POLL_MS=2500;
-const QR_REFRESH_MS=12000;
+const QR_REFRESH_MS=5000;
 const say=text=>{feedback.textContent=text;};
 async function request(path,post=false){
   const args={credentials:'same-origin',cache:'no-store',headers:{Accept:'application/json'}};
@@ -203,8 +203,9 @@ async function request(path,post=false){
   args.signal=timer.signal;
   try{
     const response=await fetch('/admin/whatsapp/api/'+path,args);
-    const data=await response.json();
-    if(!response.ok)throw new Error(data.error||'Falha na conexão');
+    const data=await response.json().catch(()=>null);
+    if(!data||typeof data!=='object')throw new Error('Resposta inválida do servidor (HTTP '+response.status+').');
+    if(!response.ok)throw new Error(data.error||'Falha na conexão (HTTP '+response.status+').');
     return data;
   }finally{clearTimeout(timeout);}
 }
@@ -214,7 +215,8 @@ function showStatus(state){
   enabled=state.enabled===true;
   statusEl.classList.toggle('is-connected',connected);
   statusEl.classList.remove('is-unavailable');
-  statusEl.textContent=connected?'Conectado':state.status==='CONNECTING'?'Conectando...':'Não conectado';
+  statusEl.textContent=connected?'Conectado':!qrImage.hidden?'Aguardando leitura':
+     state.status==='CONNECTING'?'Conectando...':'Não conectado';
   enableButton.disabled=!connected||enabled;
   pauseButton.disabled=!enabled;
   if(connected){
@@ -234,31 +236,50 @@ function showStatus(state){
   }
   initialized=true;
 }
-async function refreshQr(force=false){
-  if(connected||qrBusy||actionBusy||document.hidden)return;
-  if(!force&&Date.now()-lastQrCheck<QR_REFRESH_MS)return;
-  qrBusy=true;
-  lastQrCheck=Date.now();
-  try{
-    const result=await request('qr');
-    if(connected)return;
-    const value=result.qr||'';
-    if(typeof value==='string'&&value.startsWith('data:image/png;base64,')&&value.length<2500000){
-      if(qrImage.src!==value)qrImage.src=value;
-      qrImage.hidden=false;
-      qrInfo.hidden=true;
-    }else if(qrImage.hidden){
-      qrInfo.hidden=false;
-      qrInfo.textContent='Aguardando QR Code. Clique em “Conectar” se necessário.';
-    }
-  }catch(_e){
-    if(!connected&&qrImage.hidden){
-      qrInfo.hidden=false;
-      qrInfo.textContent='Aguardando novo QR Code.';
-    }
-  }finally{qrBusy=false;}
-}
-async function refreshStatus(force=false){
+function showQr(value){
+   if(typeof value!=='string'||!value.startsWith('data:image/png;base64,')||value.length>2500000)return false;
+   qrImage.src=value;
+   qrImage.hidden=false;
+   qrInfo.hidden=true;
+   statusEl.textContent='Aguardando leitura';
+   return true;
+ }
+ qrImage.addEventListener('error',()=>{
+   qrImage.hidden=true;
+   qrImage.removeAttribute('src');
+   qrInfo.hidden=false;
+   qrInfo.textContent='A imagem do QR Code não pôde ser exibida. Clique em Conectar novamente.';
+   say('O QR Code recebido estava inválido.');
+ });
+ async function refreshQr(force=false){
+   if(connected||qrBusy||actionBusy||document.hidden)return;
+   if(!force&&Date.now()-lastQrCheck<QR_REFRESH_MS)return;
+   qrBusy=true;
+   lastQrCheck=Date.now();
+   try{
+     const result=await request('qr');
+     if(connected)return;
+     if(showQr(result.qr))return;
+     if(!qrImage.hidden)return; // Preserve a valid QR while the next one is prepared.
+     qrInfo.hidden=false;
+     const state=result.status||'UNKNOWN';
+     qrInfo.textContent=state==='INITIALIZING'||state==='STARTING'
+       ?'Inicializando o WhatsApp no servidor. O QR Code aparecerá automaticamente.'
+       :state==='ERROR'
+       ?'Falha ao inicializar o WhatsApp. Verifique os logs do WPPConnect.'
+       :state==='CLOSED'
+       ?'Sessão ainda não iniciada. Clique em “Conectar / novo QR Code”.'
+       :'Aguardando o QR Code do WhatsApp...';
+     if(state==='ERROR')say('O serviço WPPConnect informou erro na sessão leaguecut.');
+   }catch(e){
+     if(!connected&&qrImage.hidden){
+       qrInfo.hidden=false;
+       qrInfo.textContent='Não foi possível carregar o QR Code.';
+       say('Falha ao consultar o QR Code: '+(e.name==='AbortError'?'tempo limite':e.message));
+     }
+   }finally{qrBusy=false;}
+ }
+ async function refreshStatus(force=false){
   if(statusBusy||actionBusy||(!force&&document.hidden))return;
   statusBusy=true;
   try{
@@ -280,11 +301,17 @@ async function runAction(id,endpoint,question){
     if(actionBusy)return;
     if(question&&!window.confirm(question))return;
     actionBusy=true;button.disabled=true;
-    say('Aguardando WPPConnect...');
+    say(endpoint==='start'?'Inicializando sessão leaguecut e preparando QR Code...':'Aguardando WPPConnect...');
+    if(endpoint==='start'){
+      qrImage.hidden=true;qrImage.removeAttribute('src');qrInfo.hidden=false;
+      qrInfo.textContent='Iniciando WhatsApp. A geração do QR Code pode levar alguns segundos.';
+    }
     try{
-      await request(endpoint,true);
+      const result=await request(endpoint,true);
       if(endpoint==='start'){
-        say('Sessão iniciada. Escaneie o QR Code; o painel detectará a conexão sozinho.');
+        const received=showQr(result.qr);
+        say(received?'QR Code pronto! Escaneie com o WhatsApp em Aparelhos conectados.'
+          :'Sessão solicitada. Aguardando o QR Code; o painel atualizará automaticamente.');
         lastQrCheck=0;
       }else if(endpoint==='enable')say('Envio de automações ativado.');
       else if(endpoint==='pause')say('Envio de automações pausado.');
