@@ -60,4 +60,14 @@ if(!is_string($wppAdminSource) || !str_contains($wppAdminSource,"'status-session
     || str_contains($wppAdminSource,"'get-session-state'")){
     throw new RuntimeException('WPP session status route is not supported by the provider.');
 }
+// A Connect click must never call close-session before start-session. A
+// close during INITIALIZING/QRCODE may interrupt Chromium and raise HTTP 500.
+$whatsappSource=file_get_contents(dirname(__DIR__).'/app/automation-whatsapp.php');
+if(!is_string($whatsappSource))throw new RuntimeException('WhatsApp source unreadable');
+$startRoute=explode("if(\$method==='POST'&&\$path==='/admin/whatsapp/api/start')",$whatsappSource,2)[1]??'';
+$startRoute=explode("if(\$method==='POST'&&\$path==='/admin/whatsapp/api/pause')",$startRoute,2)[0]??'';
+if($startRoute===''||str_contains($startRoute,"lc_wpp_admin_request('close-session'"))
+    || !str_contains($startRoute,"'reused'=>true")){
+    throw new RuntimeException('Unsafe pairing restart in WhatsApp start route');
+}
 echo "WPP_CONNECTION_NORMALIZATION_OK\n";
