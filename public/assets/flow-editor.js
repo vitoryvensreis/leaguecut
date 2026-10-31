@@ -187,6 +187,7 @@ const pauseButton=document.getElementById('wpp-pause');
 const refreshButton=document.getElementById('wpp-refresh');
 let connected=false,enabled=false,initialized=false,actionBusy=false;
 let statusBusy=false,qrBusy=false,lastQrCheck=0;
+let lastProviderStatus='',statusSince=Date.now();
 const STATUS_POLL_MS=2500;
 const QR_REFRESH_MS=5000;
 const say=text=>{feedback.textContent=text;};
@@ -211,6 +212,8 @@ async function request(path,post=false){
 }
 function showStatus(state){
   const wasConnected=connected;
+  const provider=String(state.provider_status||state.status||'UNKNOWN');
+  if(provider!==lastProviderStatus){lastProviderStatus=provider;statusSince=Date.now();}
   connected=state.connected===true;
   enabled=state.enabled===true;
   statusEl.classList.toggle('is-connected',connected);
@@ -228,6 +231,10 @@ function showStatus(state){
       ? 'WhatsApp conectado. Os envios automáticos estão ativados.'
       : 'WhatsApp conectado! Você pode ativar as automações quando desejar.';
     if(!initialized||!wasConnected)say('WhatsApp conectado com sucesso! A conexão foi reconhecida automaticamente.');
+  }else if(['INITIALIZING','STARTING'].includes(provider)&&Date.now()-statusSince>60000){
+    qrInfo.hidden=(!qrImage.hidden);
+    if(qrImage.hidden)qrInfo.textContent='O WhatsApp não terminou de inicializar no servidor. Confira o serviço WPPConnect antes de tentar novamente.';
+    say('A inicialização da sessão leaguecut está demorando. Não é necessário clicar em Conectar repetidamente.');
   }else if(initialized&&wasConnected){
     qrImage.hidden=true;
     qrImage.removeAttribute('src');
@@ -313,8 +320,15 @@ async function runAction(id,endpoint,question){
       const result=await request(endpoint,true);
       if(endpoint==='start'){
         const received=showQr(result.qr);
-        say(received?'QR Code pronto! Escaneie com o WhatsApp em Aparelhos conectados.'
-          :'Sessão solicitada. Aguardando o QR Code; o painel atualizará automaticamente.');
+        if(result.connected===true){
+          say('A sessão já estava conectada. Atualizando o estado...');
+        }else if(received){
+          say('QR Code disponível! Escaneie com o WhatsApp em Aparelhos conectados.');
+        }else if(result.reused===true){
+          say('Sessão já está em inicialização. Aguardando o QR Code sem reiniciar o processo.');
+        }else {
+          say('Inicialização solicitada. O QR Code aparecerá automaticamente.');
+        }
         lastQrCheck=0;
       }else if(endpoint==='enable')say('Envio de automações ativado.');
       else if(endpoint==='pause')say('Envio de automações pausado.');
