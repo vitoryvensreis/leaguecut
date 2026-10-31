@@ -32,7 +32,7 @@ function lc_wpp_admin_request(string $endpoint,string $method='GET',?array $payl
     if($raw===false)throw new RuntimeException('Não foi possível acessar o WPPConnect na VPS. Verifique o serviço e a porta local.');
     if($status===401||$status===403)throw new RuntimeException('Token da sessão leaguecut recusado pelo WPPConnect (HTTP '.$status.').');
     if($status<200||$status>=300)
-        throw new RuntimeException('WPPConnect recusou a operação (HTTP '.$status.').');
+        throw new RuntimeException('WPPConnect recusou '.$endpoint.' (HTTP '.$status.').');
     if(strlen($raw)>3000000)throw new RuntimeException('Resposta de sessão maior que o permitido.');
     return ['body'=>$raw,'json'=>json_decode($raw,true),'type'=>$type];
 }
@@ -182,12 +182,17 @@ function lc_wpp_admin_routes(string $method,string $path): bool {
                 if($before['connected']){
                     lc_wpp_admin_json(['ok'=>true,'connected'=>true,'status'=>'CONNECTED']);
                 }
-                // A repeated /start-session call cannot produce a fresh QR while
-                // WPPConnect is already in QRCODE. An explicit click on "novo QR"
-                // safely closes only the stalled leaguecut session before restart.
-                if(($before['provider_status']??'')==='QRCODE'){
-                    lc_wpp_admin_request('close-session','POST');
+                // A running WPPConnect session must never be closed implicitly:
+                // close-session can fail with HTTP 500 when Chromium is pairing.
+                // Reuse the existing session/QR instead of disrupting it.
+                $provider=(string)($before['provider_status']??'UNKNOWN');
+                if(in_array($provider,['QRCODE','INITIALIZING','STARTING','CONNECTING','PAIRING','PHONECODE'],true)){
+                    $qr=lc_wpp_admin_qr();
+                    lc_wpp_admin_json(['ok'=>true,'qr'=>$qr['qr'],
+                        'status'=>$qr['status'],'reused'=>true]);
                 }
+                if($provider==='ERROR')
+                    lc_wpp_admin_json(['error'=>'A sessão leaguecut falhou no WPPConnect. É necessário diagnosticar o serviço antes de reiniciar.'],503);
                 $started=lc_wpp_admin_request('start-session','POST',['webhook'=>'','waitQrCode'=>false]);
                 $state=strtoupper((string)($started['json']['status']??''));
                 if($state==='ERROR')throw new RuntimeException('WPPConnect não conseguiu iniciar a sessão leaguecut. Confira os logs do serviço.');
