@@ -28,6 +28,16 @@ try {
         check_auto(lc_automation_emit('user.approved',$key,$id,['role'=>'clipador','status'=>'approved'])===1,'first queue');
         check_auto(lc_automation_emit('user.approved',$key,$id,['role'=>'clipador','status'=>'approved'])===0,'deduplicated');
         check_auto((int)(lc_one('SELECT COUNT(*) AS total FROM automation_deliveries WHERE rule_id=?',[$rule])['total']??0)===1,'single delivery');
+        // Two distinct transitions into approved must be independently queued,
+        // but repeated delivery of either transition must not duplicate a job.
+        $approval1=lc_user_approved_event_key($id);
+        $approval2=lc_user_approved_event_key($id);
+        check_auto($approval1!==$approval2,'distinct approval transitions');
+        check_auto(str_starts_with($approval1,'user.approved:'.$id.':'),'approval key namespace');
+        check_auto(lc_automation_emit('user.approved',$approval1,$id,['status'=>'approved'])===1,'first approval transition');
+        check_auto(lc_automation_emit('user.approved',$approval1,$id,['status'=>'approved'])===0,'duplicate approval ignored');
+        check_auto(lc_automation_emit('user.approved',$approval2,$id,['status'=>'approved'])===1,'second approval transition');
+        check_auto((int)(lc_one('SELECT COUNT(*) AS total FROM automation_deliveries WHERE rule_id=?',[$rule])['total']??0)===3,'one delivery for each distinct event');
     }
     $pdo->rollBack();
 }catch(Throwable $e){
