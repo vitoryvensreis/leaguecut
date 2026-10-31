@@ -10,6 +10,7 @@ on:
       - 'database/**'
       - 'composer.json'
       - '.github/workflows/integration.yml'
+      - '.github/workflows/wpp-diagnostic.yml'
   pull_request:
     branches: [main]
     paths:
@@ -20,6 +21,7 @@ on:
       - 'database/**'
       - 'composer.json'
       - '.github/workflows/integration.yml'
+      - '.github/workflows/wpp-diagnostic.yml'
   workflow_dispatch:
 permissions:
   contents: read
