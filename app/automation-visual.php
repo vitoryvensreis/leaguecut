@@ -154,7 +154,7 @@ function lc_automation_visual_routes(string $method,string $path): bool {
        (SELECT COUNT(*) FROM automation_deliveries d WHERE d.rule_id=r.id AND d.status="failed") AS failed
        FROM automation_rules r ORDER BY r.id DESC LIMIT 200');
     $stats=lc_one('SELECT COUNT(*) AS total,COALESCE(SUM(enabled=1),0) AS active FROM automation_rules')??[];
-    $history=lc_all('SELECT d.status,d.created_at,r.name,u.full_name
+    $history=lc_all('SELECT d.status,d.created_at,d.last_error,r.name,u.full_name
       FROM automation_deliveries d JOIN automation_rules r ON r.id=d.rule_id
       JOIN users u ON u.id=d.recipient_user_id ORDER BY d.id DESC LIMIT 10');
     lc_page('Automações',function()use($rules,$stats,$history){?>
@@ -189,6 +189,7 @@ function lc_automation_visual_routes(string $method,string $path): bool {
         <?php foreach($history as $row):?><div class="lc-flow-list-row">
           <span class="tag"><?=lc_e($row['status'])?></span><strong><?=lc_e($row['name'])?></strong>
           <span><?=lc_e($row['full_name'])?></span><small><?=lc_e($row['created_at'])?></small>
+          <?php if($row['last_error']):?><small title="Motivo da execução"><?=lc_e($row['last_error'])?></small><?php endif;?>
         </div><?php endforeach;?>
         <?php if(!$history):?><p>Nenhuma execução ainda.</p><?php endif;?>
       </section>
