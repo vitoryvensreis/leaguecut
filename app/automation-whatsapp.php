@@ -238,7 +238,7 @@ function lc_wpp_admin_routes(string $method,string $path): bool {
           <img id="wpp-qr-image" alt="QR Code temporário para vincular o WhatsApp à LeagueCut" hidden>
         </div>
         <div class="lc-wpp-actions">
-           <button class="btn" type="button" id="wpp-start">Conectar / novo QR Code</button>
+           <button class="btn" type="button" id="wpp-start">Conectar / atualizar QR Code</button>
            <button class="btn btn-ghost" type="button" id="wpp-refresh">Atualizar estado</button>
            <button class="btn btn-ghost" type="button" id="wpp-close">Encerrar sessão da LeagueCut</button>
         </div>
