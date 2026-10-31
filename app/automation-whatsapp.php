@@ -64,11 +64,41 @@ function lc_wpp_parse_connection(array $data): array {
     return ['connected'=>false,'status'=>in_array($text,['STARTING','PAIRING','CONNECTING'],true)
         ? 'CONNECTING' : 'DISCONNECTED'];
 }
+/**
+ * The session state is the WPPConnect lifecycle source of truth. The
+ * check-connection endpoint can temporarily report false while pairing.
+ * Unknown/unsupported states fall back to the classic connection check.
+ */
+function lc_wpp_parse_session_state(array $data): array {
+    $raw=$data['status']??null;
+    $value=is_string($raw)?strtoupper(trim($raw)):'';
+    if(in_array($value,['CONNECTED','ISLOGGED','INCHAT','OPEN'],true))
+        return ['connected'=>true,'status'=>'CONNECTED','provider_status'=>$value,'source'=>'session'];
+    if(in_array($value,['INITIALIZING','STARTING','QRCODE','PHONECODE','CONNECTING','PAIRING'],true))
+        return ['connected'=>false,'status'=>'CONNECTING','provider_status'=>$value,'source'=>'session'];
+    if(in_array($value,['CLOSED','CLOSING','DISCONNECTED','ERROR','LOGOUT'],true))
+        return ['connected'=>false,'status'=>'DISCONNECTED','provider_status'=>$value,'source'=>'session'];
+    return ['connected'=>false,'status'=>'UNKNOWN','provider_status'=>'UNKNOWN','source'=>'session'];
+}
 function lc_wpp_admin_status(): array {
-    $result=lc_wpp_admin_request('check-connection-session');
-    $data=$result['json'];
-    return is_array($data) ? lc_wpp_parse_connection($data)
-        : ['connected'=>false,'status'=>'UNKNOWN'];
+    $stateError=null;
+    try{
+        $response=lc_wpp_admin_request('get-session-state');
+        if(is_array($response['json'])){
+            $state=lc_wpp_parse_session_state($response['json']);
+            if($state['status']!=='UNKNOWN')return $state;
+        }
+    }catch(Throwable $e){$stateError=$e;}
+    try{
+        $result=lc_wpp_admin_request('check-connection-session');
+        $data=$result['json'];
+        if(!is_array($data))throw new RuntimeException('O WPPConnect retornou um estado inválido.');
+        $normalized=lc_wpp_parse_connection($data);
+        return $normalized+['provider_status'=>'UNKNOWN','source'=>'connection-check'];
+    }catch(Throwable $e){
+        if($stateError!==null)throw $stateError;
+        throw $e;
+    }
 }
 /**
  * WPPConnect returns a PNG for /qrcode-session, but start-session and
@@ -98,24 +128,33 @@ function lc_wpp_admin_extract_qr(array $response): ?string {
     return null;
 }
 function lc_wpp_admin_qr(): array {
-    $response=null;$firstError=null;
-    try {
+    $sessionError=null;
+    $currentStatus='UNKNOWN';
+    // First inspect session state. Once connected, never serve a cached
+    // pairing QR even if the WPPConnect process still retains its urlcode.
+    try{
+        $session=lc_wpp_admin_request('get-session-state');
+        if(is_array($session['json'])){
+            $state=lc_wpp_parse_session_state($session['json']);
+            $currentStatus=$state['provider_status'];
+            if($state['connected'])return ['qr'=>null,'status'=>'CONNECTED'];
+            $qr=lc_wpp_admin_extract_qr($session);
+            if($qr!==null)return ['qr'=>$qr,'status'=>$currentStatus];
+        }
+    }catch(Throwable $e){$sessionError=$e;}
+    try{
         $response=lc_wpp_admin_request('qrcode-session');
         $qr=lc_wpp_admin_extract_qr($response);
         if($qr!==null)return ['qr'=>$qr,'status'=>'QRCODE'];
-    }catch(Throwable $e){$firstError=$e;}
-    // The state endpoint exposes the QR during pairing on WPPConnect Server,
-    // including versions that have no image yet on /qrcode-session.
-    try {
-        $fallback=lc_wpp_admin_request('get-session-state');
-        $qr=lc_wpp_admin_extract_qr($fallback);
-        $state=strtoupper((string)($fallback['json']['status']??''));
-        $allowed=['INITIALIZING','QRCODE','CONNECTED','CLOSED','ERROR','STARTING','CONNECTING'];
-        return ['qr'=>$qr,'status'=>in_array($state,$allowed,true)?$state:'UNKNOWN'];
+        if($currentStatus==='UNKNOWN'){
+            $raw=$response['json']['status']??null;
+            if(is_string($raw))$currentStatus=lc_wpp_parse_session_state(['status'=>$raw])['provider_status'];
+        }
+        return ['qr'=>null,'status'=>$currentStatus];
     }catch(Throwable $e){
-        if($firstError!==null)throw $firstError;
-        $state=strtoupper((string)($response['json']['status']??''));
-        return ['qr'=>null,'status'=>in_array($state,['INITIALIZING','CLOSED','QRCODE','ERROR'],true)?$state:'UNKNOWN'];
+        if($sessionError!==null)throw $sessionError;
+        if($currentStatus!=='UNKNOWN')return ['qr'=>null,'status'=>$currentStatus];
+        throw $e;
     }
 }
 function lc_wpp_admin_json(array $data,int $status=200): never {
