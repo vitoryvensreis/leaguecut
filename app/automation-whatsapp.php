@@ -7,7 +7,7 @@ function lc_wpp_admin_request(string $endpoint,string $method='GET',?array $payl
         throw new RuntimeException('Esta conexão está reservada à sessão leaguecut.');
     $token=lc_env('WPP_AUTH_TOKEN');
     if($token==='')throw new RuntimeException('Token privado do WPPConnect não configurado.');
-    $allowed=['check-connection-session','get-session-state','qrcode-session','start-session','close-session'];
+    $allowed=['check-connection-session','status-session','qrcode-session','start-session','close-session'];
     if(!in_array($endpoint,$allowed,true)||
        (($method==='POST')!==in_array($endpoint,['start-session','close-session'],true)))
         throw new InvalidArgumentException('Rota de sessão não permitida.');
@@ -83,7 +83,7 @@ function lc_wpp_parse_session_state(array $data): array {
 function lc_wpp_admin_status(): array {
     $stateError=null;
     try{
-        $response=lc_wpp_admin_request('get-session-state');
+        $response=lc_wpp_admin_request('status-session');
         if(is_array($response['json'])){
             $state=lc_wpp_parse_session_state($response['json']);
             if($state['status']!=='UNKNOWN')return $state;
@@ -102,7 +102,7 @@ function lc_wpp_admin_status(): array {
 }
 /**
  * WPPConnect returns a PNG for /qrcode-session, but start-session and
- * get-session-state may return a base64 QR in JSON. Never expose urlcode.
+ * status-session may return a base64 QR in JSON. Never expose urlcode.
  */
 function lc_wpp_admin_extract_qr(array $response): ?string {
     $raw=$response['body']??'';
@@ -133,7 +133,7 @@ function lc_wpp_admin_qr(): array {
     // First inspect session state. Once connected, never serve a cached
     // pairing QR even if the WPPConnect process still retains its urlcode.
     try{
-        $session=lc_wpp_admin_request('get-session-state');
+        $session=lc_wpp_admin_request('status-session');
         if(is_array($session['json'])){
             $state=lc_wpp_parse_session_state($session['json']);
             $currentStatus=$state['provider_status'];
