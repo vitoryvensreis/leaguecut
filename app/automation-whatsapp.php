@@ -178,6 +178,16 @@ function lc_wpp_admin_routes(string $method,string $path): bool {
                 lc_wpp_admin_json(lc_wpp_admin_qr());
             }
             if($method==='POST'&&$path==='/admin/whatsapp/api/start'){
+                $before=lc_wpp_admin_status();
+                if($before['connected']){
+                    lc_wpp_admin_json(['ok'=>true,'connected'=>true,'status'=>'CONNECTED']);
+                }
+                // A repeated /start-session call cannot produce a fresh QR while
+                // WPPConnect is already in QRCODE. An explicit click on "novo QR"
+                // safely closes only the stalled leaguecut session before restart.
+                if(($before['provider_status']??'')==='QRCODE'){
+                    lc_wpp_admin_request('close-session','POST');
+                }
                 $started=lc_wpp_admin_request('start-session','POST',['webhook'=>'','waitQrCode'=>false]);
                 $state=strtoupper((string)($started['json']['status']??''));
                 if($state==='ERROR')throw new RuntimeException('WPPConnect não conseguiu iniciar a sessão leaguecut. Confira os logs do serviço.');
