@@ -53,6 +53,21 @@ function lc_account_apply_update(array $u,array $data): bool {
     foreach($changed as $field)lc_mfa_event('account.change.'.$field,$uid);
     return true;
 }
+/**
+ * Persist only the account owner's optional WhatsApp preference.
+ * Caller must verify password/MFA and hold a database transaction.
+ */
+function lc_account_whatsapp_consent_save(int $uid,bool $optIn): bool {
+    if($uid<1)throw new InvalidArgumentException('Conta inválida.');
+    $current=lc_one('SELECT whatsapp,consent_whatsapp FROM users WHERE id=? FOR UPDATE',[$uid]);
+    if(!$current)throw new InvalidArgumentException('Conta não encontrada.');
+    if($optIn && trim((string)($current['whatsapp']??''))==='')
+        throw new InvalidArgumentException('Cadastre seu número de WhatsApp antes de autorizar mensagens.');
+    if((int)$current['consent_whatsapp']===($optIn?1:0))return false;
+    lc_query('UPDATE users SET consent_whatsapp=? WHERE id=?',[$optIn?1:0,$uid]);
+    lc_mfa_event($optIn?'consent.whatsapp.granted':'consent.whatsapp.revoked',$uid);
+    return true;
+}
 function lc_account_self_routes(string $method,string $path): bool {
     if($path!=='/conta' && $path!=='/conta/consentimento-whatsapp')return false;
     $u=lc_login_required(false);
@@ -63,18 +78,11 @@ function lc_account_self_routes(string $method,string $path): bool {
             // This opt-in belongs exclusively to the authenticated account
             // owner. An admin cannot grant consent on somebody else's behalf.
             $optIn=(string)($_POST['consent_whatsapp']??'')==='1';
-            if($optIn && trim((string)($u['whatsapp']??''))==='')
-                throw new InvalidArgumentException('Cadastre seu número de WhatsApp antes de autorizar mensagens.');
             if(!lc_mfa_stepup_or_password($u,lc_post('mfa_code',60),(string)($_POST['current_password']??'')))
                 throw new InvalidArgumentException('Confirme sua identidade usando sua senha atual ou Google Authenticator.');
             $db=lc_db();$db->beginTransaction();
             try{
-                $current=lc_one('SELECT consent_whatsapp FROM users WHERE id=? FOR UPDATE',[$uid]);
-                if(!$current)throw new InvalidArgumentException('Conta não encontrada.');
-                if((int)$current['consent_whatsapp']!==($optIn?1:0)){
-                    lc_query('UPDATE users SET consent_whatsapp=? WHERE id=?',[$optIn?1:0,$uid]);
-                    lc_mfa_event($optIn?'consent.whatsapp.granted':'consent.whatsapp.revoked',$uid);
-                }
+                lc_account_whatsapp_consent_save($uid,$optIn);
                 $db->commit();
             }catch(Throwable $e){if($db->inTransaction())$db->rollBack();throw $e;}
             lc_flash($optIn
