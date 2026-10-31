@@ -53,4 +53,11 @@ foreach($sessionStates as [$value,$connected,$status]){
     if($actual['connected']!==$connected || $actual['status']!==$status)
         throw new RuntimeException('Unexpected lifecycle state: '.$value);
 }
+// Regression guard: WPPConnect Server exposes GET /status-session,
+// not /get-session-state. Using the wrong path silently hides login success.
+$wppAdminSource=file_get_contents(dirname(__DIR__).'/app/automation-whatsapp.php');
+if(!is_string($wppAdminSource) || !str_contains($wppAdminSource,"'status-session'")
+    || str_contains($wppAdminSource,"'get-session-state'")){
+    throw new RuntimeException('WPP session status route is not supported by the provider.');
+}
 echo "WPP_CONNECTION_NORMALIZATION_OK\n";
