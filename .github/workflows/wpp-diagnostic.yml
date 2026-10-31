@@ -1,0 +1,65 @@
+name: Diagnostico seguro WhatsApp LeagueCut
+on:
+  workflow_run:
+    workflows: ['Publicar LeagueCut (apos testes)']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: leaguecut-wpp-diagnostic
+  cancel-in-progress: true
+jobs:
+  diagnostico:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Preparar SSH privado
+        env:
+          PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          printf '%s\n' "$PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519" "$HOME/.ssh/known_hosts"
+      - name: Consultar estados sem divulgar tokens ou QR Code
+        shell: bash
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          set -euo pipefail
+          ssh -i "$HOME/.ssh/id_ed25519" -p "$SSH_PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes "$SSH_USER@$SSH_HOST" 'cd /home/leaguecut/current && php' <<'PHP'
+          <?php
+          declare(strict_types=1);
+          require 'app/core.php';
+          require 'app/automation-engine.php';
+          require 'app/automation-whatsapp.php';
+          $allowed=['CONNECTED','ISLOGGED','INCHAT','OPEN','QRCODE','INITIALIZING','STARTING','CLOSED','ERROR','DISCONNECTED','CONNECTING','PHONECODE','CLOSING'];
+          echo 'SESSION=leaguecut'.PHP_EOL;
+          foreach(['get-session-state','check-connection-session','qrcode-session'] as $endpoint){
+              try {
+                  $result=lc_wpp_admin_request($endpoint);
+                  $raw=$result['json']['status']??null;
+                  $status=is_bool($raw)?($raw?'TRUE':'FALSE'):(is_string($raw)?strtoupper(trim($raw)):'UNKNOWN');
+                  if(!in_array($status,$allowed,true)&&$status!=='TRUE'&&$status!=='FALSE')$status='UNKNOWN';
+                  $qr=lc_wpp_admin_extract_qr($result)!==null?'yes':'no';
+                  echo $endpoint.' status='.$status.' qr_available='.$qr.PHP_EOL;
+              }catch(Throwable $e){
+                  echo $endpoint.' request_failed='.get_class($e).PHP_EOL;
+              }
+          }
+          try{
+              $state=lc_wpp_admin_status();
+              echo 'LEAGUECUT_CONNECTED='.($state['connected']?'YES':'NO').' source='.$state['source'].' state='.$state['status'].PHP_EOL;
+          }catch(Throwable $e){
+              echo 'LEAGUECUT_STATUS_ERROR='.get_class($e).PHP_EOL;
+          }
+          PHP
