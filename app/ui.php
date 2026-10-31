@@ -319,7 +319,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <script src="/assets/auth-mfa-modal.js?v=1" defer></script>
 <script src="/assets/motion-glass.js?v=1" defer></script>
 <?php if(str_starts_with($path,"/admin/automacoes")||$path==="/admin/whatsapp"): ?><?php if(str_starts_with($path,"/admin/automacoes/")||$path==="/admin/automacoes/novo"): ?><script src="/assets/flow-canvas-v2.js?v=1" defer></script><?php endif; ?>
-<script src="/assets/flow-editor.js?v=4" defer></script><?php endif; ?>
+<script src="/assets/flow-editor.js?v=5" defer></script><?php endif; ?>
 <?php if($workspace): ?><div class="rt-live-announcer" role="status" aria-live="polite" data-realtime-toast></div>
 <script defer src="/assets/realtime.js?v=1" data-rt-enabled="<?=lc_env('REALTIME_WS_ENABLED','0')==='1'?'1':'0'?>"></script><?php endif;?>
 <script src="/assets/pwa.js?v=4" defer></script>
