@@ -153,6 +153,7 @@ jobs:
           php tests/automation_visual.php
           php tests/avatar_upload_limit.php
           php tests/account_admin.php
+          php tests/account_consent.php
           php tests/demo_mode.php
           php tests/account_deletion_integration.php
           php tests/master_admin_permissions.php
