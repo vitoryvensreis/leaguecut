@@ -83,6 +83,17 @@ jobs:
             /chrome|chromium/ {chromes++; if ($1 ~ /^Z/) zombies++}
             END {printf "NODE_PROCESSES=%d CHROMIUM_PROCESSES=%d CHROMIUM_ZOMBIES=%d\n", nodes+0,chromes+0,zombies+0}'
           awk '/^MemAvailable:/ {printf "MEMORY_AVAILABLE_KB=%d\n",$2}' /proc/meminfo
+          # Print only aggregate process data; never expose argv, tokens, or profile paths.
+          ps -eo user=,comm= | awk '$2=="node" {total++; if($1=="leaguecut") mine++} END {printf "NODE_OWNED_BY_LEAGUECUT=%d TOTAL_NODE=%d\\n",mine+0,total+0}'
+          leaguecut_profiles=0
+          for proc in /proc/[0-9]*/cmdline; do
+            pid="${proc%/cmdline}"
+            if [ -r "$pid/comm" ] && grep -Eq '^(chrome|chromium)' "$pid/comm" 2>/dev/null; then
+              argv="$(tr '\\000' ' ' < "$proc" 2>/dev/null || true)"
+              case "$argv" in *--user-data-dir=*leaguecut*) leaguecut_profiles=$((leaguecut_profiles+1));; esac
+            fi
+          done
+          echo "CHROMIUM_EXPLICIT_LEAGUECUT_PROFILE_COUNT=$leaguecut_profiles"
           df -Pk /tmp | awk 'NR==2 {printf "TMP_DISK_AVAILABLE_KB=%d\n",$4}'
           if command -v systemctl >/dev/null 2>&1; then
             systemctl list-units --type=service --all --no-legend --no-pager 2>/dev/null | awk 'tolower($1) ~ /(wppconnect|whatsapp)/ {print "WPP_SERVICE_PRESENT=yes"; found=1} END {if(!found) print "WPP_SERVICE_PRESENT=not-visible"}'
