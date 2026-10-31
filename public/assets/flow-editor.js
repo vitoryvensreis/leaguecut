@@ -216,7 +216,8 @@ function showStatus(state){
   statusEl.classList.toggle('is-connected',connected);
   statusEl.classList.remove('is-unavailable');
   statusEl.textContent=connected?'Conectado':!qrImage.hidden?'Aguardando leitura':
-     state.status==='CONNECTING'?'Conectando...':'Não conectado';
+     state.provider_status==='INITIALIZING'||state.provider_status==='STARTING'
+       ?'Inicializando...' : state.status==='CONNECTING'?'Conectando...':'Não conectado';
   enableButton.disabled=!connected||enabled;
   pauseButton.disabled=!enabled;
   if(connected){
@@ -259,6 +260,8 @@ function showQr(value){
    try{
      const result=await request('qr');
      if(connected)return;
+     // The backend must never keep a stale pairing QR on screen after login.
+     if(result.status==='CONNECTED'){void refreshStatus(true);return;}
      if(showQr(result.qr))return;
      if(!qrImage.hidden)return; // Preserve a valid QR while the next one is prepared.
      qrInfo.hidden=false;
