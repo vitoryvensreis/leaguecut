@@ -1,5 +1,9 @@
 name: Diagnostico seguro WhatsApp LeagueCut
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wpp-diagnostic.yml'
   workflow_run:
     workflows: ['Publicar LeagueCut (apos testes)']
     types: [completed]
@@ -12,7 +16,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   diagnostico:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
