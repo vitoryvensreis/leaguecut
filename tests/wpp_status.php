@@ -66,7 +66,7 @@ $whatsappSource=file_get_contents(dirname(__DIR__).'/app/automation-whatsapp.php
 if(!is_string($whatsappSource))throw new RuntimeException('WhatsApp source unreadable');
 $startRoute=explode("if(\$method==='POST'&&\$path==='/admin/whatsapp/api/start')",$whatsappSource,2)[1]??'';
 $startRoute=explode("if(\$method==='POST'&&\$path==='/admin/whatsapp/api/pause')",$startRoute,2)[0]??'';
-if($startRoute===''||str_contains($startRoute,"lc_wpp_admin_request('close-session'"))
+if($startRoute==='' || str_contains($startRoute,"lc_wpp_admin_request('close-session'")
     || !str_contains($startRoute,"'reused'=>true")){
     throw new RuntimeException('Unsafe pairing restart in WhatsApp start route');
 }
