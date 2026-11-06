@@ -13,6 +13,10 @@ function lc_save_campaign(?int $id): void {
        ($end!==''&&!preg_match('/^\d{4}-\d{2}-\d{2}$/',$end))){
         lc_flash('Confira título, descrição, status e datas.','error');lc_redirect($returnTo);
     }
+    try{
+        $maxClippers=lc_campaign_limit_from_post('max_clippers',LC_CAMPAIGN_MAX_CLIPPERS);
+        $maxWeekly=lc_campaign_limit_from_post('max_approved_per_week',LC_CAMPAIGN_MAX_WEEKLY);
+    }catch(InvalidArgumentException $e){lc_flash($e->getMessage(),'error');lc_redirect($returnTo);}
     $previous=$id?lc_one('SELECT cover_url FROM campaigns WHERE id=?',[$id]):null;
     if($id&&!$previous){http_response_code(404);exit('Campanha não encontrada.');}
     $oldCover=(string)($previous['cover_url']??'');
@@ -28,15 +32,15 @@ function lc_save_campaign(?int $id): void {
     $fields=[$title,$description,$category,$cover?:null,$status,
         lc_int('min_videos_week',5,100),lc_cents('payment_per_video',1500),
         lc_int('milestone_views',1000000,2000000000),lc_cents('milestone_bonus',2000),
-        lc_cents('monthly_leader_bonus',2000),$start?:null,$end?:null];
+        lc_cents('monthly_leader_bonus',2000),$start?:null,$end?:null,$maxClippers,$maxWeekly];
     try {
         lc_db()->beginTransaction();
         if($id){
             $fields[]=$id;
-            lc_query('UPDATE campaigns SET title=?,description=?,category=?,cover_url=?,status=?,min_videos_week=?,payment_per_video_cents=?,milestone_views=?,milestone_bonus_cents=?,monthly_leader_bonus_cents=?,starts_at=?,ends_at=? WHERE id=?',$fields);
+            lc_query('UPDATE campaigns SET title=?,description=?,category=?,cover_url=?,status=?,min_videos_week=?,payment_per_video_cents=?,milestone_views=?,milestone_bonus_cents=?,monthly_leader_bonus_cents=?,starts_at=?,ends_at=?,max_clippers=?,max_approved_per_week=? WHERE id=?',$fields);
         }else{
             $fields[]=lc_slug($title);$fields[]=(int)$admin['id'];
-            lc_query('INSERT INTO campaigns(title,description,category,cover_url,status,min_videos_week,payment_per_video_cents,milestone_views,milestone_bonus_cents,monthly_leader_bonus_cents,starts_at,ends_at,slug,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)',$fields);
+            lc_query('INSERT INTO campaigns(title,description,category,cover_url,status,min_videos_week,payment_per_video_cents,milestone_views,milestone_bonus_cents,monthly_leader_bonus_cents,starts_at,ends_at,max_clippers,max_approved_per_week,slug,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)',$fields);
             $id=(int)lc_db()->lastInsertId();
         }
         lc_realtime_emit('admin',null,'campaign.updated','campaign',$id);
@@ -53,6 +57,18 @@ function lc_save_campaign(?int $id): void {
     }
     lc_flash($previous?'Campanha atualizada.':'Campanha criada.');
     lc_redirect('/admin/campanhas');
+}
+/** Number + "Ilimitado" switch. Unlimited stores NULL; the number keeps its last value for convenience. */
+function lc_campaign_limit_field(string $label,string $name,mixed $value,int $max,string $placeholder,string $help,?int $current=null): void {
+    $limit=lc_campaign_limit_value($value);$unlimited=$limit===null;$hid=$name.'-help';
+?><div class="field lc-limit-field" data-limit-field>
+ <span><?=lc_e($label)?></span>
+ <div class="lc-limit-row">
+  <input name="<?=lc_e($name)?>" type="number" min="1" max="<?=$max?>" step="1" inputmode="numeric" value="<?=$unlimited?'':(int)$limit?>" placeholder="<?=lc_e($placeholder)?>" aria-describedby="<?=lc_e($hid)?>" data-limit-input>
+  <label class="lc-limit-toggle"><input type="checkbox" name="<?=lc_e($name)?>_unlimited" value="1" <?=$unlimited?'checked':''?> data-limit-unlimited> <span>Ilimitado</span></label>
+ </div>
+ <small id="<?=lc_e($hid)?>"><?=lc_e($help)?><?php if($current!==null):?> Participantes atuais: <strong><?=$current?></strong>.<?php endif;?></small>
+</div><?php
 }
 function lc_campaign_form(?array $c): void {
     $get=fn(string $k,mixed $fallback='')=>(string)($c[$k]??$fallback);
@@ -77,6 +93,8 @@ function lc_campaign_form(?array $c): void {
 <?php lc_field('Meta de views por vídeo','milestone_views','number',$get('milestone_views','1000000'),true,'1000000','min="0" max="2000000000"'); ?>
 <?php lc_field('Bônus por meta de views (R$)','milestone_bonus','text',number_format((int)$get('milestone_bonus_cents','2000')/100,2,',','.'),true,'20,00'); ?>
 <?php lc_field('Bônus líder do mês (R$)','monthly_leader_bonus','text',number_format((int)$get('monthly_leader_bonus_cents','2000')/100,2,',','.'),true,'20,00'); ?>
+<?php lc_campaign_limit_field('Limite de clipadores na campanha','max_clippers',$c['max_clippers']??null,LC_CAMPAIGN_MAX_CLIPPERS,'Ex.: 50','Conta quem enviou ao menos um clipe (aprovado, pendente ou reprovado). Quem já participa continua enviando.',$id?lc_campaign_participant_count($id):null); ?>
+<?php lc_campaign_limit_field('Clipes aprovados por semana (por clipador)','max_approved_per_week',$c['max_approved_per_week']??null,LC_CAMPAIGN_MAX_WEEKLY,'Ex.: 7','Semana de segunda a domingo, pela data de envio. Ao atingir o limite, novos envios e aprovações ficam bloqueados.'); ?>
 <?php lc_field('Início (opcional)','starts_at','date',$get('starts_at')); ?>
 <?php lc_field('Fim (opcional)','ends_at','date',$get('ends_at')); ?>
 </div><div class="form-actions"><button class="btn" type="submit"><?= $id?'Salvar alterações':'Publicar campanha' ?> →</button><a href="/admin/campanhas">Voltar</a></div>

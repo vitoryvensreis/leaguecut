@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 require __DIR__ . '/finance.php';
+require __DIR__ . '/campaign-limits.php';
+require_once __DIR__ . '/input-validation.php';
 require __DIR__ . '/monthly-bonus.php';
 require __DIR__ . '/realtime.php';
 require __DIR__ . '/automation-engine.php';
@@ -31,6 +33,8 @@ require __DIR__ . '/routes-integrations.php';
 require __DIR__ . '/creator-platform.php';
 require __DIR__ . '/creator-billing.php';
 require __DIR__ . '/asaas.php';
+require __DIR__ . '/platform-finance.php';
+require __DIR__ . '/platform-finance-routes.php';
 require __DIR__ . '/nick-ranking.php';
 require __DIR__ . '/demo-mode.php';
 require_once __DIR__ . '/referrals.php';
@@ -103,6 +107,7 @@ if(lc_integrations_routes($method,$path))return;
 if(lc_home_admin_routes($method,$path))return;
 if(lc_clipper_banner_routes($method,$path))return;
 if(lc_asaas_routes($method,$path))return;
+if(lc_platform_finance_routes($method,$path))return;
 if(lc_creator_billing_routes($method,$path))return;
 if(lc_creator_admin_routes($method,$path))return;
 if(lc_wpp_admin_routes($method,$path))return;

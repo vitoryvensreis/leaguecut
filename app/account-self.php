@@ -1,21 +1,26 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/input-validation.php';
 
 function lc_account_validate_input(array $source): array {
     $name=trim((string)($source['full_name']??''));
-    $email=mb_strtolower(trim((string)($source['email']??'')));
-    $phone=preg_replace('/\D/','',(string)($source['whatsapp']??''))??'';
+    $email=lc_email_normalize((string)($source['email']??''));
+    $phone=lc_phone_br_normalize((string)($source['whatsapp']??''));
     $newPass=(string)($source['new_password']??'');
     $pix=trim((string)($source['new_pix_key']??''));
     $nickname=trim((string)($source['nickname']??''));
     if($nickname!=='')$nickname=lc_nickname_validate($nickname);
-    if(mb_strlen($name)<3||mb_strlen($name)>160||!filter_var($email,FILTER_VALIDATE_EMAIL)||
-       strlen($email)>190||!in_array(strlen($phone),[10,11,12,13],true)||
-       ($newPass!==''&&(strlen($newPass)<12||strlen($newPass)>128))||
-       mb_strlen($pix)>150)
-        throw new InvalidArgumentException('Confira os dados. Senhas novas exigem ao menos 12 caracteres.');
+    if(mb_strlen($name)<3||mb_strlen($name)>160)throw new InvalidArgumentException('Informe seu nome completo (3 a 160 caracteres).');
+    if($email===null)throw new InvalidArgumentException('E-mail inválido. Confira o endereço.');
+    if($phone===null)throw new InvalidArgumentException('WhatsApp inválido. Use DDD + número, ex.: (85) 99999-9999.');
+    if($newPass!==''&&(strlen($newPass)<12||strlen($newPass)>128))throw new InvalidArgumentException('A nova senha precisa ter de 12 a 128 caracteres.');
+    if($pix!==''){
+        // Re-validated also when the payload comes back from an OTP challenge (already formatted).
+        $parsed=lc_pix_key_from_form($pix,(string)($source['new_pix_key_type']??''));
+        $pix=lc_pix_key_format($parsed['type'],$parsed['key']);
+    }
     return ['nickname'=>$nickname,'full_name'=>$name,'email'=>$email,'whatsapp'=>$phone,
-       'new_password'=>$newPass,'new_pix_key'=>$pix];
+       'new_password'=>$newPass,'new_pix_key'=>$pix,'new_pix_key_type'=>$pix!==''?($parsed['type']??''):''];
 }
 /** Caller owns a DB transaction; used both after direct TOTP and confirmed remote code. */
 function lc_account_apply_update(array $u,array $data): bool {
@@ -33,9 +38,11 @@ function lc_account_apply_update(array $u,array $data): bool {
         if($pending>0)throw new InvalidArgumentException('Não altere o Pix enquanto há saques em análise.');
     }
     $changed=[];
-    foreach(['full_name','email','whatsapp'] as $field){
+    foreach(['full_name','email'] as $field){
         if((string)$existing[$field]!==$data[$field])$changed[]=$field;
     }
+    // Legacy numbers may be stored with the 55 prefix: compare the normalized form.
+    if((lc_phone_br_normalize((string)$existing['whatsapp'])??(string)$existing['whatsapp'])!==$data['whatsapp'])$changed[]='whatsapp';
     if($data['nickname']!=='' && $existing['nickname']!==$data['nickname'])$changed[]='nickname';
     if($data['new_pix_key']!=='')$changed[]='pix_key_enc';
     if($data['new_password']!=='')$changed[]='password_hash';
@@ -141,12 +148,15 @@ function lc_account_self_routes(string $method,string $path): bool {
 <div class="panel">
 <form action="/conta" method="post" autocomplete="off"><?=lc_csrf()?>
 <div class="form-grid">
-<label class="field"><span>Nome completo</span><input name="full_name" value="<?=lc_e($u['full_name'])?>" data-lc-private-input minlength="3" maxlength="160" required></label>
-<label class="field"><span>Seu nickname público</span><input name="nickname" value="<?=lc_e($u['nickname']??'')?>" minlength="3" maxlength="24" pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" required></label>
-<label class="field"><span>E-mail de acesso</span><input type="email" name="email" value="<?=lc_e($u['email'])?>" data-lc-private-input required maxlength="190"></label>
-<label class="field"><span>WhatsApp</span><input name="whatsapp" data-lc-mask="phone" value="<?=lc_e($u['whatsapp'])?>" data-lc-private-input required maxlength="19"></label>
+<label class="field"><span>Nome completo</span><input name="full_name" value="<?=lc_e($u['full_name'])?>" data-lc-private-input minlength="3" maxlength="160" required autocomplete="name"></label>
+<label class="field"><span>Seu nickname público</span><input name="nickname" value="<?=lc_e($u['nickname']??'')?>" minlength="3" maxlength="24" pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" required autocapitalize="none" spellcheck="false" autocomplete="nickname" title="3 a 24 caracteres: comece com letra; use letras, números e _"></label>
+<label class="field"><span>E-mail de acesso</span><input type="email" name="email" value="<?=lc_e($u['email'])?>" data-lc-private-input required maxlength="190" autocomplete="email" autocapitalize="none" spellcheck="false"></label>
+<label class="field"><span>WhatsApp</span><input name="whatsapp" type="tel" data-lc-mask="phone" value="<?=lc_e($u['whatsapp'])?>" data-lc-private-input required maxlength="19" autocomplete="tel-national" inputmode="tel"></label>
 <label class="field"><span>Nova senha (opcional)</span><input type="password" name="new_password" autocomplete="new-password" minlength="12" maxlength="128" placeholder="Mantenha em branco para não alterar"></label>
-<label class="field full"><span>Nova chave Pix (opcional)</span><input name="new_pix_key" maxlength="150" autocomplete="off" placeholder="Informe somente para substituir a atual"></label>
+<div class="field full lc-pix-field" data-pix-group><span>Nova chave Pix (opcional)</span>
+ <div class="lc-pix-row"><select name="new_pix_key_type" data-pix-type aria-label="Tipo da nova chave Pix"><option value="">Tipo…</option><?php foreach(LC_PIX_KEY_TYPES as $value=>$label):?><option value="<?=$value?>"><?=lc_e($label)?></option><?php endforeach;?></select>
+ <input name="new_pix_key" maxlength="77" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Preencha só para substituir a atual" data-pix-input data-pix-optional></div>
+ <small>Escolha o tipo para aplicarmos o formato certo. CPF e CNPJ são conferidos pelo dígito verificador.</small></div>
 <?php if($enabled):?>
 <label class="field full"><span>Código do Google Authenticator ou recuperação</span>
 <input name="mfa_code" autocomplete="one-time-code" required maxlength="60"></label>

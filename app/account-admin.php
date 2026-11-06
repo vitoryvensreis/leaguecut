@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/input-validation.php';
 require_once __DIR__.'/admin-permissions.php';
 
 /** Account administration: no unauthenticated privilege changes or password disclosure. */
@@ -22,12 +23,18 @@ function lc_account_admin_password(array $actor): bool {
 function lc_account_admin_validate(array $payload,bool $isCreate=false): array {
     $name=trim((string)($payload['full_name']??''));
     $email=mb_strtolower(trim((string)($payload['email']??'')));
-    $whatsapp=preg_replace('/\D/','',(string)($payload['whatsapp']??''))??'';
+    $whatsappRaw=trim((string)($payload['whatsapp']??''));
+    $whatsapp=$whatsappRaw===''?'':(lc_phone_br_normalize($whatsappRaw)??'invalid');
+    if($whatsapp==='invalid')throw new InvalidArgumentException('WhatsApp inválido. Use DDD + número, ex.: (85) 99999-9999.');
     $instagram=ltrim(trim((string)($payload['instagram']??'')),'@');
     $role=(string)($payload['role']??'');
     $status=(string)($payload['status']??'');
     $password=(string)($payload['new_password']??'');
     $pix=trim((string)($payload['new_pix_key']??''));
+    if($pix!==''){
+        $parsedPix=lc_pix_key_from_form($pix,(string)($payload['new_pix_key_type']??''));
+        $pix=lc_pix_key_format($parsedPix['type'],$parsedPix['key']);
+    }
     if(mb_strlen($name)<3||mb_strlen($name)>160||
        !filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($email)>190||
        ($whatsapp!==''&&(strlen($whatsapp)<10||strlen($whatsapp)>13))||
@@ -185,14 +192,16 @@ function lc_account_admin_routes(string $method,string $path): bool {
 <div class="form-grid">
 <label class="field"><span>Nome completo</span><input name="full_name" maxlength="160" minlength="3" required value="<?=lc_e($user['full_name'])?>" data-lc-private-input></label>
 <label class="field"><span>E-mail</span><input name="email" type="email" maxlength="190" required value="<?=lc_e($user['email'])?>" data-lc-private-input></label>
-<label class="field"><span>WhatsApp</span><input name="whatsapp" data-lc-mask="phone" maxlength="18" inputmode="tel" value="<?=lc_e($user['whatsapp'])?>" data-lc-private-input></label>
-<label class="field"><span>Instagram</span><input name="instagram" maxlength="80" value="<?=lc_e($user['instagram'])?>"></label>
+<label class="field"><span>WhatsApp</span><input name="whatsapp" type="tel" data-lc-mask="phone" maxlength="18" inputmode="tel" autocomplete="off" value="<?=lc_e($user['whatsapp'])?>" data-lc-private-input></label>
+<label class="field"><span>Instagram</span><input name="instagram" maxlength="80" value="<?=lc_e($user['instagram'])?>" autocapitalize="none" spellcheck="false" data-rule="instagram"></label>
 <label class="field"><span>Tipo de conta</span><select name="role">
 <?php foreach(['admin'=>'Administrador','clipador'=>'Clipador','criador'=>'Criador'] as $role=>$label):if($role==='admin'&&!lc_is_master($actor))continue;?><option value="<?=$role?>" <?=$user['role']===$role?'selected':''?>><?=$label?></option><?php endforeach;?></select></label>
 <label class="field"><span>Status</span><select name="status">
 <?php foreach(['approved'=>'Aprovada','pending'=>'Pendente','rejected'=>'Rejeitada','suspended'=>'Suspensa'] as $status=>$label):?><option value="<?=$status?>" <?=$user['status']===$status?'selected':''?>><?=$label?></option><?php endforeach;?></select></label>
 <label class="field"><span>Nova senha (deixe vazio para manter)</span><input name="new_password" type="password" autocomplete="new-password" minlength="12" maxlength="128"></label>
-<label class="field"><span>Substituir chave Pix (opcional)</span><input name="new_pix_key" autocomplete="off" maxlength="150" placeholder="Nunca exibimos a chave Pix atual"></label>
+<div class="field lc-pix-field" data-pix-group><span>Substituir chave Pix (opcional)</span>
+<div class="lc-pix-row"><select name="new_pix_key_type" data-pix-type aria-label="Tipo da nova chave Pix"><option value="">Tipo…</option><?php foreach(LC_PIX_KEY_TYPES as $value=>$label):?><option value="<?=$value?>"><?=lc_e($label)?></option><?php endforeach;?></select>
+<input name="new_pix_key" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="77" placeholder="Nunca exibimos a chave Pix atual" data-pix-input data-pix-optional></div></div>
 <label class="field full"><span>Confirme sua senha administrativa</span><input name="admin_password" type="password" autocomplete="current-password" required></label>
 <?php if(lc_mfa_enabled((int)lc_admin()['id'])):?>
 <label class="field full"><span>Código Google Authenticator</span><input name="mfa_code" maxlength="60" required autocomplete="one-time-code"></label>
