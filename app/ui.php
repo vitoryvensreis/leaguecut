@@ -377,7 +377,12 @@ function lc_heading(string $eyebrow, string $title, string $description=''): voi
  * Options: type, value, required, placeholder, attrs (raw, trusted), help, error, prefix, full, id.
  */
 function lc_form_field(string $label, string $name, array $o = []): void {
+    static $used = [];
     $id = $o['id'] ?? 'f-' . preg_replace('/[^a-z0-9_-]/i', '-', $name) . '-' . substr(md5($label . $name), 0, 5);
+    // Login and signup dialogs live on the same page: ids must stay unique.
+    $base = $id; $n = 2;
+    while (isset($used[$id])) $id = $base . '-' . $n++;
+    $used[$id] = true;
     $error = (string)($o['error'] ?? '');
     $help = (string)($o['help'] ?? '');
     $describe = trim(($help !== '' ? $id . '-help ' : '') . $id . '-msg');
