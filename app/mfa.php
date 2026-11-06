@@ -144,6 +144,7 @@ function lc_mfa_finish_login(int $uid,bool $async=false): never {
     }
     unset($_SESSION['remember_after_mfa']);
     $destination=$user['role']==='criador'?'/criador':($user['role']==='admin'?'/admin':'/dashboard');
+    if(function_exists('lc_after_login_destination'))$destination=lc_after_login_destination((string)$user['role'],$destination);
     if($async)lc_auth_json(true,'redirect','',$destination);
     lc_redirect($destination);
 }

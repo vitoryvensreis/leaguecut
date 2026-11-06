@@ -7,7 +7,7 @@ function lc_admin_navigation_groups(): array {
       ['key'=>'campaigns','title'=>'Campanhas e clipes','icon'=>'clapperboard','links'=>['/admin/campanhas','/admin/clipes']],
       ['key'=>'accounts','title'=>'Opções de contas','icon'=>'users-round','links'=>['/admin/clipadores','/admin/administradores','/admin/contas','/admin/funcoes','/indicacoes','/admin/indicacoes']],
       ['key'=>'support','title'=>'Suporte','icon'=>'circle-check','links'=>['/admin/chamados','/admin/chamados/relatorios']],
-      ['key'=>'finance','title'=>'Financeiro','icon'=>'wallet','links'=>['/admin/financeiro','/admin/asaas','/admin/bonus-mensal']],
+      ['key'=>'finance','title'=>'Financeiro','icon'=>'wallet','links'=>['/admin/financeiro/caixa','/admin/financeiro','/admin/asaas','/admin/bonus-mensal']],
       ['key'=>'creators','title'=>'Criadores e assinaturas','icon'=>'layers','links'=>['/admin/pacotes','/admin/assinaturas']],
       ['key'=>'comms','title'=>'Comunicação e automações','icon'=>'share-2','links'=>['/admin/automacoes','/admin/whatsapp','/admin/notificacoes','/notificacoes']],
       ['key'=>'brand','title'=>'Personalização e SEO','icon'=>'palette','links'=>['/admin/home','/admin/banners-clipador','/admin/configuracoes','/admin/seo']],

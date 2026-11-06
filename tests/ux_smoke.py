@@ -102,9 +102,14 @@ def main():
     assert 'name="nickname"' in signup and 'data-nickname-check' in signup and 'data-nickname-feedback' in signup, "Required nickname has live availability UI"
     assert 'assets/signup-nickname.js?v=1' in signup and 'assets/signup-dialog-polish.css?v=2' in signup, "Live nickname check and compact dialogs are loaded"
     assert 'Junte-se ao League Cut' not in signup, "Signup has no redundant eyebrow"
-    assert '<span>Nickname <span class="lc-required-mark"' in signup and 'Nickname público <span' not in signup, "Signup field is simply Nickname"
-    assert 'class="lc-nickname-hint"' in signup and '3 a 24 caracteres: letras, números e _.' in signup, "Inline nickname guidance"
-    assert re.search(r'<small class="lc-nickname-feedback"[^>]*></small>', signup), "Availability feedback starts empty"
+    assert '>Nickname</label>' in signup and 'Nickname público' not in signup, "Signup field is simply Nickname"
+    assert 'lc-nickname-hint' in signup and '3 a 24 caracteres: letras, números e _.' in signup, "Inline nickname guidance"
+    assert re.search(r'<small class="[^"]*lc-nickname-feedback[^"]*"[^>]*></small>', signup), "Availability feedback starts empty"
+    assert 'assets/form-system.css?v=1' in signup and 'assets/form-system.js?v=1' in signup, "Shared form system loaded"
+    assert signup.index('assets/form-system.js?v=1') < signup.index('assets/input-masks.js'), "Validation runs before masks strip formatting"
+    assert 'name="pix_key_type"' in signup and 'data-pix-input' in signup, "Pix key has a type selector"
+    assert 'data-lc-mask="phone"' in signup and 'data-validate' in signup, "Signup validates inline and masks WhatsApp"
+    assert 'data-otp' in signin and 'data-otp-recovery' in signin, "2FA uses segmented code with recovery option"
     assert 'assets/paint-mask-surfaces.css?v=1' in home and 'assets/paint-mask-surfaces.css?v=1' in catalog, "Paint mask CSS is enabled"
     with guest.open(BASE+"/assets/paint-mask-surfaces.css",timeout=10) as asset:
         mask_css=asset.read().decode("utf-8")

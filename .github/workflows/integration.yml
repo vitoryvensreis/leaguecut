@@ -116,6 +116,7 @@ jobs:
           php tests/rank_trophies.php
           php tests/referrals.php
           php tests/multiple_monthly_bonus.php
+          php tests/campaign_limits.php
           php tests/privacy_ui.php
           php tests/privacy_center.php
           php tests/legal_entity.php
@@ -160,6 +161,7 @@ jobs:
           php tests/asaas_foundation.php
           php tests/asaas_connection.php
           php tests/asaas_test_retired.php
+          php tests/platform_finance.php
           php tests/mfa_security.php
           php tests/mfa_qr_audit.php
           php tests/otp_security.php
@@ -167,6 +169,9 @@ jobs:
           php tests/wpp_qr.php
           node --check public/assets/input-masks.js
           node tests/masks-b4b.cjs
+          node --check public/assets/form-system.js
+          node tests/form-system.cjs
+          php tests/input_validation.php
           node --check public/assets/flow-editor.js
           node --check public/assets/flow-canvas-v2.js
           python3 tests/ux_smoke.py || { tail -n 120 /tmp/leaguecut-php.log; exit 1; }

@@ -17,6 +17,16 @@ const cpf=d=>{
  if(d.length<=9)return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6);
  return d.slice(0,3)+'.'+d.slice(3,6)+'.'+d.slice(6,9)+'-'+d.slice(9);
 };
+const cnpj=d=>{
+ d=d.slice(0,14);
+ if(d.length<=2)return d;
+ if(d.length<=5)return d.slice(0,2)+'.'+d.slice(2);
+ if(d.length<=8)return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5);
+ if(d.length<=12)return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'/'+d.slice(8);
+ return d.slice(0,2)+'.'+d.slice(2,5)+'.'+d.slice(5,8)+'/'+d.slice(8,12)+'-'+d.slice(12);
+};
+// CPF until 11 digits, CNPJ from the 12th digit on (same field for both documents).
+const documentMask=d=>d.length>11?cnpj(d):cpf(d);
 const moneyDigits=value=>(value||'').replace(/\D/g,'').slice(0,10);
 const brl=digits=>{
  if(!digits)return '';
@@ -32,9 +42,11 @@ const toRawMoney=value=>{
 function typeOf(input){
  if(!(input instanceof HTMLInputElement)||!input.name)return null;
  const kind=input.dataset.lcMask;
- if(kind==='phone'||kind==='cpf'||kind==='money')return kind;
+ if(kind==='phone'||kind==='cpf'||kind==='money'||kind==='cnpj'||kind==='document')return kind;
  if(/^(whatsapp|telefone|phone|cellphone|mobile)$/i.test(input.name))return 'phone';
  if(/^(cpf|document_cpf)$/i.test(input.name))return 'cpf';
+ if(/^cnpj$/i.test(input.name))return 'cnpj';
+ if(/^(cpf_cnpj|document)$/i.test(input.name))return 'document';
  if(/^(amount|bonus_amount|payment_per_video|milestone_bonus|monthly_leader_bonus|monthly_price|fixed_value)$/i.test(input.name))return 'money';
  return null;
 }
@@ -43,7 +55,7 @@ function decorate(input){
  if(!type)return;
  input.inputMode=type==='money'?'decimal':'numeric';
  const digits=(input.value||'').replace(/\D/g,'');
- const formatted=type==='money'?brl(moneyDigits(input.value)):type==='cpf'?cpf(digits):phone(digits);
+ const formatted=type==='money'?brl(moneyDigits(input.value)):type==='cpf'?cpf(digits):type==='cnpj'?cnpj(digits):type==='document'?documentMask(digits):phone(digits);
  if(input.value!==formatted)input.value=formatted;
 }
 // Event delegation supports dynamically opened signup/login forms.
@@ -51,7 +63,7 @@ document.addEventListener('input',event=>{
  const target=event.target;
  if(!(target instanceof HTMLInputElement))return;
  const type=typeOf(target);
- if(type==='phone'||type==='cpf'||type==='money')decorate(target);
+ if(type)decorate(target);
 });
 document.querySelectorAll('input[name]').forEach(decorate);
 // Submit localized money as 1234,56 so lc_cents() receives an unchanged cent value.
@@ -61,7 +73,7 @@ document.addEventListener('submit',event=>{
  if(!(form instanceof HTMLFormElement))return;
  form.querySelectorAll('input[name]').forEach(input=>{
    const kind=typeOf(input);
-   if(kind==='phone'||kind==='cpf')input.value=input.value.replace(/\D/g,'');
+   if(kind==='phone'||kind==='cpf'||kind==='cnpj'||kind==='document')input.value=input.value.replace(/\D/g,'');
    if(kind==='money')input.value=toRawMoney(input.value);
  });
 },true);

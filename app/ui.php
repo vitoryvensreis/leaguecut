@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/input-validation.php';
 require_once __DIR__ . '/legal-entity.php';
 require_once __DIR__ . '/clipper-ui.php';
 require_once __DIR__ . '/admin-navigation.php';
@@ -55,6 +56,7 @@ function lc_workspace_links(array $u): array {
           ['Chamados','/admin/chamados','clipboard-check'],
           ['Relatórios suporte','/admin/chamados/relatorios','chart-column'],
           ['Campanhas','/admin/campanhas','clapperboard'],
+          ['Caixa da plataforma','/admin/financeiro/caixa','circle-dollar-sign'],
           ['Saques','/admin/financeiro','wallet'],
           ['Pagamentos Asaas','/admin/asaas','wallet'],
           ['Bônus mensal','/admin/bonus-mensal','trophy'],
@@ -217,6 +219,7 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==="/suporte" || str_starts_with($path,"/suporte/") || str_starts_with($path,"/admin/chamados") || $path==="/admin/notificacoes"): ?><link rel="stylesheet" href="/assets/support.css?v=1"><?php endif; ?>
 <link rel="stylesheet" href="/assets/paint-mask-surfaces.css?v=1">
 <link rel="stylesheet" href="/assets/stable-scroll-layout.css?v=1">
+<link rel="stylesheet" href="/assets/form-system.css?v=1">
 <style>:root{--accent:<?=$primary?>}</style>
 <?php if($u): ?><script>document.documentElement.classList.add('lc-privacy-ready');</script><?php endif; ?>
 <?php if($workspace): ?><meta name="lc-csrf" content="<?=lc_e(lc_token())?>"><?php endif;?>
@@ -326,7 +329,8 @@ function lc_page(string $title, callable $body, string $active = ''): void {
 <?php if($path==="/notificacoes" && $u): ?><script src="/assets/background-push.js?v=1" defer></script><?php endif; ?>
 <?php if($path==="/admin/notificacoes" && $u && $u['role']==='admin'): ?><script src="/assets/admin-notices.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/notification-preferences.js?v=1" defer></script><?php endif; ?>
-<script src="/assets/input-masks.js?v=1" defer></script>
+<script src="/assets/form-system.js?v=1" defer></script>
+<script src="/assets/input-masks.js?v=2" defer></script>
 <?php if($u && in_array($path,['/admin/seo','/admin/configuracoes','/admin/banners-clipador'],true)): ?><script src="/assets/personalization-preview.js?v=1" defer></script><?php endif; ?>
 <?php if($u): ?><script src="/assets/privacy-toggle.js?v=3" defer></script><?php endif; ?>
 <?php if($workspace): ?><script src="/assets/clipper-ux.js?v=1" defer></script><script src="/assets/admin-navigation.js?v=1" defer></script><?php endif; ?>
@@ -338,10 +342,11 @@ function lc_tile(array $c): void {
   <div class="campaign-cover">
     <?php if(lc_campaign_cover_valid($cover)):?><img src="<?=lc_e($cover)?>" alt="" loading="lazy" decoding="async"><?php else:?><div class="default-art"><span><?=lc_e(mb_strtoupper(mb_substr($c['title'],0,1)))?></span><i><?=lc_icon("play")?></i></div><?php endif;?>
     <div class="cover-overlay"></div><span class="cover-play"><?=lc_icon("play")?></span>
-    <span class="cover-tag"><?=!empty($c['is_demo'])?'DEMONSTRAÇÃO':lc_e($c['status']==='active'?'EM ALTA':'CAMPANHA')?></span>
+    <?php $tileMax=isset($c['max_clippers'])?(int)$c['max_clippers']:0;$tileFull=$tileMax>0&&isset($c['participants'])&&(int)$c['participants']>=$tileMax; ?>
+    <span class="cover-tag <?=$tileFull?'is-full':''?>"><?=!empty($c['is_demo'])?'DEMONSTRAÇÃO':($tileFull?'VAGAS ESGOTADAS':lc_e($c['status']==='active'?'EM ALTA':'CAMPANHA'))?></span>
   </div>
   <div class="campaign-info"><strong><?=lc_e($c['title'])?></strong>
-  <span><?=!empty($c['is_demo'])?'Valor ilustrativo: ':''?><?=lc_money((int)$c['payment_per_video_cents'])?> / vídeo</span>
+  <span><?=!empty($c['is_demo'])?'Valor ilustrativo: ':''?><?=lc_money((int)$c['payment_per_video_cents'])?> / vídeo<?php if($tileMax>0&&!$tileFull&&isset($c['participants'])):?> · <?=max(0,$tileMax-(int)$c['participants'])?> vagas<?php endif;?></span>
   <div class="card-meta"><span><?=lc_e($c['category'])?></span><span>Ver campanha <?=lc_icon("arrow-right")?></span></div></div>
 </a><?php
 }
@@ -367,67 +372,150 @@ function lc_heading(string $eyebrow, string $title, string $description=''): voi
 ?><div class="page-heading"><span class="eyebrow"><?=lc_e($eyebrow)?></span><h1><?=lc_e($title)?></h1><?php if($description):?><p><?=lc_e($description)?></p><?php endif;?></div><?php
 }
 
+/**
+ * Reusable form field (label, optional prefix, help text and server error).
+ * Options: type, value, required, placeholder, attrs (raw, trusted), help, error, prefix, full, id.
+ */
+function lc_form_field(string $label, string $name, array $o = []): void {
+    static $used = [];
+    $id = $o['id'] ?? 'f-' . preg_replace('/[^a-z0-9_-]/i', '-', $name) . '-' . substr(md5($label . $name), 0, 5);
+    // Login and signup dialogs live on the same page: ids must stay unique.
+    $base = $id; $n = 2;
+    while (isset($used[$id])) $id = $base . '-' . $n++;
+    $used[$id] = true;
+    $error = (string)($o['error'] ?? '');
+    $help = (string)($o['help'] ?? '');
+    $describe = trim(($help !== '' ? $id . '-help ' : '') . $id . '-msg');
+    $required = !empty($o['required']);
+?><div class="field lc-ff<?=!empty($o['full'])?' full':''?><?=$error!==''?' is-invalid':''?>" data-ff>
+  <label for="<?=lc_e($id)?>"><?=lc_e($label)?><?php if(!$required && empty($o['hide_optional'])):?> <em class="lc-ff-optional">opcional</em><?php endif;?></label>
+  <div class="lc-ff-control<?=!empty($o['prefix'])?' has-prefix':''?>">
+    <?php if(!empty($o['prefix'])):?><span class="lc-ff-prefix" aria-hidden="true"><?=lc_e($o['prefix'])?></span><?php endif;?>
+    <input id="<?=lc_e($id)?>" name="<?=lc_e($name)?>" type="<?=lc_e($o['type'] ?? 'text')?>" value="<?=lc_e($o['value'] ?? '')?>" placeholder="<?=lc_e($o['placeholder'] ?? '')?>" aria-describedby="<?=lc_e($describe)?>" <?=$required?'required':''?> <?=$error!==''?'aria-invalid="true"':''?> <?=$o['attrs'] ?? ''?>>
+  </div>
+  <?php if($help!==''):?><small class="lc-ff-help" id="<?=lc_e($id)?>-help"><?=lc_e($help)?></small><?php endif;?>
+  <small class="lc-ff-msg" id="<?=lc_e($id)?>-msg" role="status" aria-live="polite"><?=lc_e($error)?></small>
+</div><?php
+}
+/** Pix key: type selector + input whose mask follows the chosen type. */
+function lc_form_pix_field(string $label, string $typeName, string $keyName, array $o = []): void {
+    $selected = strtoupper((string)($o['type'] ?? ''));
+    $error = (string)($o['error'] ?? '');
+    $required = !empty($o['required']);
+?><div class="field lc-ff lc-pix-field<?=!empty($o['full'])?' full':''?><?=$error!==''?' is-invalid':''?>" data-ff data-pix-group>
+  <label for="f-<?=lc_e($keyName)?>"><?=lc_e($label)?></label>
+  <div class="lc-pix-row">
+    <select name="<?=lc_e($typeName)?>" data-pix-type aria-label="Tipo da chave Pix" <?=$required?'required':''?>>
+      <option value="">Tipo…</option>
+      <?php foreach(LC_PIX_KEY_TYPES as $value=>$text):?><option value="<?=$value?>" <?=$selected===$value?'selected':''?>><?=lc_e($text)?></option><?php endforeach;?>
+    </select>
+    <input id="f-<?=lc_e($keyName)?>" name="<?=lc_e($keyName)?>" type="text" maxlength="77" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="<?=lc_e($o['placeholder'] ?? 'Escolha o tipo da chave')?>" aria-describedby="f-<?=lc_e($keyName)?>-help f-<?=lc_e($keyName)?>-msg" data-pix-input <?=$required?'required':''?> <?=$error!==''?'aria-invalid="true"':''?>>
+  </div>
+  <small class="lc-ff-help" id="f-<?=lc_e($keyName)?>-help"><?=lc_e($o['help'] ?? 'Armazenada com criptografia. CPF e CNPJ são conferidos pelo dígito verificador.')?></small>
+  <small class="lc-ff-msg" id="f-<?=lc_e($keyName)?>-msg" role="status" aria-live="polite"><?=lc_e($error)?></small>
+</div><?php
+}
+
 /** Shared, progressively enhanced auth dialogs. Direct URLs remain functional without JS. */
 function lc_auth_dialogs(string $path,?array $flash): void {
+    // Signup values/errors survive one redirect so nothing typed is lost (never password or Pix key).
+    $old = $_SESSION['lc_signup_old'] ?? [];
+    $errors = $_SESSION['lc_signup_errors'] ?? [];
+    if ($path === '/cadastrar') unset($_SESSION['lc_signup_old'], $_SESSION['lc_signup_errors']);
+    $v = static fn(string $k): string => (string)($old[$k] ?? '');
+    $err = static fn(string $k): string => (string)($errors[$k] ?? '');
     foreach(['entrar'=>'login','cadastrar'=>'signup'] as $route=>$kind):
         $direct=$path==='/'.$route;
         $isSignup=$kind==='signup';
 ?>
-<dialog id="lc-auth-<?=$kind?>" class="lc-auth-dialog" aria-labelledby="lc-auth-title-<?=$kind?>" <?=$direct?'open':''?>>
+<dialog id="lc-auth-<?=$kind?>" class="lc-auth-dialog lc-auth-v3" aria-labelledby="lc-auth-title-<?=$kind?>" <?=$direct?'open':''?>>
   <div class="lc-auth-dialog-inner">
     <button class="lc-auth-close" type="button" aria-label="Fechar janela" data-auth-close>×</button>
-    <?php if(!$isSignup): ?><span class="eyebrow">Bem-vindo de volta</span><?php endif; ?>
+    <span class="eyebrow"><?=$isSignup?'Nova conta de clipador':'Bem-vindo de volta'?></span>
     <h2 id="lc-auth-title-<?=$kind?>"><?=$isSignup?'Junte-se aos criadores.':'Entre na sua arena.'?></h2>
     <p class="lc-auth-desc"><?=$isSignup?'Crie sua conta para participar de campanhas. Seu cadastro será analisado pela equipe.':'Acompanhe seus clipes, campanhas e recompensas em um só lugar.'?></p>
     <?php if($direct && $flash):?><p class="lc-auth-message <?=$flash['type']==='error'?'is-error':''?>" role="alert"><?=lc_e($flash['message'])?></p><?php endif;?>
     <?php if(!$isSignup):?><p class="lc-auth-message is-error" data-auth-error role="alert" hidden></p><?php endif;?>
-    <form method="post" action="/<?=$route?>" class="lc-auth-form" <?=$isSignup?'':'data-auth-async="login"'?>><?=lc_csrf()?>
-      <div class="form-grid">
+    <form method="post" action="/<?=$route?>" class="lc-auth-form" <?=$isSignup?'data-validate novalidate':'data-auth-async="login"'?>><?=lc_csrf()?>
       <?php if($isSignup):?>
-        <?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
-        <label class="field lc-signup-nickname"><span class="lc-nickname-label"><span>Nickname <span class="lc-required-mark" aria-hidden="true">*</span></span><small class="lc-nickname-hint">3 a 24 caracteres: letras, números e _.</small></span>
-          <input name="nickname" type="text" id="lc-signup-nickname" required minlength="3" maxlength="24"
+      <fieldset class="lc-form-section">
+        <legend><span>01</span> Acesso</legend>
+        <div class="form-grid">
+        <?php lc_form_field('Nome completo','full_name',['required'=>true,'value'=>$v('full_name'),'placeholder'=>'Nome e sobrenome','error'=>$err('full_name'),'attrs'=>'autocomplete="name" minlength="3" maxlength="160" autocapitalize="words" data-rule="fullname"']); ?>
+        <div class="field lc-ff lc-signup-nickname<?=$err('nickname')!==''?' is-invalid':''?>" data-ff>
+          <label for="lc-signup-nickname">Nickname</label>
+          <div class="lc-ff-control has-prefix"><span class="lc-ff-prefix" aria-hidden="true">@</span>
+          <input name="nickname" type="text" id="lc-signup-nickname" required minlength="3" maxlength="24" value="<?=lc_e($v('nickname'))?>"
                  pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" autocomplete="nickname" autocapitalize="none"
-                 spellcheck="false" placeholder="seunick" aria-describedby="lc-nickname-feedback"
-                 data-nickname-check>
-          <small class="lc-nickname-feedback" id="lc-nickname-feedback" data-nickname-feedback role="status" aria-live="polite"></small>
-        </label>
-        <?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?>
-        <?php lc_field('Senha (mínimo 10 caracteres)','password','password','',true,'Crie uma senha forte','minlength="10" autocomplete="new-password"'); ?>
-        <?php lc_field('Instagram (seu @)','instagram','text','',true,'@seuperfil'); ?>
-        <?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'(85) 99999-9999','autocomplete="tel" inputmode="tel"'); ?>
-        <?php lc_field('Portfólio (HTTPS, opcional)','portfolio_url','url','',false,'https://...'); ?>
-        <?php lc_field('Chave Pix','pix_key','text','',true,'CPF, e-mail, telefone ou chave aleatória'); ?>
-        <label class="field full lc-auth-consent"><span><input type="checkbox" name="consent_whatsapp" value="1"> Quero receber mensagens operacionais opcionais pelo WhatsApp. Posso pedir a revogação em <a href="/privacidade/solicitacoes">Meus direitos LGPD</a> ou pelo contato da Política de Privacidade.</span></label>
-        <p class="form-note full">Ao enviar seu cadastro, seus dados serão utilizados para criar e analisar a conta e executar os serviços solicitados, conforme os <a href="/termos-de-uso">Termos de Uso</a> e a <a href="/politica-de-privacidade">Política de Privacidade</a>. Esta informação não é um consentimento para publicidade.</p>
+                 spellcheck="false" placeholder="seunick" aria-describedby="lc-nickname-hint lc-nickname-feedback"
+                 data-nickname-check <?=$err('nickname')!==''?'aria-invalid="true"':''?>></div>
+          <small class="lc-ff-help lc-nickname-hint" id="lc-nickname-hint">3 a 24 caracteres: letras, números e _. Aparece no ranking.</small>
+          <small class="lc-ff-msg lc-nickname-feedback" id="lc-nickname-feedback" data-nickname-feedback role="status" aria-live="polite"><?=lc_e($err('nickname'))?></small>
+        </div>
+        <?php lc_form_field('E-mail','email',['type'=>'email','required'=>true,'value'=>$v('email'),'placeholder'=>'voce@exemplo.com','error'=>$err('email'),'attrs'=>'autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="190" inputmode="email"']); ?>
+        <?php lc_form_field('Senha','password',['type'=>'password','required'=>true,'placeholder'=>'Mínimo de 10 caracteres','error'=>$err('password'),'attrs'=>'minlength="10" maxlength="128" autocomplete="new-password" data-strength']); ?>
+        </div>
+      </fieldset>
+      <fieldset class="lc-form-section">
+        <legend><span>02</span> Contato e redes</legend>
+        <div class="form-grid">
+        <?php lc_form_field('Instagram','instagram',['required'=>true,'prefix'=>'@','value'=>$v('instagram'),'placeholder'=>'seuperfil','error'=>$err('instagram'),'attrs'=>'autocapitalize="none" spellcheck="false" maxlength="80" data-rule="instagram"']); ?>
+        <?php lc_form_field('WhatsApp com DDD','whatsapp',['type'=>'tel','required'=>true,'prefix'=>'+55','value'=>$v('whatsapp'),'placeholder'=>'(85) 99999-9999','error'=>$err('whatsapp'),'attrs'=>'autocomplete="tel-national" inputmode="tel" maxlength="16" data-lc-mask="phone"']); ?>
+        <?php lc_form_field('Portfólio','portfolio_url',['type'=>'url','full'=>true,'value'=>$v('portfolio_url'),'placeholder'=>'seusite.com ou link do Drive','help'=>'Se não tiver, deixe em branco. Completamos o https:// para você.','error'=>$err('portfolio_url'),'attrs'=>'autocapitalize="none" spellcheck="false" maxlength="500" inputmode="url" data-rule="https"']); ?>
+        </div>
+      </fieldset>
+      <fieldset class="lc-form-section">
+        <legend><span>03</span> Recebimento</legend>
+        <div class="form-grid">
+        <?php lc_form_pix_field('Chave Pix para receber','pix_key_type','pix_key',['required'=>true,'full'=>true,'type'=>$v('pix_key_type'),'error'=>$err('pix_key')]); ?>
+        </div>
+      </fieldset>
+      <label class="lc-check-card full">
+        <input type="checkbox" name="consent_whatsapp" value="1" <?=!empty($old['consent_whatsapp'])?'checked':''?>>
+        <span class="lc-check-box" aria-hidden="true"></span>
+        <span class="lc-check-text"><strong>Avisos opcionais pelo WhatsApp</strong>Quero receber mensagens operacionais sobre meu cadastro e campanhas. Posso revogar em <a href="/privacidade/solicitacoes">Meus direitos LGPD</a>.</span>
+      </label>
+      <p class="form-note">Ao enviar, seus dados serão usados para criar e analisar a conta, conforme os <a href="/termos-de-uso">Termos de Uso</a> e a <a href="/politica-de-privacidade">Política de Privacidade</a>. Isso não é consentimento para publicidade.</p>
+      <div class="form-actions">
+        <button class="btn" type="submit" data-loading-text="Enviando cadastro…">Enviar cadastro <?=lc_icon('arrow-right')?></button>
+        <a href="/entrar" data-auth-link>Já tenho conta</a>
+      </div>
+      <p class="form-note lc-auth-foot"><?=lc_icon('shield-check')?> Cadastro sujeito à aprovação. A chave Pix é armazenada criptografada.</p>
       <?php else:?>
-        <div class="full"><?php lc_field('E-mail ou nickname','email','text','',true,'seunick ou voce@exemplo.com','autocomplete="username"'); ?></div>
-        <div class="full"><?php lc_field('Senha','password','password','',true,'Sua senha','autocomplete="current-password"'); ?></div>
-        <label class="field full lc-login-remember"><span><input type="checkbox" name="remember_me" value="1"> Manter logado neste dispositivo por até 30 dias</span></label>
-        <div class="full lc-login-recovery"><a href="/recuperar-senha">Esqueci minha senha</a></div>
-      <?php endif;?>
+      <div class="form-grid">
+        <?php lc_form_field('E-mail ou nickname','email',['required'=>true,'full'=>true,'hide_optional'=>true,'placeholder'=>'seunick ou voce@exemplo.com','attrs'=>'autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="190"']); ?>
+        <?php lc_form_field('Senha','password',['type'=>'password','required'=>true,'full'=>true,'placeholder'=>'Sua senha','attrs'=>'autocomplete="current-password" maxlength="200"']); ?>
+      </div>
+      <div class="lc-login-row">
+        <label class="lc-check-inline"><input type="checkbox" name="remember_me" value="1"> <span>Manter conectado por 30 dias</span></label>
+        <a href="/recuperar-senha" class="lc-login-forgot">Esqueci minha senha</a>
       </div>
       <div class="form-actions">
-        <button class="btn" type="submit"><?=$isSignup?'Enviar cadastro':'Entrar'?> <?=lc_icon('arrow-right')?></button>
-        <a href="<?=$isSignup?'/entrar':'/cadastrar'?>" data-auth-link><?=$isSignup?'Já tenho conta':'Criar conta'?></a>
+        <button class="btn" type="submit" data-loading-text="Entrando…">Entrar <?=lc_icon('arrow-right')?></button>
+        <a href="/cadastrar" data-auth-link>Criar conta</a>
       </div>
-      <?php if($isSignup):?><p class="form-note">Cadastro sujeito à aprovação. A chave Pix é armazenada criptografada.</p><?php endif;?>
+      <?php endif;?>
     </form>
   </div>
 </dialog>
 <?php endforeach; ?>
-<dialog id="lc-auth-mfa" class="lc-auth-dialog lc-auth-mfa-dialog" aria-labelledby="lc-auth-mfa-title" aria-modal="true" <?=$path==='/seguranca/verificar'?'open':''?>>
+<dialog id="lc-auth-mfa" class="lc-auth-dialog lc-auth-mfa-dialog lc-auth-v3" aria-labelledby="lc-auth-mfa-title" aria-modal="true" <?=$path==='/seguranca/verificar'?'open':''?>>
   <div class="lc-auth-dialog-inner">
     <button class="lc-auth-close" type="button" aria-label="Fechar verificação" data-auth-close>×</button>
-    <span class="eyebrow">SEGURANÇA DA CONTA</span>
+    <span class="eyebrow">Segurança da conta</span>
     <div class="lc-auth-mfa-symbol"><?=lc_icon('shield-check')?></div>
     <h2 id="lc-auth-mfa-title">Confirme seu acesso</h2>
-    <p class="lc-auth-desc">Digite o código de 6 dígitos do seu autenticador ou um código de recuperação.</p>
+    <p class="lc-auth-desc" data-otp-desc>Digite o código de 6 dígitos do seu aplicativo autenticador.</p>
     <p class="lc-auth-message is-error" data-auth-error role="alert" hidden></p>
     <form method="post" action="/seguranca/verificar" class="lc-auth-form" data-auth-async="mfa"><?=lc_csrf()?>
-      <label class="field full"><span>Código de verificação</span><input type="text" name="mfa_code" inputmode="text" autocomplete="one-time-code" maxlength="60" required placeholder="000000 ou código de recuperação"></label>
+      <div class="lc-otp" data-otp>
+        <label class="lc-otp-label" for="lc-mfa-code" data-otp-label>Código de verificação</label>
+        <input id="lc-mfa-code" type="text" name="mfa_code" inputmode="numeric" autocomplete="one-time-code" maxlength="60" required placeholder="000000" data-otp-input>
+        <div class="lc-otp-cells" aria-hidden="true" data-otp-cells><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      </div>
+      <button type="button" class="lc-link-btn" data-otp-recovery aria-pressed="false">Usar um código de recuperação</button>
       <div class="form-actions">
-        <button class="btn" type="submit">Verificar e entrar <?=lc_icon('arrow-right')?></button>
+        <button class="btn" type="submit" data-loading-text="Verificando…">Verificar e entrar <?=lc_icon('arrow-right')?></button>
         <button type="button" class="lc-auth-mfa-back" data-auth-back>Voltar ao login</button>
       </div>
       <p class="form-note">O código muda a cada 30 segundos. Após 6 tentativas incorretas, aguarde 15 minutos.</p>

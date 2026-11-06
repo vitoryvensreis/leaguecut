@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/input-validation.php';
 
 function lc_public_routes(string $method,string $path): bool {
 
@@ -134,7 +135,9 @@ function lc_public_routes(string $method,string $path): bool {
         $args=[];
         if($term!==''){$where[]='(title LIKE ? OR description LIKE ?)';$args[]='%'.$term.'%';$args[]='%'.$term.'%';}
         if($category!==''){$where[]='category=?';$args[]=$category;}
-        $campaigns=lc_all('SELECT title,slug,category,cover_url,status,payment_per_video_cents FROM campaigns WHERE '.implode(' AND ',$where).' ORDER BY created_at DESC LIMIT 80',$args);
+        $campaigns=lc_all('SELECT title,slug,category,cover_url,status,payment_per_video_cents,max_clippers,
+            (SELECT COUNT(DISTINCT cl.user_id) FROM clips cl WHERE cl.campaign_id=campaigns.id) AS participants
+            FROM campaigns WHERE '.implode(' AND ',$where).' ORDER BY created_at DESC LIMIT 80',$args);
         $campaigns=lc_demo_merge_campaigns($campaigns,$term,$category);
         lc_page('Explorar campanhas',function()use($campaigns,$categories,$category,$term){ ?>
 <div class="explore-page">
@@ -164,13 +167,31 @@ function lc_public_routes(string $method,string $path): bool {
 <?php });return true;
     }
     if ($method==='POST' && $path==='/cadastrar') {
-        $name=lc_post('full_name',160);$email=mb_strtolower(lc_post('email',190));$password=(string)($_POST['password'] ?? '');
-        $instagram=ltrim(lc_post('instagram',80),'@');$whatsapp=preg_replace('/\D/','',lc_post('whatsapp',24));
-        $portfolio=lc_post('portfolio_url',500);$pix=lc_post('pix_key',150);
+        $name=trim((string)preg_replace('/\s+/u',' ',lc_post('full_name',160)));$password=(string)($_POST['password'] ?? '');
+        $emailRaw=lc_post('email',190);$instagramRaw=lc_post('instagram',80);$whatsappRaw=lc_post('whatsapp',24);
+        $portfolioRaw=lc_post('portfolio_url',500);$pix=lc_post('pix_key',150);$pixType=lc_post('pix_key_type',10);
         $candidate=trim((string)($_POST['nickname']??''));
-        if(mb_strlen($name)<3||!filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($password)<10||strlen($password)>128||!preg_match('/^[a-zA-Z0-9._]{2,80}$/',$instagram)||strlen($whatsapp)<10||strlen($whatsapp)>13||strlen($pix)<4||($portfolio!==''&&!lc_valid_https($portfolio))){
-            lc_flash('Confira seus dados: nome, e-mail, senha, Instagram, WhatsApp, portfólio e Pix.','error');lc_redirect('/cadastrar');
+        // Field-level errors: the dialog reopens with the typed data (never password or Pix) and a message under each field.
+        $errors=[];
+        if(mb_strlen($name)<3||!str_contains($name,' '))$errors['full_name']='Informe nome e sobrenome.';
+        $email=lc_email_normalize($emailRaw);if($email===null)$errors['email']='E-mail inválido. Confira o endereço.';
+        if(strlen($password)<10)$errors['password']='A senha precisa ter pelo menos 10 caracteres.';
+        elseif(strlen($password)>128)$errors['password']='A senha pode ter no máximo 128 caracteres.';
+        $instagram=lc_instagram_normalize($instagramRaw);if($instagram===null)$errors['instagram']='Use somente o @ do perfil: letras, números, ponto e _.';
+        $whatsapp=lc_phone_br_normalize($whatsappRaw);if($whatsapp===null)$errors['whatsapp']='WhatsApp inválido. Use DDD + número, ex.: (85) 99999-9999.';
+        $portfolio='';
+        if($portfolioRaw!==''){$portfolio=lc_https_normalize($portfolioRaw)??'';if($portfolio==='')$errors['portfolio_url']='Link inválido. Use um endereço https://';}
+        $pixStored='';
+        try{$parsedPix=lc_pix_key_from_form($pix,$pixType);$pixStored=lc_pix_key_format($parsedPix['type'],$parsedPix['key']);}
+        catch(InvalidArgumentException $e){$errors['pix_key']=$e->getMessage();}
+        if($candidate==='')$errors['nickname']='Escolha um nickname público.';
+        if($errors){
+            $_SESSION['lc_signup_old']=['full_name'=>$name,'nickname'=>$candidate,'email'=>$emailRaw,'instagram'=>$instagram??$instagramRaw,
+               'whatsapp'=>$whatsappRaw,'portfolio_url'=>$portfolioRaw,'pix_key_type'=>$pixType,'consent_whatsapp'=>lc_bool('consent_whatsapp')];
+            $_SESSION['lc_signup_errors']=$errors;
+            lc_flash('Revise os campos destacados para concluir o cadastro.','error');lc_redirect('/cadastrar');
         }
+        $pix=$pixStored;
         if(lc_one('SELECT id FROM users WHERE email=?',[$email])){lc_flash('Este e-mail já possui cadastro. Faça login.','error');lc_redirect('/entrar');}
         try {
             if($candidate==='')throw new InvalidArgumentException('Informe um nickname público para continuar.');
@@ -187,7 +208,11 @@ function lc_public_routes(string $method,string $path): bool {
             unset($_SESSION['referral_code']);
         }catch(InvalidArgumentException|PDOException $e){
             if(lc_db()->inTransaction())lc_db()->rollBack();
-            lc_flash($e instanceof InvalidArgumentException?$e->getMessage():'E-mail ou nickname já está em uso.','error');
+            $_SESSION['lc_signup_old']=['full_name'=>$name,'nickname'=>$candidate,'email'=>$emailRaw,'instagram'=>$instagram??$instagramRaw,
+               'whatsapp'=>$whatsappRaw,'portfolio_url'=>$portfolioRaw,'pix_key_type'=>$pixType,'consent_whatsapp'=>lc_bool('consent_whatsapp')];
+            $message=$e instanceof InvalidArgumentException?$e->getMessage():'E-mail ou nickname já está em uso.';
+            $_SESSION['lc_signup_errors']=['nickname'=>$message];
+            lc_flash($message,'error');
             lc_redirect('/cadastrar');
         }
         session_regenerate_id(true);$_SESSION['uid']=$newId;
@@ -229,6 +254,7 @@ function lc_public_routes(string $method,string $path): bool {
         unset($_SESSION['remember_after_mfa']);
         $role=lc_one('SELECT role FROM users WHERE id=?',[$id])['role']??'clipador';
         $destination=$role==='criador'?'/criador':($role==='admin'?'/admin':'/dashboard');
+        if(function_exists('lc_after_login_destination'))$destination=lc_after_login_destination((string)$role,$destination);
         if(lc_auth_async_request())lc_auth_json(true,'redirect','',$destination);
         lc_redirect($destination);
     }
@@ -253,7 +279,9 @@ function lc_public_routes(string $method,string $path): bool {
         if(!$c) $c=lc_one('SELECT * FROM campaigns WHERE slug=?',[$m[1]]);
         if(!$c){http_response_code(404);lc_page('Não encontrada',fn()=>lc_empty('Campanha não encontrada','Confira o endereço.'));return true;}
         $networks=$u&&$u['role']==='clipador'&&$u['status']==='approved'?lc_all('SELECT * FROM social_accounts WHERE user_id=? ORDER BY created_at DESC',[$u['id']]):[];
-        lc_page($c['title'],function()use($c,$u,$networks){?>
+        $limits=lc_campaign_limits_summary($c,$u&&$u['role']==='clipador'?(int)$u['id']:null);
+        $limitBlock=$u&&$u['role']==='clipador'&&$u['status']==='approved'?lc_campaign_submission_block($c,(int)$u['id']):null;
+        lc_page($c['title'],function()use($c,$u,$networks,$limits,$limitBlock){?>
 <div class="container lc-campaign-detail">
 <div class="lc-campaign-detail-hero">
 <?php if(lc_campaign_cover_valid((string)$c['cover_url'])):?><img src="<?=lc_e($c['cover_url'])?>" alt="" class="lc-campaign-detail-cover" loading="eager"><?php endif;?>
@@ -269,14 +297,16 @@ function lc_public_routes(string $method,string $path): bool {
 <div class="metric"><small>Por vídeo aprovado*</small><strong><?=lc_money($c['payment_per_video_cents'])?></strong></div>
 <div class="metric"><small>Meta de vídeos/semana</small><strong><?=lc_e($c['min_videos_week'])?></strong></div>
 <div class="metric"><small>Bônus por <?=number_format($c['milestone_views'],0,',','.')?> views</small><strong><?=lc_money($c['milestone_bonus_cents'])?></strong></div>
-<div class="metric"><small>Líder de views no mês</small><strong><?=lc_money($c['monthly_leader_bonus_cents'])?></strong></div></div>
+<div class="metric"><small>Líder de views no mês</small><strong><?=lc_money($c['monthly_leader_bonus_cents'])?></strong></div>
+<div class="metric lc-limit-metric <?=$limits['full']?'is-full':''?>"><small>Vagas de clipadores</small><strong><?=$limits['max_clippers']===null?'Ilimitadas':($limits['full']?'Esgotadas':(int)$limits['participants'].'/'.(int)$limits['max_clippers'])?></strong><?php if($limits['max_clippers']!==null&&!$limits['full']):?><span class="lc-limit-meter" aria-hidden="true"><i style="width:<?=min(100,(int)round($limits['participants']*100/max(1,$limits['max_clippers'])))?>%"></i></span><?php endif;?></div>
+<div class="metric"><small>Aprovados por semana (por clipador)</small><strong><?=$limits['weekly']===null?'Sem limite':(int)$limits['weekly']?></strong><?php if($limits['approved_week']!==null):?><span class="lc-limit-note">Você: <?=(int)$limits['approved_week']?>/<?=(int)$limits['weekly']?> nesta semana</span><?php endif;?></div></div>
 <?php lc_campaign_leaderboard((int)$c['id'],$u); ?>
 <div class="panel"><h2>Regras da campanha</h2><p>Os vídeos precisam ser publicados na rede cadastrada, enviados com o link e aprovados pelo administrador. *O valor por vídeo só é liberado quando você atinge a quantidade mínima de vídeos aprovados na semana. Visualizações exigem conferência; o bônus mensal depende do fechamento do mês.</p></div>
 <?php if(!$u): ?><a class="btn" href="/cadastrar">Quero participar →</a>
 <?php elseif($u['role']==='clipador'&&$u['status']!=='approved'): ?><div class="alert">Seu perfil aguarda aprovação antes de enviar clipes.</div>
 <?php elseif($u['role']==='clipador'):?>
 <div class="panel"><h2>Enviar publicação</h2>
-<?php if(!$networks):?><div class="alert">Cadastre primeiro seu perfil do Instagram ou TikTok em <a href="/redes">Minhas redes →</a>.</div><?php else:?>
+<?php if($limitBlock!==null):?><div class="alert lc-limit-alert" role="status"><?=lc_e($limitBlock)?></div><?php elseif(!$networks):?><div class="alert">Cadastre primeiro seu perfil do Instagram ou TikTok em <a href="/redes">Minhas redes →</a>.</div><?php else:?>
 <form id="lc-clip-form" method="post" action="/clipes" enctype="multipart/form-data"><?=lc_csrf()?><input type="hidden" name="campaign_id" value="<?=(int)$c['id']?>">
 <div class="form-grid">
 <label class="field"><span>Rede usada</span><select name="social_account_id" required><?php foreach($networks as $n):?><option value="<?=(int)$n['id']?>"><?=lc_e(ucfirst($n['network']).' · @'.$n['username'])?></option><?php endforeach;?></select></label>

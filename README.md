@@ -411,3 +411,36 @@ NUNCA versionar `.env`, credenciais OAuth, tokens, vídeos de usuários ou dados
 - A página `/admin/seo` já permite personalizar título, descrição e imagem, via upload ou URL HTTPS; a prévia foi corrigida para sempre mostrar a imagem efetiva.
 - Script idempotente `bin/activate-social-share.php` ativa a arte uma única vez, após deploy saudável, preserva a configuração anterior e não altera escolhas futuras do administrador.
 - WhatsApp pode manter cache por URL de compartilhamento; após deploy testar em conversa usando URL com parâmetro opcional `?share=20261016`.
+
+
+### B9 — Limites de campanha, formulários v3 e caixa da plataforma (06/11/2026)
+
+**Estado: implementado no código e testado localmente (lint PHP/JS, testes puros PHP e Node, prévia visual em desktop e celular). Os testes que exigem MySQL rodam no CI. Ainda não publicado.**
+
+**B9.1 — Limites por campanha** (`app/campaign-limits.php`, migração `20261106_campaign_limits.sql`)
+- `campaigns.max_clippers` (NULL = ilimitado): vagas de clipadores. Participa quem enviou ao menos um clipe, **aprovado, pendente ou reprovado**. Quem já participa continua enviando; novos clipadores são bloqueados quando lota.
+- `campaigns.max_approved_per_week` (NULL = ilimitado): clipes aprovados por clipador por semana (segunda a domingo, pela data de envio — mesma janela de `lc_settle_week`). Bloqueia a aprovação acima do limite e novos envios de quem já atingiu.
+- Checagem antes do upload (resposta rápida) e de novo sob `SELECT … FOR UPDATE` da campanha antes de salvar; se lotar durante o upload, o original enviado ao Drive é removido.
+- ADM: campos com opção “Ilimitado”. Página da campanha: vagas `37/50` com barra, “Esgotadas”, contador semanal do clipador. Catálogo: selo “VAGAS ESGOTADAS”.
+
+**B9.2 — Formulários v3** (`public/assets/form-system.{css,js}`, `app/input-validation.php`)
+- Validação central no backend: CPF/CNPJ por dígito verificador, celular/telefone com DDD válido e 9º dígito, e-mail, Instagram (aceita link do perfil), URL https (completa o `https://`), chave Pix por tipo no formato do Asaas (CPF/CNPJ só dígitos, celular 11 dígitos, e-mail minúsculo, EVP).
+- Cadastro em 3 seções, prefixos `@`/`+55`, erros por campo vindos do servidor sem perder o que foi digitado (nunca senha nem Pix), tipo da chave Pix com máscara automática, mostrar/ocultar senha, medidor de força, aviso de Caps Lock, sugestão de e-mail digitado errado, estado de carregamento nos botões.
+- Login com “Esqueci minha senha” ao lado de “Manter conectado”. 2FA com 6 caixas, envio automático ao completar e opção “usar código de recuperação”.
+- Também aplicado em `/conta`, edição de contas no ADM, cadastro de criador, CPF/CNPJ da cobrança Asaas e `/redes` (aceita link do perfil). Teclados móveis e autocorreção ajustados em todos os campos de código, e-mail e usuário.
+- Chaves Pix novas de usuários são guardadas formatadas (`529.982.247-25`, `(85) 99216-2766`), deixando o tipo visível ao pagar manualmente. Chaves antigas não são alteradas.
+
+**B9.3 — Caixa da plataforma** (`/admin/financeiro/caixa`, `app/platform-finance*.php`, migração `20261106_platform_finance.sql`)
+- Entradas = ciclos de assinatura de criadores confirmados. Saídas = saques pagos de clipadores + saques da plataforma. Comprometido = créditos de usuários ainda não pagos + saques da plataforma em andamento. **Disponível = entradas − saídas − comprometido.** O saldo Asaas (compartilhado com outros produtos) nunca é usado como saldo da LeagueCut; só é consultado como “há fundos suficientes” antes do Pix.
+- Saque: ADM com permissão financeira informa valor, tipo e chave Pix + senha/2FA → valor reservado → WhatsApp para `FINANCE_APPROVER_WHATSAPP` (padrão 5585921627669) com link de uso único (15 min, HMAC, links anteriores invalidados ao reenviar). O link só funciona logado na **conta master** (`lc_is_master`) com senha + 2FA; abrir o link não autoriza nada (prévia do WhatsApp é inofensiva). Outro ADM que abrir o link é bloqueado e registrado.
+- Após autorizar, o Asaas recebe `POST /transfers` (Pix por chave, `externalReference` única). A intenção é gravada antes da chamada; timeout/5xx vira “Conferir no Asaas” e **nunca** é reenviado automaticamente. Webhooks `TRANSFER_*` disparam releitura via `GET /transfers/{id}` antes de mudar o status.
+- Log permanente em `platform_finance_events` (pedido, link gerado/enviado/falha, autorização, recusa, cancelamento, expiração, envio, retorno do Asaas), sem chave Pix completa, token ou senha. Pedidos sem autorização expiram em 24 h.
+
+**Para ativar em produção (manual, na VPS):**
+1. Conectar o WhatsApp em `/admin/whatsapp` e ativar o envio (sem isso o link não é enviado; o pedido fica pendente com “Reenviar link”).
+2. Conta master com 2FA ativo (recomendado antes do primeiro saque).
+3. No `/home/leaguecut/shared/.env`: `ASAAS_ENV=production`, `ASAAS_PRODUCTION_API_KEY`, `ASAAS_ENABLED=1` e só então `ASAAS_PLATFORM_PAYOUTS_ENABLED=1`. Opcional: `FINANCE_APPROVER_WHATSAPP`.
+4. No Asaas: cadastrar o IP da VPS na whitelist (contas com autorização crítica recusam transferências via API com `invalid_action`) e incluir os eventos `TRANSFER_*` no webhook existente.
+5. Primeiro saque real com valor pequeno (ex.: R$ 1,00), conferindo log, comprovante e extrato.
+
+**Fora do escopo:** o mecanismo Asaas de “validação de saque via webhook” não foi ativado, porque se aplica a todas as transferências da conta e afetaria os outros produtos que usam o mesmo Asaas. Saques de clipadores continuam manuais.

@@ -106,7 +106,7 @@ function lc_clipper_routes(string $method,string $path): bool {
 <div class="alert">Instagram: informe seu perfil normalmente, sem conectar à Meta. As visualizações públicas dos clipes elegíveis são consultadas pela Apify diariamente às <strong>02:00 (Fortaleza)</strong>, respeitando o orçamento configurado. O cadastro do @ não comprova titularidade.</div>
 <div class="panel"><h2>Adicionar perfil</h2><form method="post" action="/redes"><?=lc_csrf()?><div class="form-inline">
 <label class="field"><span>Rede</span><select name="network"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option></select></label>
-<?php lc_field('Usuário (sem @)','username','text','',true,'seuperfil'); ?>
+<?php lc_field('Usuário ou link do perfil','username','text','',true,'seuperfil','autocapitalize="none" spellcheck="false" maxlength="100"'); ?>
 <button class="btn" type="submit">Adicionar</button></div></form></div>
 <div class="panel"><h2>Perfis cadastrados</h2>
 <?php if(!$accounts):lc_empty('Nenhuma rede cadastrada','Cadastre uma conta para começar a enviar publicações.');
@@ -129,7 +129,10 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
     }
     if($method==='POST' && $path==='/redes'){
         $u=lc_login_required();
-        $network=lc_post('network',20);$username=ltrim(lc_post('username',100),'@');
+        $network=lc_post('network',20);$username=trim(lc_post('username',100));
+        // Accept a pasted profile link as well as the plain @ (common user mistake).
+        if(preg_match('~(?:instagram\.com/|tiktok\.com/@)([A-Za-z0-9._]{2,100})~i',$username,$profileMatch))$username=$profileMatch[1];
+        $username=ltrim($username,'@');
         if(!in_array($network,['tiktok','instagram'],true)||!preg_match('/^[a-zA-Z0-9._]{2,100}$/',$username)){
             lc_flash('Informe uma rede e um @ válido.','error');lc_redirect('/redes');
         }
@@ -156,6 +159,10 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         if(lc_one('SELECT id FROM clips WHERE user_id=? AND published_url=?',[$u['id'],$url])){
             lc_flash('Esse link já foi enviado.','error');lc_redirect('/biblioteca');
         }
+        // Capacity rules run before the upload so nobody waits for a file that cannot be accepted.
+        if($limitBlock=lc_campaign_submission_block($campaign,(int)$u['id'])){
+            lc_clip_submission_error($limitBlock,'/campanhas/'.$campaign['slug']);
+        }
         // A link alone must NEVER create a clip: original is mandatory.
         if(!isset($_FILES['video']) || ($_FILES['video']['error']??UPLOAD_ERR_NO_FILE)===UPLOAD_ERR_NO_FILE){
             lc_clip_submission_error('Anexe o vídeo original. O envio do arquivo é obrigatório.','/campanhas/'.$campaign['slug']);
@@ -171,6 +178,15 @@ else:?><div class="table-wrap"><table><thead><tr><th>Rede</th><th>Perfil</th><th
         }
         lc_db()->beginTransaction();
         try{
+            // Re-check under the campaign row lock: concurrent sends cannot exceed the limits.
+            $locked=lc_one("SELECT * FROM campaigns WHERE id=? AND status='active' FOR UPDATE",[$campaignId]);
+            $limitBlock=$locked?lc_campaign_submission_block($locked,(int)$u['id']):'Esta campanha não está mais ativa.';
+            if($limitBlock!==null){
+                lc_db()->rollBack();
+                try{lc_drive_delete_original((string)$fileId,(string)$filename);}
+                catch(Throwable $cleanup){error_log('LeagueCut capacity cleanup failed: drive_file='.$fileId);}
+                lc_clip_submission_error($limitBlock,'/campanhas/'.$campaign['slug']);
+            }
             lc_query("INSERT INTO clips(user_id,campaign_id,social_account_id,title,published_url,drive_file_id,original_filename)
                   VALUES(?,?,?,?,?,?,?)",[$u['id'],$campaignId,$accountId,$title,$url,$fileId,$filename]);
             $clipId=(int)lc_db()->lastInsertId();

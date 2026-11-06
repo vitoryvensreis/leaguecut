@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/input-validation.php';
 
 /**
  * Creator = buyer of monthly clips, distinct from clipador = producer who
@@ -167,25 +168,26 @@ function lc_creator_routes(string $method,string $path): bool {
 <div class="auth-layout"><div class="auth-box">
 <span class="eyebrow">Criador assinante</span><h1>Receba clipes da sua live.</h1>
 <p>Crie seu acesso para acompanhar pacotes mensais de cortes para baixar ou contratar produção com postagem. Os pagamentos ainda não estão habilitados.</p>
-<div class="panel"><form method="post" action="/cadastrar/criador"><?=lc_csrf()?>
+<div class="panel"><form method="post" action="/cadastrar/criador" class="lc-auth-v3" data-validate novalidate><?=lc_csrf()?>
 <div class="form-grid">
-<?php lc_field('Nome completo','full_name','text','',true,'Seu nome','autocomplete="name"'); ?>
-<?php lc_field('Nickname público','nickname','text','',false,'seunick','minlength="3" maxlength="24"'); ?>
-<?php lc_field('E-mail','email','email','',true,'voce@exemplo.com','autocomplete="email"'); ?>
-<?php lc_field('Senha (mínimo 10 caracteres)','password','password','',true,'Crie uma senha','minlength="10" autocomplete="new-password"'); ?>
-<?php lc_field('WhatsApp com DDD','whatsapp','tel','',true,'85999999999'); ?>
-<label class="field full"><span><input type="checkbox" name="consent_whatsapp" value="1" style="width:auto"> Quero receber comunicações operacionais sobre minhas entregas por WhatsApp.</span></label>
-</div><div class="form-actions"><button class="btn" type="submit">Criar conta <?=lc_icon('arrow-right')?></button><a href="/planos">Ver pacotes</a></div>
+<?php lc_form_field('Nome completo','full_name',['required'=>true,'placeholder'=>'Nome e sobrenome','attrs'=>'autocomplete="name" minlength="3" maxlength="160" autocapitalize="words" data-rule="fullname"']); ?>
+<?php lc_form_field('Nickname público','nickname',['prefix'=>'@','placeholder'=>'seunick','help'=>'3 a 24 caracteres: letras, números e _.','attrs'=>'minlength="3" maxlength="24" pattern="[a-zA-Z][a-zA-Z0-9_]{2,23}" autocapitalize="none" spellcheck="false" autocomplete="nickname" title="Comece com letra; use letras, números e _"']); ?>
+<?php lc_form_field('E-mail','email',['type'=>'email','required'=>true,'placeholder'=>'voce@exemplo.com','attrs'=>'autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="190" inputmode="email"']); ?>
+<?php lc_form_field('Senha','password',['type'=>'password','required'=>true,'placeholder'=>'Mínimo de 10 caracteres','attrs'=>'minlength="10" maxlength="128" autocomplete="new-password" data-strength']); ?>
+<?php lc_form_field('WhatsApp com DDD','whatsapp',['type'=>'tel','required'=>true,'prefix'=>'+55','placeholder'=>'(85) 99999-9999','attrs'=>'autocomplete="tel-national" inputmode="tel" maxlength="16" data-lc-mask="phone"']); ?>
+</div>
+<label class="lc-check-card"><input type="checkbox" name="consent_whatsapp" value="1"><span class="lc-check-box" aria-hidden="true"></span><span class="lc-check-text"><strong>Avisos opcionais pelo WhatsApp</strong>Quero receber comunicações operacionais sobre minhas entregas.</span></label>
+<div class="form-actions"><button class="btn" type="submit" data-loading-text="Criando conta…">Criar conta <?=lc_icon('arrow-right')?></button><a href="/planos">Ver pacotes</a></div>
 </form></div></div></div><?php
             });return true;
         }
-        $name=lc_post('full_name',160);$email=mb_strtolower(lc_post('email',190));
+        $name=trim((string)preg_replace('/\s+/u',' ',lc_post('full_name',160)));$email=(string)(lc_email_normalize(lc_post('email',190))??'');
         $password=(string)($_POST['password']??'');
-        $whatsapp=preg_replace('/\D/','',lc_post('whatsapp',24));
-        if(mb_strlen($name)<3||!filter_var($email,FILTER_VALIDATE_EMAIL)||strlen($password)<10||
-           strlen($password)>128||strlen($whatsapp)<10||strlen($whatsapp)>13){
-            lc_flash('Confira seu nome, e-mail, WhatsApp e senha.','error');lc_redirect('/cadastrar/criador');
-        }
+        $whatsapp=(string)(lc_phone_br_normalize(lc_post('whatsapp',24))??'');
+        if(mb_strlen($name)<3){lc_flash('Informe seu nome completo.','error');lc_redirect('/cadastrar/criador');}
+        if($email===''){lc_flash('E-mail inválido. Confira o endereço.','error');lc_redirect('/cadastrar/criador');}
+        if(strlen($password)<10||strlen($password)>128){lc_flash('A senha precisa ter de 10 a 128 caracteres.','error');lc_redirect('/cadastrar/criador');}
+        if($whatsapp===''){lc_flash('WhatsApp inválido. Use DDD + número, ex.: (85) 99999-9999.','error');lc_redirect('/cadastrar/criador');}
         if(lc_one('SELECT id FROM users WHERE email=?',[$email])){
             lc_flash('Este e-mail já está cadastrado. Faça login.','error');lc_redirect('/entrar');
         }
@@ -246,7 +248,7 @@ function lc_creator_routes(string $method,string $path): bool {
     <a class="btn btn-sm" target="_blank" rel="noopener noreferrer" href="<?=lc_e($asaasCharge['invoice_url'])?>">Abrir cobrança Pix (teste)</a>
   <?php elseif(!$asaasCharge):?>
     <form method="post" action="/criador/assinaturas/<?=(int)$s['id']?>/asaas-pix"><?=lc_csrf()?>
-    <label class="field"><span>CPF ou CNPJ do pagador</span><input name="cpf_cnpj" inputmode="numeric" autocomplete="off" placeholder="Somente números" minlength="11" maxlength="18" required></label>
+    <label class="field"><span>CPF ou CNPJ do pagador</span><input name="cpf_cnpj" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00 ou 00.000.000/0000-00" minlength="11" maxlength="18" required data-lc-mask="document"></label>
     <button class="btn btn-sm" type="submit">Gerar Pix de teste</button></form>
   <?php else:?><span class="tag">Cobrança em verificação</span><?php endif;?>
 <?php endif;?>

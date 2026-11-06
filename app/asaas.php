@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/input-validation.php';
 /**
  * LeagueCut/Asaas phase 1: sandbox-only Pix invoices, authenticated event inbox,
  * server-verified payment reconciliation, and payout review (no transfers sent).
@@ -52,6 +53,44 @@ function lc_asaas_request(string $method,string $path,?array $body=null): array 
     if($code<200||$code>=300||!is_array($json))
         throw new RuntimeException('Asaas retornou HTTP '.$code.'. Confira credenciais, dados e o painel do Asaas.');
     return $json;
+}
+/**
+ * Platform cash-out (LeagueCut -> Pix key) is the ONLY transfer this codebase
+ * may send, and only after the master authorized it through the WhatsApp link
+ * (app/platform-finance.php). It needs its own switch in the private .env:
+ * ASAAS_PLATFORM_PAYOUTS_ENABLED=1. Clipper payouts remain manual.
+ */
+function lc_asaas_platform_payouts_enabled(): bool {
+    return lc_asaas_enabled() && lc_env('ASAAS_PLATFORM_PAYOUTS_ENABLED','0')==='1';
+}
+/**
+ * POST /transfers with a strict body. Returns HTTP status + decoded JSON so the
+ * caller can tell "rejected" (4xx, nothing created) from "unknown" (network/5xx).
+ * @return array{status:int,json:?array}
+ */
+function lc_asaas_platform_transfer(array $body): array {
+    if(!lc_asaas_platform_payouts_enabled())throw new RuntimeException('Saque automático Asaas desligado no servidor.');
+    $allowed=['value','operationType','pixAddressKey','pixAddressKeyType','description','externalReference'];
+    if(array_diff(array_keys($body),$allowed))throw new InvalidArgumentException('Campo de transferência não autorizado.');
+    if(($body['operationType']??'')!=='PIX'||!in_array($body['pixAddressKeyType']??'',['CPF','CNPJ','EMAIL','PHONE','EVP'],true)||
+       !is_float($body['value']??null)||$body['value']<1||!preg_match('/^lcpw-[0-9]+-[a-f0-9]{16}$/D',(string)($body['externalReference']??'')))
+        throw new InvalidArgumentException('Dados de transferência inválidos.');
+    if(!function_exists('curl_init'))throw new RuntimeException('Extensão PHP cURL indisponível.');
+    $ch=curl_init(lc_asaas_base_url().'/transfers');
+    curl_setopt_array($ch,[
+        CURLOPT_RETURNTRANSFER=>true,CURLOPT_CUSTOMREQUEST=>'POST',
+        CURLOPT_HTTPHEADER=>['Accept: application/json','Content-Type: application/json','User-Agent: LeagueCut/1.0','access_token: '.lc_asaas_api_key()],
+        CURLOPT_POSTFIELDS=>json_encode($body,JSON_THROW_ON_ERROR|JSON_UNESCAPED_UNICODE),
+        CURLOPT_CONNECTTIMEOUT=>6,CURLOPT_TIMEOUT=>25,
+        CURLOPT_SSL_VERIFYPEER=>true,CURLOPT_SSL_VERIFYHOST=>2,
+        CURLOPT_FOLLOWLOCATION=>false,CURLOPT_MAXREDIRS=>0
+    ]);
+    try{
+        $response=curl_exec($ch);$code=(int)curl_getinfo($ch,CURLINFO_RESPONSE_CODE);
+    }finally{curl_close($ch);}
+    if($response===false)return ['status'=>0,'json'=>null];
+    $json=json_decode((string)$response,true);
+    return ['status'=>$code,'json'=>is_array($json)?$json:null];
 }
 /**
  * Read-only production diagnostic. No charges, no transfers, no account balance
@@ -123,7 +162,7 @@ function lc_asaas_customer_for(array $user,string $cpfCnpj): string {
     $existing=lc_one('SELECT provider_customer_id,environment FROM asaas_customers WHERE user_id=?',[$uid]);
     if($existing && $existing['environment']===lc_asaas_env())return $existing['provider_customer_id'];
     $document=preg_replace('/\D/','',$cpfCnpj)??'';
-    if(!in_array(strlen($document),[11,14],true))throw new InvalidArgumentException('Informe um CPF ou CNPJ válido.');
+    if(!lc_cpf_cnpj_valid($document))throw new InvalidArgumentException('Informe um CPF ou CNPJ válido (confira os dígitos).');
     $payload=['name'=>(string)$user['full_name'],'cpfCnpj'=>$document,
         'email'=>(string)$user['email'],'externalReference'=>'leaguecut-user-'.$uid];
     $created=lc_asaas_request('POST','/customers',$payload);
@@ -224,6 +263,11 @@ function lc_asaas_webhook_receive(string $raw,string $header): int {
        strlen($object)>100)return 400;
     lc_query('INSERT IGNORE INTO asaas_webhook_events(event_id,event_type,object_id) VALUES(?,?,?)',[$id,$event,$object]);
     // Inbox only: no money, no credits, no balance mutations from incoming data.
+    // A TRANSFER_* event for a LeagueCut platform withdrawal only triggers a
+    // status refresh that re-reads the transfer from Asaas (GET) before changing anything.
+    if(str_starts_with($event,'TRANSFER_') && $object!=='' && function_exists('lc_pf_sync_by_transfer_id')){
+        try{lc_pf_sync_by_transfer_id($object);}catch(Throwable $e){error_log('LEAGUECUT_PF_WEBHOOK_SYNC_FAILED');}
+    }
     return 200;
 }
 function lc_asaas_routes(string $method,string $path): bool {

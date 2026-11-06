@@ -554,6 +554,43 @@ try{
         foreach($uxStatements as $sql) $db->exec($sql);
     }
     echo "MIGRACAO_CLIPPER_UX_OK\n";
+    // Campaign capacity: additive nullable columns (NULL = unlimited).
+    $limitColumns=['max_clippers','max_approved_per_week'];
+    $missingLimits=[];
+    foreach($limitColumns as $column){
+        if(!lc_one("SELECT 1 AS ok FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='campaigns' AND COLUMN_NAME=?",[$column]))
+            $missingLimits[]=$column;
+    }
+    if($missingLimits){
+        lc_migration_backup();
+        $limitSql=preg_replace('/^--.*$/m','',(string)file_get_contents(dirname(__DIR__).'/database/migrations/20261106_campaign_limits.sql'));
+        $limitParts=array_values(array_filter(array_map('trim',explode(';',(string)$limitSql))));
+        if(count($limitParts)!==2)throw new RuntimeException('Migração de limites de campanha incompleta.');
+        foreach($limitParts as $i=>$part){
+            if(!preg_match('/^ALTER TABLE campaigns ADD COLUMN '.$limitColumns[$i].'\b/i',$part))
+                throw new RuntimeException('Migração de limites de campanha inválida.');
+            if(in_array($limitColumns[$i],$missingLimits,true))$db->exec($part);
+        }
+    }
+    echo "MIGRACAO_CAMPAIGN_LIMITS_OK\n";
+    // Platform cash: platform withdrawals + append-only financial event log.
+    $financeTables=['platform_withdrawals','platform_finance_events'];
+    $needFinance=false;
+    foreach($financeTables as $table){
+        if(!lc_one('SELECT 1 FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=?',[$table]))$needFinance=true;
+    }
+    if($needFinance){
+        lc_migration_backup();
+        $financeSql=(string)file_get_contents(dirname(__DIR__).'/database/migrations/20261106_platform_finance.sql');
+        $financeParts=array_values(array_filter(array_map('trim',explode(';',$financeSql))));
+        if(count($financeParts)!==count($financeTables))throw new RuntimeException('Migração do caixa da plataforma incompleta.');
+        foreach($financeParts as $i=>$part){
+            if(!preg_match('/^CREATE TABLE IF NOT EXISTS '.preg_quote($financeTables[$i],'/').'\s*\(/i',$part))
+                throw new RuntimeException('Tabela financeira não autorizada.');
+            $db->exec($part);
+        }
+    }
+    echo "MIGRACAO_PLATFORM_FINANCE_OK\n";
 
 
 

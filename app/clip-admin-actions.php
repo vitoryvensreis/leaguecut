@@ -37,6 +37,9 @@ function lc_admin_change_clip(int $clipId,string $decision,int $adminId): string
         if($decision==='approved' && !$clip['drive_file_id']){
             throw new RuntimeException('Não é possível aprovar um clipe sem vídeo original no Drive.');
         }
+        if($decision==='approved'){
+            lc_campaign_assert_can_approve($clip);
+        }
         if($decision==='rejected' && $clip['status']==='approved'){
             lc_clip_assert_no_financial_history($clip);
         }
