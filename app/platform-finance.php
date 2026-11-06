@@ -69,7 +69,8 @@ function lc_pf_sum(string $sql, array $args = []): int {
 }
 /** @return array<string,int> all values in cents */
 function lc_pf_summary(): array {
-    $monthStart = (new DateTimeImmutable('first day of this month'))->format('Y-m-d 00:00:00');
+    // All time math uses the database clock (NOW()), never PHP's timezone.
+    $monthStart = (string)lc_query("SELECT DATE_FORMAT(NOW(),'%Y-%m-01 00:00:00')")->fetchColumn();
     $reserved = "'" . implode("','", LC_PF_RESERVED) . "'";
     $income = lc_pf_sum("SELECT COALESCE(SUM(s.price_cents_snapshot),0) AS total FROM creator_subscription_cycles c
         JOIN creator_subscriptions s ON s.id=c.subscription_id WHERE c.payment_status='confirmed'");
@@ -128,10 +129,9 @@ function lc_pf_statement(string $kind, ?string $from, ?string $to, int $page, in
 }
 /** Requests that were never authorized expire after 24h and release their reserve. */
 function lc_pf_expire_stale(): void {
-    $stale = lc_all("SELECT id,amount_cents FROM platform_withdrawals WHERE status='awaiting_authorization' AND created_at<?",
-        [date('Y-m-d H:i:s', time() - LC_PF_REQUEST_TTL)]);
+    $stale = lc_all("SELECT id,amount_cents FROM platform_withdrawals WHERE status='awaiting_authorization' AND created_at<DATE_SUB(NOW(),INTERVAL " . (int)LC_PF_REQUEST_TTL . " SECOND)");
     // A dispatch interrupted before Asaas answered (process crash) must be checked by the master.
-    foreach (lc_all("SELECT id FROM platform_withdrawals WHERE status='sending' AND provider_transfer_id IS NULL AND updated_at<?", [date('Y-m-d H:i:s', time() - 300)]) as $hung) {
+    foreach (lc_all("SELECT id FROM platform_withdrawals WHERE status='sending' AND provider_transfer_id IS NULL AND updated_at<DATE_SUB(NOW(),INTERVAL 5 MINUTE)") as $hung) {
         $n = lc_query("UPDATE platform_withdrawals SET status='unknown',last_error='Envio interrompido sem resposta do Asaas. Confira no painel Asaas.' WHERE id=? AND status='sending'", [(int)$hung['id']])->rowCount();
         if ($n === 1) lc_pf_log((int)$hung['id'], 'dispatch_unknown', null, 'sending', 'unknown', 'Envio interrompido sem resposta registrada.');
     }
@@ -162,8 +162,8 @@ function lc_pf_request(array $actor, int $amountCents, string $type, string $key
     $type = strtoupper($type);
     $description = trim((string)preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $description));
     $description = $description === '' ? null : mb_substr($description, 0, 120);
-    $recent = (int)(lc_one("SELECT COUNT(*) AS n FROM platform_finance_events WHERE event='requested' AND actor_user_id=? AND created_at>?",
-        [(int)$actor['id'], date('Y-m-d H:i:s', time() - 3600)])['n'] ?? 0);
+    $recent = (int)(lc_one("SELECT COUNT(*) AS n FROM platform_finance_events WHERE event='requested' AND actor_user_id=? AND created_at>DATE_SUB(NOW(),INTERVAL 1 HOUR)",
+        [(int)$actor['id']])['n'] ?? 0);
     if ($recent >= 5) throw new RuntimeException('Limite de 5 solicitações por hora atingido. Aguarde para solicitar outro saque.');
     lc_pf_expire_stale();
     return lc_pf_with_cash_lock(function () use ($actor, $amountCents, $type, $normalized, $description): int {
@@ -204,15 +204,16 @@ function lc_pf_issue_token(int $id, ?int $actorId): array {
     $db = lc_db();
     $db->beginTransaction();
     try {
-        $row = lc_one('SELECT * FROM platform_withdrawals WHERE id=? FOR UPDATE', [$id]);
+        $row = lc_one('SELECT *,created_at<DATE_SUB(NOW(),INTERVAL ' . (int)LC_PF_REQUEST_TTL . ' SECOND) AS is_stale,
+            (link_last_sent_at IS NOT NULL AND link_last_sent_at>DATE_SUB(NOW(),INTERVAL ' . (int)LC_PF_LINK_COOLDOWN . ' SECOND)) AS in_cooldown
+            FROM platform_withdrawals WHERE id=? FOR UPDATE', [$id]);
         if (!$row || $row['status'] !== 'awaiting_authorization') throw new RuntimeException('Este saque não está aguardando autorização.');
-        if (strtotime((string)$row['created_at']) < time() - LC_PF_REQUEST_TTL) throw new RuntimeException('Pedido expirado. Crie uma nova solicitação.');
+        if ((int)$row['is_stale'] === 1) throw new RuntimeException('Pedido expirado. Crie uma nova solicitação.');
         if ((int)$row['link_sends'] >= LC_PF_LINK_MAX_SENDS) throw new RuntimeException('Limite de reenvios atingido. Cancele e crie uma nova solicitação.');
-        if ($row['link_last_sent_at'] && strtotime((string)$row['link_last_sent_at']) > time() - LC_PF_LINK_COOLDOWN)
-            throw new RuntimeException('Aguarde 1 minuto antes de reenviar o link.');
+        if ((int)$row['in_cooldown'] === 1) throw new RuntimeException('Aguarde 1 minuto antes de reenviar o link.');
         $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-        lc_query('UPDATE platform_withdrawals SET link_token_hash=?,link_expires_at=?,link_sends=link_sends+1,link_last_sent_at=NOW() WHERE id=?',
-            [lc_pf_token_hash($id, $token), date('Y-m-d H:i:s', time() + LC_PF_LINK_TTL), $id]);
+        lc_query('UPDATE platform_withdrawals SET link_token_hash=?,link_expires_at=DATE_ADD(NOW(),INTERVAL ' . (int)LC_PF_LINK_TTL . ' SECOND),link_sends=link_sends+1,link_last_sent_at=NOW() WHERE id=?',
+            [lc_pf_token_hash($id, $token), $id]);
         lc_pf_log($id, 'link_issued', $actorId, null, null, 'Validade de 15 minutos; links anteriores invalidados.');
         $db->commit();
         return [$token, $row];
@@ -240,10 +241,10 @@ function lc_pf_deliver_link(int $id, string $token, array $row, ?int $actorId): 
 /** Valid, unexpired link for a pending request, or null. Constant-time comparison. */
 function lc_pf_link_row(int $id, string $token): ?array {
     if (!preg_match('/^[A-Za-z0-9_-]{43}$/D', $token)) return null;
-    $row = lc_one('SELECT * FROM platform_withdrawals WHERE id=?', [$id]);
-    if (!$row || $row['status'] !== 'awaiting_authorization' || !$row['link_token_hash'] || !$row['link_expires_at']) return null;
+    $row = lc_one('SELECT *,link_expires_at>=NOW() AS link_live,GREATEST(0,TIMESTAMPDIFF(SECOND,NOW(),link_expires_at)) AS link_seconds_left
+        FROM platform_withdrawals WHERE id=?', [$id]);
+    if (!$row || $row['status'] !== 'awaiting_authorization' || !$row['link_token_hash'] || (int)$row['link_live'] !== 1) return null;
     if (!hash_equals((string)$row['link_token_hash'], lc_pf_token_hash($id, $token))) return null;
-    if (strtotime((string)$row['link_expires_at']) < time()) return null;
     return $row;
 }
 /** Master decision through the link. Password/2FA must be verified by the caller. */
@@ -256,10 +257,10 @@ function lc_pf_decide(int $id, string $token, array $actor, string $decision): s
     $db = lc_db();
     $db->beginTransaction();
     try {
-        $row = lc_one('SELECT * FROM platform_withdrawals WHERE id=? FOR UPDATE', [$id]);
+        $row = lc_one('SELECT *,link_expires_at>=NOW() AS link_live FROM platform_withdrawals WHERE id=? FOR UPDATE', [$id]);
         $valid = $row && $row['status'] === 'awaiting_authorization' && $row['link_token_hash']
-            && hash_equals((string)$row['link_token_hash'], lc_pf_token_hash($id, $token))
-            && strtotime((string)$row['link_expires_at']) >= time();
+            && (int)$row['link_live'] === 1
+            && hash_equals((string)$row['link_token_hash'], lc_pf_token_hash($id, $token));
         if (!$valid) {
             $db->rollBack();
             if ($row) lc_pf_log($id, 'authorization_denied', (int)$actor['id'], null, null, 'Link inválido, expirado ou já utilizado.');

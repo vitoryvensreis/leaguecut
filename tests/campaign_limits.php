@@ -36,7 +36,7 @@ try{
        ['Limites '.$suffix,'limites-'.$suffix,'Campanha para teste de limites']);
     $cid=(int)$db->lastInsertId();
     $campaign=lc_one('SELECT * FROM campaigns WHERE id=?',[$cid]);
-    $now=date('Y-m-d H:i:s');
+    $now=lc_campaign_db_now();
     $clip=function(string $k,string $status='pending')use($users,$cid,$now){
         lc_query("INSERT INTO clips(user_id,campaign_id,social_account_id,title,published_url,status,submitted_at,drive_file_id)
           VALUES(?,?,?,?,?,?,?,?)",[$users[$k]['id'],$cid,$users[$k]['account'],'t','https://www.instagram.com/reel/'.bin2hex(random_bytes(5)),$status,$now,'test-drive-x']);

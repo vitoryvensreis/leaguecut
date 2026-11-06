@@ -195,7 +195,7 @@ function lc_pf_authorize_page(array $user, ?array $row, int $id, string $token, 
         <div><dt>Chave Pix</dt><dd><strong><?=lc_e(LC_PIX_KEY_TYPES[$row['pix_key_type']] ?? $row['pix_key_type'])?>:</strong> <?=lc_e(lc_pix_key_format((string)$row['pix_key_type'], lc_decrypt((string)$row['pix_key_enc'])))?></dd></div>
         <div><dt>Solicitado por</dt><dd><?=lc_e($row['requester'] ?? '')?></dd></div>
         <?php if ($row['description']): ?><div><dt>Descrição</dt><dd><?=lc_e($row['description'])?></dd></div><?php endif; ?>
-        <div><dt>Link válido até</dt><dd><?=lc_e(date('H:i', strtotime((string)$row['link_expires_at'])))?></dd></div>
+        <div><dt>Validade do link</dt><dd><?=max(1,(int)ceil(((int)($row['link_seconds_left'] ?? 0))/60))?> min restantes</dd></div>
       </dl>
       <p class="hint">Confira a chave com atenção. Ao autorizar, o Asaas recebe o pedido de Pix imediatamente.</p>
       <form method="post" action="/admin/financeiro/autorizar/<?=$id?>/<?=lc_e($token)?>" class="lc-pf-form"><?=lc_csrf()?>

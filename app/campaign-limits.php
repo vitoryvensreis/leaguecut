@@ -37,6 +37,10 @@ function lc_campaign_week_bounds(string $moment): array {
     $end = (new DateTimeImmutable($begin))->modify('+7 days')->format('Y-m-d H:i:s');
     return [$begin, $end];
 }
+/** "Now" in the database clock, the same clock that fills clips.submitted_at. */
+function lc_campaign_db_now(): string {
+    return (string)lc_query('SELECT NOW()')->fetchColumn();
+}
 function lc_campaign_participant_count(int $campaignId): int {
     return (int)(lc_one('SELECT COUNT(DISTINCT user_id) AS n FROM clips WHERE campaign_id=?', [$campaignId])['n'] ?? 0);
 }
@@ -62,7 +66,7 @@ function lc_campaign_submission_block(array $campaign, int $userId, ?string $mom
         return 'As vagas desta campanha estão esgotadas (' . $maxClippers . ' clipadores). Escolha outra campanha no catálogo.';
     }
     $weekly = lc_campaign_limit_value($campaign['max_approved_per_week'] ?? null);
-    if ($weekly !== null && lc_campaign_approved_in_week($campaignId, $userId, $moment ?? date('Y-m-d H:i:s')) >= $weekly) {
+    if ($weekly !== null && lc_campaign_approved_in_week($campaignId, $userId, $moment ?? lc_campaign_db_now()) >= $weekly) {
         return 'Você já atingiu o limite de ' . $weekly . ' clipes aprovados nesta semana nesta campanha. Novos envios abrem na próxima segunda-feira.';
     }
     return null;
@@ -95,7 +99,7 @@ function lc_campaign_limits_summary(array $campaign, ?int $userId = null): array
         'full' => $max !== null && $participants >= $max,
         'weekly' => $weekly,
         'approved_week' => $userId !== null && $weekly !== null && $campaignId > 0
-            ? lc_campaign_approved_in_week($campaignId, $userId, date('Y-m-d H:i:s')) : null,
+            ? lc_campaign_approved_in_week($campaignId, $userId, lc_campaign_db_now()) : null,
         'is_participant' => $isParticipant,
     ];
 }
